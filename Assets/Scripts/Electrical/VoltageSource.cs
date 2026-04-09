@@ -13,7 +13,10 @@ public class VoltageSource : ElectricalComponent
     {
         if (nodeA == null || nodeB == null) return;
 
+        // 🔥 IMPORTANTE: forzar valores cada frame
         nodeA.voltage = voltage;
         nodeB.voltage = 0;
+
+        Debug.Log("Fuente aplicada: " + voltage + "V");
     }
 }

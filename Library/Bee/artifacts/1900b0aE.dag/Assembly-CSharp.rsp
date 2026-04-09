@@ -419,7 +419,6 @@
 "Assets/Scripts/Electrical/Resistor.cs"
 "Assets/Scripts/Electrical/TechnicianUI.cs"
 "Assets/Scripts/Electrical/VoltageSource.cs"
-"Assets/TutorialInfo/Readme.cs"
 -langversion:9.0
 /deterministic
 /optimize+

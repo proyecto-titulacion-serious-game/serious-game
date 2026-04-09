@@ -12,22 +12,16 @@ public class CircuitManager : MonoBehaviour
 
     void Update()
     {
+        Debug.Log("Simulando circuito...");
         Simulate();
     }
 
     void Simulate()
     {
-        // 1. Reset nodos
-        foreach (var node in nodes)
-        {
-            node.voltage = 0f;
-        }
-
         VoltageSource source = null;
         Resistor resistor = null;
         LED led = null;
 
-        // 2. Identificar componentes
         foreach (var comp in components)
         {
             if (comp is VoltageSource vs) source = vs;
@@ -37,27 +31,23 @@ public class CircuitManager : MonoBehaviour
 
         if (source == null || resistor == null || led == null) return;
 
-        // 3. Aplicar fuente
-        source.Calculate();
+        // 🔥 Aplicar fuente PRIMERO
+        source.nodeA.voltage = source.voltage;
+        source.nodeB.voltage = 0;
 
         float totalResistance = resistor.resistance + led.resistance;
-
         if (totalResistance <= 0) return;
 
-        // 4. Corriente
         float current = source.voltage / totalResistance;
 
-        // 5. Caída de voltaje
         float voltageDropResistor = current * resistor.resistance;
 
-        // 6. Propagar voltajes
         resistor.nodeA.voltage = source.voltage;
         resistor.nodeB.voltage = source.voltage - voltageDropResistor;
 
         led.nodeA.voltage = resistor.nodeB.voltage;
         led.nodeB.voltage = 0;
 
-        // 7. Aplicar cálculos
         resistor.Calculate();
         led.Calculate();
 
@@ -69,4 +59,5 @@ public class CircuitManager : MonoBehaviour
         if (a == null || b == null) return 0f;
         return a.voltage - b.voltage;
     }
+    
 }
