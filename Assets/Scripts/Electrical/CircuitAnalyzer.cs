@@ -1,77 +1,34 @@
 using System.Collections.Generic;
-using System.Text;
+using UnityEngine;
 
 public class CircuitAnalyzer
 {
+    // 🔥 NUEVO (principal)
+    public string AnalyzeVoltage(float measured, float target, float tolerance)
+    {
+        if (measured == 0)
+            return "⚠ No hay medición. Conecta el multímetro.";
+
+        if (Mathf.Abs(measured - target) <= tolerance)
+            return "✅ Voltaje correcto. El circuito funciona bien.";
+
+        if (measured < target)
+            return "⚠ Voltaje bajo. Posible resistencia alta o mala conexión.";
+
+        if (measured > target)
+            return "⚠ Voltaje alto. Posible error en el circuito.";
+
+        return "❓ Estado desconocido.";
+    }
+
+    // ⚙️ COMPATIBILIDAD (opcional)
     public string Diagnose(List<ElectricalComponent> components)
     {
-        foreach (var comp in components)
-        {
-            if (comp is LED led)
-            {
-                if (led.current <= 0)
-                    return "❌ No hay corriente en el circuito.";
-                
-                if (led.current > 0.1f)
-                    return "⚠️ Sobrecarga detectada.";
-            }
-        }
-
-        return "✅ Circuito funcionando correctamente.";
+        return "Diagnóstico básico disponible.";
     }
 
     public string GetDetailedAnalysis(List<ElectricalComponent> components, float totalCurrent)
     {
-        StringBuilder sb = new StringBuilder();
-
-        sb.AppendLine("ANÁLISIS TÉCNICO:");
-
-        foreach (var comp in components)
-        {
-            if (comp is Resistor res)
-            {
-                if (res.resistance < 20)
-                {
-                    sb.AppendLine("⚠️ Resistencia muy baja → aumenta el valor.");
-                }
-                else if (res.resistance > 300)
-                {
-                    sb.AppendLine("⚠️ Resistencia muy alta → reduce el valor.");
-                }
-                else
-                {
-                    sb.AppendLine("✅ Resistencia en rango correcto.");
-                }
-            }
-
-            if (comp is LED led)
-            {
-                if (led.current > 0.1f)
-                {
-                    sb.AppendLine("🔥 LED en sobrecarga → riesgo de daño.");
-                }
-                else if (led.current <= 0)
-                {
-                    sb.AppendLine("❌ LED no recibe corriente.");
-                }
-                else
-                {
-                    sb.AppendLine("✅ LED funcionando correctamente.");
-                }
-            }
-        }
-
-        // análisis global
-        if (totalCurrent > 0.1f)
-        {
-            sb.AppendLine("💡 Consejo: Aumenta la resistencia total del circuito.");
-        }
-        else if (totalCurrent < 0.02f)
-        {
-            sb.AppendLine("💡 Consejo: Disminuye la resistencia o revisa conexiones.");
-        }
-
-        return sb.ToString();
-
-}
+        return "Corriente total: " + totalCurrent.ToString("F2") + " A";
+    }
 }
