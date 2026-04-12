@@ -1,33 +1,29 @@
 using UnityEngine;
 using UnityEngine.UI;
-using System.Text;
 using TMPro;
+using System.Text;
 
 public class TechnicianUI : MonoBehaviour
-
 {
-
     [Header("Referencias")]
     public CircuitManager circuit;
+    public Multimeter multimeter;
+    public GameManager gameManager;
+    public PerformanceTracker performance;
 
     [Header("UI Textos")]
     public Text voltageText;
     public Text currentText;
     public Text componentsText;
     public Text diagnosisText;
-    public Text detailedAnalysisText;
     public Text performanceText;
+
     public TMP_Text multimeterText;
-    public Multimeter multimeter;
-    
+
+    public Text objectiveText;
+    public Text resultText;
+
     private CircuitAnalyzer analyzer = new CircuitAnalyzer();
-    private PerformanceTracker performance;
-
-
-    void Start()
-    {
-        performance = FindObjectOfType<PerformanceTracker>();
-    }
 
     void Update()
     {
@@ -36,14 +32,14 @@ public class TechnicianUI : MonoBehaviour
         UpdateVoltage();
         UpdateCurrent();
         UpdateComponents();
+        UpdateMultimeter();
+        UpdateObjective();
         UpdateDiagnosis();
-        UpdateDetailedAnalysis();
+        UpdateResult();
         UpdatePerformance();
-        
-        multimeterText.text = "Voltaje medido: " + multimeter.measuredVoltage.ToString("F2") + " V";
-
     }
 
+    // 🔌 VOLTAJE DE FUENTE
     void UpdateVoltage()
     {
         float voltage = 0f;
@@ -60,11 +56,13 @@ public class TechnicianUI : MonoBehaviour
         voltageText.text = "Voltaje Fuente: " + voltage + " V";
     }
 
+    // ⚡ CORRIENTE
     void UpdateCurrent()
     {
         currentText.text = "Corriente Total: " + circuit.totalCurrent.ToString("F2") + " A";
     }
 
+    // 🔧 COMPONENTES
     void UpdateComponents()
     {
         StringBuilder sb = new StringBuilder();
@@ -78,7 +76,7 @@ public class TechnicianUI : MonoBehaviour
             }
             else if (comp is LED led)
             {
-                string estado = led.current > 0 ? "Activo" : "Apagado";
+                string estado = led.current > 0 ? "Encendido" : "Apagado";
                 sb.AppendLine("- LED: " + estado);
             }
         }
@@ -86,19 +84,72 @@ public class TechnicianUI : MonoBehaviour
         componentsText.text = sb.ToString();
     }
 
-    void UpdateDiagnosis()
+    // 🔌 MULTÍMETRO (MEJORADO)
+    void UpdateMultimeter()
     {
-        diagnosisText.text = "Diagnóstico:\n" + analyzer.Diagnose(circuit.components);
+        multimeterText.text =
+            "Voltaje: " + multimeter.measuredVoltage.ToString("F2") + " V\n" +
+            "🔴 Punta Roja: " + (multimeter.probeA != null ? multimeter.probeA.name : "None") + "\n" +
+            "⚫ Punta Negra: " + (multimeter.probeB != null ? multimeter.probeB.name : "None");
     }
 
-    void UpdateDetailedAnalysis()
+    // 🎯 OBJETIVO
+    void UpdateObjective()
     {
-        detailedAnalysisText.text = analyzer.GetDetailedAnalysis(
-            circuit.components,
-            circuit.totalCurrent
+        if (gameManager == null || objectiveText == null) return;
+
+        objectiveText.text = GetObjectiveText();
+    }
+
+    string GetObjectiveText()
+    {
+        switch (gameManager.currentLevel)
+        {
+            case LevelType.OhmLaw:
+                return "RETO 1:\nMedir el voltaje correcto en el circuito serie.";
+
+            case LevelType.Parallel:
+                return "RETO 2:\nDiagnosticar circuito en paralelo.";
+
+            case LevelType.Mixed:
+                return "RETO 3:\nDetectar errores de polaridad.";
+
+            case LevelType.Arduino:
+                return "RETO 4:\nConfigurar sistema Arduino.";
+
+            default:
+                return "Sin objetivo";
+        }
+    }
+
+    // 🧠 DIAGNÓSTICO INTELIGENTE
+    void UpdateDiagnosis()
+    {
+        if (gameManager == null) return;
+
+        diagnosisText.text = analyzer.AnalyzeVoltage(
+            multimeter.measuredVoltage,
+            gameManager.targetVoltage,
+            gameManager.tolerance
         );
     }
 
+    // ✅ RESULTADO
+    void UpdateResult()
+    {
+        if (gameManager == null || resultText == null) return;
+
+        if (gameManager.levelCompleted)
+        {
+            resultText.text = "✅ Correcto";
+        }
+        else
+        {
+            resultText.text = "❌ Aún no completado";
+        }
+    }
+
+    // ⏱ PERFORMANCE
     void UpdatePerformance()
     {
         if (performance == null) return;

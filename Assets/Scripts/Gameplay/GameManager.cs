@@ -2,72 +2,46 @@ using UnityEngine;
 
 public class GameManager : MonoBehaviour
 {
+    [Header("Referencias")]
     public CircuitManager circuit;
+    public Multimeter multimeter;
     public PerformanceTracker performance;
 
-    public int currentLevel = 1;
+    [Header("Nivel actual")]
+    public LevelType currentLevel = LevelType.OhmLaw;
 
-    [Header("Objetivos")]
-    public float targetCurrent = 0.05f;
-    public float tolerance = 0.01f;
+    [Header("Objetivo")]
+    public float targetVoltage = 9f;
+    public float tolerance = 0.5f;
 
-    [Header("Estado")]
     public bool levelCompleted = false;
-
-    void Start()
-    {
-        SetupLevel();
-    }
 
     void Update()
     {
-        CheckWinCondition();
-    }
-
-    void SetupLevel()
-    {
-        levelCompleted = false;
+        if (levelCompleted) return;
 
         switch (currentLevel)
         {
-            case 1:
-                Debug.Log("Reto 1: Ley de Ohm");
-
-                targetCurrent = 0.05f;
-                break;
-
-            case 2:
-                Debug.Log("Reto 2: Ajuste de resistencia");
-
-                targetCurrent = 0.02f;
+            case LevelType.OhmLaw:
+                CheckOhmLaw();
                 break;
         }
     }
 
-    void CheckWinCondition()
+    void CheckOhmLaw()
     {
-        if (levelCompleted) return;
+        if (multimeter.probeA == null || multimeter.probeB == null)
+            return;
 
-        float current = circuit.totalCurrent;
+        float measured = multimeter.measuredVoltage;
 
-        if (Mathf.Abs(current - targetCurrent) <= tolerance)
+        if (Mathf.Abs(measured - targetVoltage) <= tolerance)
         {
             levelCompleted = true;
-
-            Debug.Log("✅ Nivel completado");
+            Debug.Log("✅ RETO 1 COMPLETADO");
 
             if (performance != null)
-            {
                 Debug.Log(performance.GetEvaluation());
-            }
-
-            Invoke("NextLevel", 3f);
         }
-    }
-
-    void NextLevel()
-    {
-        currentLevel++;
-        SetupLevel();
     }
 }
