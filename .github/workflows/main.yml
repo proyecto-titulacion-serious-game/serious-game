@@ -1,4 +1,4 @@
-name: Tesis VR CI 
+name: Tesis VR CI 🚀
 
 on:
   push:
@@ -6,9 +6,12 @@ on:
       - main
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
-    name: Build para Windows 
+    name: Build para Windows 🎮
     runs-on: ubuntu-latest
     steps:
       - name: Checkout del código
@@ -17,7 +20,7 @@ jobs:
           lfs: true
 
       - name: Cache de Library
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: Library
           key: Library-Unity-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
