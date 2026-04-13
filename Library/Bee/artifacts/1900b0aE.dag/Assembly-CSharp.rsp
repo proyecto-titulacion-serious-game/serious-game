@@ -416,6 +416,7 @@
 "Assets/Scripts/Electrical/Resistor.cs"
 "Assets/Scripts/Electrical/VoltageSource.cs"
 "Assets/Scripts/Gameplay/GameManager.cs"
+"Assets/Scripts/Gameplay/InstructionSystem.cs"
 "Assets/Scripts/Gameplay/LevelType.cs"
 "Assets/Scripts/Gameplay/ObjectiveSystem.cs"
 "Assets/Scripts/Interaction/IInteractable.cs"
