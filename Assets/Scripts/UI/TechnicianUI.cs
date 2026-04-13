@@ -22,6 +22,8 @@ public class TechnicianUI : MonoBehaviour
 
     public Text objectiveText;
     public Text resultText;
+    public InstructionSystem instructionSystem;
+    public Text instructionText;
 
     private CircuitAnalyzer analyzer = new CircuitAnalyzer();
 
@@ -37,6 +39,8 @@ public class TechnicianUI : MonoBehaviour
         UpdateDiagnosis();
         UpdateResult();
         UpdatePerformance();
+        UpdateInstructions();
+        instructionText.text = instructionSystem.GetCurrentInstruction();
     }
 
     // 🔌 VOLTAJE DE FUENTE
@@ -55,6 +59,14 @@ public class TechnicianUI : MonoBehaviour
 
         voltageText.text = "Voltaje Fuente: " + voltage + " V";
     }
+
+    void UpdateInstructions()
+    {
+        if (instructionSystem == null || instructionText == null) return;
+
+        instructionText.text = instructionSystem.GetCurrentInstruction();
+    }
+
 
     // ⚡ CORRIENTE
     void UpdateCurrent()
