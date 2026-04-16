@@ -1,9 +1,7 @@
-using System.Collections.Generic;
 using UnityEngine;
 
 public class CircuitAnalyzer
 {
-    // 🔥 NUEVO (principal)
     public string AnalyzeVoltage(float measured, float target, float tolerance)
     {
         if (measured == 0)
@@ -21,14 +19,39 @@ public class CircuitAnalyzer
         return "❓ Estado desconocido.";
     }
 
-    // ⚙️ COMPATIBILIDAD (opcional)
-    public string Diagnose(List<ElectricalComponent> components)
+    public string AnalyzeByLevel(LevelType level, float measured, float target, float tolerance, CircuitManager circuit)
     {
-        return "Diagnóstico básico disponible.";
+        switch (level)
+        {
+            case LevelType.OhmLaw:
+                return AnalyzeVoltage(measured, target, tolerance);
+
+            case LevelType.Parallel:
+                return AnalyzeParallel(circuit);
+
+            default:
+                return "ℹ Nivel en desarrollo.";
+        }
     }
 
-    public string GetDetailedAnalysis(List<ElectricalComponent> components, float totalCurrent)
+    string AnalyzeParallel(CircuitManager circuit)
     {
-        return "Corriente total: " + totalCurrent.ToString("F2") + " A";
+        bool anyLedOff = false;
+
+        foreach (var comp in circuit.components)
+        {
+            if (comp is LED led)
+            {
+                if (!led.isOn)
+                {
+                    anyLedOff = true;
+                }
+            }
+        }
+
+        if (anyLedOff)
+            return "⚠ Hay una rama del circuito paralelo sin funcionar. Revisa conexiones o componentes de esa rama.";
+
+        return "✅ Todas las ramas del circuito paralelo están funcionando.";
     }
 }

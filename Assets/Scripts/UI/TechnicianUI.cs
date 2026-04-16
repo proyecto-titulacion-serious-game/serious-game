@@ -10,6 +10,7 @@ public class TechnicianUI : MonoBehaviour
     public Multimeter multimeter;
     public GameManager gameManager;
     public PerformanceTracker performance;
+    public InstructionSystem instructionSystem;
 
     [Header("UI Textos")]
     public Text voltageText;
@@ -17,13 +18,14 @@ public class TechnicianUI : MonoBehaviour
     public Text componentsText;
     public Text diagnosisText;
     public Text performanceText;
-
-    public TMP_Text multimeterText;
-
     public Text objectiveText;
     public Text resultText;
-    public InstructionSystem instructionSystem;
     public Text instructionText;
+    public TechnicianActions technicianActions;
+    public Text selectedComponentText;
+    public Text stepText;
+
+    public TMP_Text multimeterText;
 
     private CircuitAnalyzer analyzer = new CircuitAnalyzer();
 
@@ -40,10 +42,10 @@ public class TechnicianUI : MonoBehaviour
         UpdateResult();
         UpdatePerformance();
         UpdateInstructions();
-        instructionText.text = instructionSystem.GetCurrentInstruction();
+        UpdateSelectedComponent();
+        UpdateStepInfo();
     }
 
-    // 🔌 VOLTAJE DE FUENTE
     void UpdateVoltage()
     {
         float voltage = 0f;
@@ -57,26 +59,27 @@ public class TechnicianUI : MonoBehaviour
             }
         }
 
-        voltageText.text = "Voltaje Fuente: " + voltage + " V";
+        if (voltageText != null)
+            voltageText.text = "Voltaje Fuente: " + voltage + " V";
     }
 
-    void UpdateInstructions()
+    void UpdateStepInfo()
     {
-        if (instructionSystem == null || instructionText == null) return;
+        if (instructionSystem == null || stepText == null) return;
 
-        instructionText.text = instructionSystem.GetCurrentInstruction();
+        stepText.text = "Paso actual: " + (instructionSystem.currentStep + 1);
     }
 
-
-    // ⚡ CORRIENTE
     void UpdateCurrent()
     {
-        currentText.text = "Corriente Total: " + circuit.totalCurrent.ToString("F2") + " A";
+        if (currentText != null)
+            currentText.text = "Corriente Total: " + circuit.totalCurrent.ToString("F2") + " A";
     }
 
-    // 🔧 COMPONENTES
     void UpdateComponents()
     {
+        if (componentsText == null) return;
+
         StringBuilder sb = new StringBuilder();
         sb.AppendLine("Componentes:");
 
@@ -96,20 +99,26 @@ public class TechnicianUI : MonoBehaviour
         componentsText.text = sb.ToString();
     }
 
-    // 🔌 MULTÍMETRO (MEJORADO)
+    void UpdateSelectedComponent()
+    {
+        if (technicianActions == null || selectedComponentText == null) return;
+
+        selectedComponentText.text = "Seleccionado: " + technicianActions.GetSelectedComponentName();
+    }
+
     void UpdateMultimeter()
     {
+        if (multimeter == null || multimeterText == null) return;
+
         multimeterText.text =
             "Voltaje: " + multimeter.measuredVoltage.ToString("F2") + " V\n" +
             "🔴 Punta Roja: " + (multimeter.probeA != null ? multimeter.probeA.name : "None") + "\n" +
             "⚫ Punta Negra: " + (multimeter.probeB != null ? multimeter.probeB.name : "None");
     }
 
-    // 🎯 OBJETIVO
     void UpdateObjective()
     {
         if (gameManager == null || objectiveText == null) return;
-
         objectiveText.text = GetObjectiveText();
     }
 
@@ -118,56 +127,58 @@ public class TechnicianUI : MonoBehaviour
         switch (gameManager.currentLevel)
         {
             case LevelType.OhmLaw:
-                return "RETO 1:\nMedir el voltaje correcto en el circuito serie.";
+                return "RETO 1:\nMide el voltaje correcto en el circuito serie y corrige la resistencia.";
 
             case LevelType.Parallel:
-                return "RETO 2:\nDiagnosticar circuito en paralelo.";
+                return "RETO 2:\nDiagnostica la rama paralela fallando y repárala.";
 
             case LevelType.Mixed:
-                return "RETO 3:\nDetectar errores de polaridad.";
+                return "RETO 3:\nDetecta errores de polaridad y valores.";
 
             case LevelType.Arduino:
-                return "RETO 4:\nConfigurar sistema Arduino.";
+                return "RETO 4:\nConfigura correctamente el sistema Arduino.";
 
             default:
                 return "Sin objetivo";
         }
     }
 
-    // 🧠 DIAGNÓSTICO INTELIGENTE
     void UpdateDiagnosis()
     {
-        if (gameManager == null) return;
+        if (gameManager == null || diagnosisText == null || multimeter == null) return;
 
-        diagnosisText.text = analyzer.AnalyzeVoltage(
+        diagnosisText.text = analyzer.AnalyzeByLevel(
+            gameManager.currentLevel,
             multimeter.measuredVoltage,
             gameManager.targetVoltage,
-            gameManager.tolerance
+            gameManager.tolerance,
+            circuit
         );
     }
 
-    // ✅ RESULTADO
     void UpdateResult()
     {
         if (gameManager == null || resultText == null) return;
 
         if (gameManager.levelCompleted)
-        {
             resultText.text = "✅ Correcto";
-        }
         else
-        {
             resultText.text = "❌ Aún no completado";
-        }
     }
 
-    // ⏱ PERFORMANCE
     void UpdatePerformance()
     {
-        if (performance == null) return;
+        if (performance == null || performanceText == null) return;
 
         performanceText.text =
             "Tiempo: " + performance.GetTime().ToString("F1") + " s\n" +
-            "Errores: " + performance.errors;
+            "Errores: " + performance.GetErrors();
+    }
+
+    void UpdateInstructions()
+    {
+        if (instructionSystem == null || instructionText == null) return;
+
+        instructionText.text = instructionSystem.GetCurrentInstruction();
     }
 }
