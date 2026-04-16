@@ -14,7 +14,25 @@ public class GameManager : MonoBehaviour
     public float targetVoltage = 9f;
     public float tolerance = 0.5f;
 
+    [Header("Estado")]
     public bool levelCompleted = false;
+
+    [Header("Progresión")]
+    public LevelType[] levels;
+    private int currentLevelIndex = 0;
+
+    void Start()
+    {
+        levels = new LevelType[]
+        {
+            LevelType.OhmLaw,
+            LevelType.Parallel,
+            LevelType.Mixed,
+            LevelType.Arduino
+        };
+
+        LoadLevel(currentLevelIndex);
+    }
 
     void Update()
     {
@@ -25,11 +43,84 @@ public class GameManager : MonoBehaviour
             case LevelType.OhmLaw:
                 CheckOhmLaw();
                 break;
+
+            case LevelType.Parallel:
+                CheckParallel();
+                break;
+
+            case LevelType.Mixed:
+                // Futuro
+                break;
+
+            case LevelType.Arduino:
+                // Futuro
+                break;
         }
+    }
+
+    void LoadLevel(int index)
+    {
+        currentLevel = levels[index];
+        levelCompleted = false;
+
+        if (performance != null)
+            performance.ResetTracker();
+
+        if (multimeter != null)
+            multimeter.ResetProbes();
+
+        Debug.Log("🎮 Cargando nivel: " + currentLevel);
+        SetupLevel();
+    }
+
+    void SetupLevel()
+    {
+        switch (currentLevel)
+        {
+            case LevelType.OhmLaw:
+                SetupOhmLaw();
+                break;
+
+            case LevelType.Parallel:
+                SetupParallel();
+                break;
+
+            case LevelType.Mixed:
+                Debug.Log("⚠ Nivel 3 aún no implementado");
+                break;
+
+            case LevelType.Arduino:
+                Debug.Log("⚠ Nivel 4 aún no implementado");
+                break;
+        }
+    }
+
+    // -------------------------
+    // RETO 1
+    // -------------------------
+    void SetupOhmLaw()
+    {
+        foreach (var comp in circuit.components)
+        {
+            if (comp is Resistor r)
+            {
+                r.resistance = 10f; // falla inicial
+                Debug.Log("⚠ Reto 1: resistencia incorrecta aplicada");
+            }
+
+            if (comp is LED led)
+            {
+                led.resistance = 50f; // normal
+            }
+        }
+
+        targetVoltage = 9f;
+        tolerance = 0.5f;
     }
 
     void CheckOhmLaw()
     {
+        if (multimeter == null) return;
         if (multimeter.probeA == null || multimeter.probeB == null)
             return;
 
@@ -42,6 +133,77 @@ public class GameManager : MonoBehaviour
 
             if (performance != null)
                 Debug.Log(performance.GetEvaluation());
+
+            Invoke(nameof(NextLevel), 2f);
         }
+    }
+
+    // -------------------------
+    // RETO 2
+    // -------------------------
+    void SetupParallel()
+    {
+        foreach (var comp in circuit.components)
+        {
+            if (comp is Resistor r)
+            {
+                r.resistance = 100f; // restaurar valor normal
+            }
+
+            if (comp is LED led)
+            {
+                led.resistance = 9999f; // simula rama abierta / fallo
+                Debug.Log("⚠ Reto 2: rama en paralelo fallando");
+            }
+        }
+
+        targetVoltage = 9f;
+        tolerance = 0.5f;
+    }
+
+    void CheckParallel()
+    {
+        bool allWorking = true;
+
+        foreach (var comp in circuit.components)
+        {
+            if (comp is LED led)
+            {
+                if (!led.isOn)
+                {
+                    allWorking = false;
+                }
+            }
+        }
+
+        if (allWorking)
+        {
+            levelCompleted = true;
+            Debug.Log("✅ RETO 2 COMPLETADO");
+
+            if (performance != null)
+                Debug.Log(performance.GetEvaluation());
+
+            Invoke(nameof(NextLevel), 2f);
+        }
+    }
+
+    void NextLevel()
+    {
+        currentLevelIndex++;
+
+        if (currentLevelIndex >= levels.Length)
+        {
+            Debug.Log("🏆 JUEGO COMPLETADO");
+            return;
+        }
+
+        LoadLevel(currentLevelIndex);
+    }
+
+    public bool IsVoltageCorrect()
+    {
+        if (multimeter == null) return false;
+        return Mathf.Abs(multimeter.measuredVoltage - targetVoltage) <= tolerance;
     }
 }

@@ -8,62 +8,142 @@ public class InstructionSystem : MonoBehaviour
     [Header("Referencias")]
     public Multimeter multimeter;
     public GameManager gameManager;
+    public TechnicianActions technicianActions;
+
+    [Header("Flags de progreso")]
+    public bool hasMeasuredCorrectly = false;
+    public bool hasSelectedCorrectComponent = false;
+    public bool hasAppliedFix = false;
 
     [Header("Instrucciones")]
     public string[] instructions;
 
     void Start()
     {
-        instructions = new string[]
-        {
-            "🧠 Paso 1: Haz clic en DOS nodos para medir voltaje.",
-            "📟 Paso 2: Observa el valor en el multímetro.",
-            "⚡ Paso 3: El valor correcto debe ser cercano a 9V.",
-            "🔧 Paso 4: Si no es correcto, reemplaza la resistencia."
-        };
+        ResetInstructions();
+        BuildInstructions();
     }
 
     void Update()
     {
-        ValidateStep();
+        ValidateCurrentStep();
     }
 
-    void ValidateStep()
+    void BuildInstructions()
+    {
+        switch (gameManager.currentLevel)
+        {
+            case LevelType.OhmLaw:
+                instructions = new string[]
+                {
+                    "Paso 1: Conecta la punta roja y negra del multímetro a dos nodos.",
+                    "Paso 2: Observa la medición y verifica si el voltaje es el esperado.",
+                    "Paso 3: Selecciona la resistencia defectuosa.",
+                    "Paso 4: Reemplaza la resistencia por el valor correcto."
+                };
+                break;
+
+            case LevelType.Parallel:
+                instructions = new string[]
+                {
+                    "Paso 1: Mide el circuito para identificar una rama fallando.",
+                    "Paso 2: Analiza qué componente está provocando la falla.",
+                    "Paso 3: Aplica la reparación del circuito paralelo."
+                };
+                break;
+
+            default:
+                instructions = new string[]
+                {
+                    "Nivel en desarrollo."
+                };
+                break;
+        }
+    }
+
+    void ValidateCurrentStep()
+    {
+        switch (gameManager.currentLevel)
+        {
+            case LevelType.OhmLaw:
+                ValidateOhmLaw();
+                break;
+
+            case LevelType.Parallel:
+                ValidateParallel();
+                break;
+        }
+    }
+
+    void ValidateOhmLaw()
     {
         switch (currentStep)
         {
-            // ✅ Paso 1 → seleccionar nodos
             case 0:
-                if (multimeter.probeA != null && multimeter.probeB != null)
+                if (multimeter != null && multimeter.probeA != null && multimeter.probeB != null)
                 {
                     NextStep();
                 }
                 break;
 
-            // ✅ Paso 2 → ver medición
             case 1:
-                if (multimeter.measuredVoltage > 0)
+                if (multimeter != null && multimeter.measuredVoltage > 0f)
                 {
+                    hasMeasuredCorrectly = true;
                     NextStep();
                 }
                 break;
 
-            // ✅ Paso 3 → comparar voltaje
             case 2:
-                float v = multimeter.measuredVoltage;
+                if (technicianActions != null && technicianActions.HasSelectedResistor())
+                {
+                    hasSelectedCorrectComponent = true;
+                    NextStep();
+                }
+                break;
 
-                if (v > 0) // ya midió algo
+            case 3:
+                if (gameManager != null && gameManager.levelCompleted)
+                {
+                    hasAppliedFix = true;
+                    NextStep();
+                }
+                break;
+        }
+    }
+
+    void ValidateParallel()
+    {
+        switch (currentStep)
+        {
+            case 0:
+                if (multimeter != null && multimeter.probeA != null && multimeter.probeB != null)
                 {
                     NextStep();
                 }
                 break;
 
-            // Paso 4 se completa con GameManager
+            case 1:
+                if (multimeter != null && multimeter.measuredVoltage > 0f)
+                {
+                    NextStep();
+                }
+                break;
+
+            case 2:
+                if (gameManager != null && gameManager.levelCompleted)
+                {
+                    NextStep();
+                }
+                break;
         }
     }
 
     public string GetCurrentInstruction()
     {
+        if (instructions == null || instructions.Length == 0)
+            return "Sin instrucciones.";
+
         if (currentStep < instructions.Length)
             return instructions[currentStep];
 
@@ -73,11 +153,24 @@ public class InstructionSystem : MonoBehaviour
     public void NextStep()
     {
         currentStep++;
-        Debug.Log("➡ Avanzando a paso: " + currentStep);
+        Debug.Log("➡ Paso actual: " + currentStep);
     }
 
     public void ResetInstructions()
     {
         currentStep = 0;
+        hasMeasuredCorrectly = false;
+        hasSelectedCorrectComponent = false;
+        hasAppliedFix = false;
+    }
+
+    public bool CanRepairResistor()
+    {
+        return currentStep >= 3 && hasMeasuredCorrectly && hasSelectedCorrectComponent;
+    }
+
+    public bool CanRepairParallel()
+    {
+        return currentStep >= 2;
     }
 }
