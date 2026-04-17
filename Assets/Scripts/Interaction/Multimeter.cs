@@ -118,16 +118,16 @@ public class Multimeter : MonoBehaviour
     }
 
     /// <summary>Reinicia ambas puntas (llamado por GameManager al cargar nivel).</summary>
-    
-/// <summary>Alias de probeA → _nodeRed (compatibilidad con código existente).</summary>
+
+    /// <summary>Alias de probeA → _nodeRed (compatibilidad con código existente).</summary>
     public ElectricalNode probeA => _nodeRed;
- 
+
     /// <summary>Alias de probeB → _nodeBlack (compatibilidad con código existente).</summary>
     public ElectricalNode probeB => _nodeBlack;
- 
+
     /// <summary>Alias de SetProbeA → SetRedNode (usado por PlayerInteraction).</summary>
     public void SetProbeA(ElectricalNode node) => SetRedNode(node);
- 
+
     /// <summary>Alias de SetProbeB → SetBlackNode (usado por PlayerInteraction).</summary>
     public void SetProbeB(ElectricalNode node) => SetBlackNode(node);
 
@@ -163,12 +163,12 @@ public class Multimeter : MonoBehaviour
             _measuredCurrent = 0f;
             return;
         }
- 
+
         _isReading = true;
- 
+
         float vDiff = _nodeRed.voltage - _nodeBlack.voltage;
         float i     = _nodeRed.current;   // ← funciona tras el Parche 1
- 
+
         switch (mode)
         {
             case MultimeterMode.DCVoltage:

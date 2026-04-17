@@ -32,6 +32,12 @@ public class Resistor : ElectricalComponent
     public override void Calculate()
     {
         if (nodeA == null || nodeB == null) return;
+        if (resistance <= 0f)
+        {
+            current = 0f;
+            voltageDrop = 0f;
+            return;
+        }
 
         float voltageDiff = nodeA.voltage - nodeB.voltage;
         current     = (resistance > 0f) ? voltageDiff / resistance : 0f;

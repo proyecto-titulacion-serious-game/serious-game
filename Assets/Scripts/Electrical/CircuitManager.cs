@@ -49,7 +49,7 @@ public class CircuitManager : MonoBehaviour
     // ─────────────────────────────────────────────
     //  Unity Lifecycle
     // ─────────────────────────────────────────────
-    
+
     void Awake()
     {
         AutoDetectComponents();
@@ -58,27 +58,27 @@ public class CircuitManager : MonoBehaviour
     public void AutoDetectComponents()
     {
         bool needsRefresh = components.Count == 0;
-        
+
         if (!needsRefresh)
         {
             foreach (var c in components)
                 if (c == null) { needsRefresh = true; break; }
         }
-        
+
         if (needsRefresh)
         {
             components.Clear();
             var found = GetComponentsInChildren<ElectricalComponent>();
-            
+
             foreach (var c in found)
                 if (c is VoltageSource) components.Add(c);
             foreach (var c in found)
                 if (!(c is VoltageSource)) components.Add(c);
-            
+
             Debug.Log($"[CircuitManager] Auto-detectados {components.Count} componentes");
         }
     }
-        
+
     void Start()
     {
         //Simula cada intervalo de segundo
@@ -171,13 +171,13 @@ public class CircuitManager : MonoBehaviour
         }
 
         // 💥 DETECCIÓN DE CORTOCIRCUITO
-        if (totalR <= 0.1f) 
-        { 
-            _totalCurrent = 0f; 
+        if (totalR <= 0.1f)
+        {
+            _totalCurrent = 0f;
             _totalPower = 0f;
             isShortCircuited = true;
             Debug.LogWarning("[CircuitManager] ¡CORTOCIRCUITO! Falta resistencia en el circuito.");
-            return; 
+            return;
         }
 
         // Si todo está bien, calculamos la física real
@@ -190,20 +190,20 @@ public class CircuitManager : MonoBehaviour
         foreach (var comp in components)
         {
             if (comp is VoltageSource) continue;
- 
+
             if (comp.nodeA != null)
             {
                 comp.nodeA.voltage = voltageAtNode;
-                comp.nodeA.current = _totalCurrent;   
+                comp.nodeA.current = _totalCurrent;
             }
             float drop = _totalCurrent * comp.GetResistance();
             voltageAtNode -= drop;
             if (comp.nodeB != null)
             {
                 comp.nodeB.voltage = voltageAtNode;
-                comp.nodeB.current = _totalCurrent;  
+                comp.nodeB.current = _totalCurrent;
             }
- 
+
             comp.Calculate();
         }
     }
@@ -224,14 +224,14 @@ public class CircuitManager : MonoBehaviour
         foreach (var comp in components)
         {
             if (comp is VoltageSource) continue;
- 
+
             if (comp.nodeA != null) comp.nodeA.voltage = _sourceVoltage;
             if (comp.nodeB != null) comp.nodeB.voltage = 0f;
- 
+
             comp.Calculate();
- 
-            if (comp.nodeA != null) comp.nodeA.current = comp.current;  
-            if (comp.nodeB != null) comp.nodeB.current = comp.current;   
+
+            if (comp.nodeA != null) comp.nodeA.current = comp.current;
+            if (comp.nodeB != null) comp.nodeB.current = comp.current;
             _totalCurrent += comp.current;
         }
     }
