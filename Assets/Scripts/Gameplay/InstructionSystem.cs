@@ -26,18 +26,22 @@ public class InstructionSystem : MonoBehaviour
 
     void Update()
     {
+        if (gameManager == null) return;
+
         ValidateCurrentStep();
     }
 
-    void BuildInstructions()
+    public void BuildInstructions()
     {
+        if (gameManager == null) return;
+
         switch (gameManager.currentLevel)
         {
             case LevelType.OhmLaw:
                 instructions = new string[]
                 {
-                    "Paso 1: Conecta la punta roja y negra del multímetro a dos nodos.",
-                    "Paso 2: Observa la medición y verifica si el voltaje es el esperado.",
+                    "Paso 1: Conecta la punta roja y negra del multimetro a dos nodos.",
+                    "Paso 2: Observa la medicion y verifica si el voltaje es el esperado.",
                     "Paso 3: Selecciona la resistencia defectuosa.",
                     "Paso 4: Reemplaza la resistencia por el valor correcto."
                 };
@@ -47,8 +51,8 @@ public class InstructionSystem : MonoBehaviour
                 instructions = new string[]
                 {
                     "Paso 1: Mide el circuito para identificar una rama fallando.",
-                    "Paso 2: Analiza qué componente está provocando la falla.",
-                    "Paso 3: Aplica la reparación del circuito paralelo."
+                    "Paso 2: Analiza que componente esta provocando la falla.",
+                    "Paso 3: Aplica la reparacion del circuito paralelo."
                 };
                 break;
 
@@ -80,7 +84,9 @@ public class InstructionSystem : MonoBehaviour
         switch (currentStep)
         {
             case 0:
-                if (multimeter != null && multimeter.probeA != null && multimeter.probeB != null)
+                if (multimeter != null &&
+                    multimeter.probeA != null &&
+                    multimeter.probeB != null)
                 {
                     NextStep();
                 }
@@ -103,10 +109,9 @@ public class InstructionSystem : MonoBehaviour
                 break;
 
             case 3:
-                if (gameManager != null && gameManager.levelCompleted)
+                if (gameManager != null && gameManager.HasPerformedRepair())
                 {
                     hasAppliedFix = true;
-                    NextStep();
                 }
                 break;
         }
@@ -117,7 +122,9 @@ public class InstructionSystem : MonoBehaviour
         switch (currentStep)
         {
             case 0:
-                if (multimeter != null && multimeter.probeA != null && multimeter.probeB != null)
+                if (multimeter != null &&
+                    multimeter.probeA != null &&
+                    multimeter.probeB != null)
                 {
                     NextStep();
                 }
@@ -126,14 +133,15 @@ public class InstructionSystem : MonoBehaviour
             case 1:
                 if (multimeter != null && multimeter.measuredVoltage > 0f)
                 {
+                    hasMeasuredCorrectly = true;
                     NextStep();
                 }
                 break;
 
             case 2:
-                if (gameManager != null && gameManager.levelCompleted)
+                if (gameManager != null && gameManager.HasPerformedRepair())
                 {
-                    NextStep();
+                    hasAppliedFix = true;
                 }
                 break;
         }
@@ -147,7 +155,7 @@ public class InstructionSystem : MonoBehaviour
         if (currentStep < instructions.Length)
             return instructions[currentStep];
 
-        return "✔ Procedimiento completado.";
+        return "Procedimiento completado.";
     }
 
     public void NextStep()
@@ -166,11 +174,14 @@ public class InstructionSystem : MonoBehaviour
 
     public bool CanRepairResistor()
     {
-        return currentStep >= 3 && hasMeasuredCorrectly && hasSelectedCorrectComponent;
+        return currentStep >= 3 &&
+               hasMeasuredCorrectly &&
+               hasSelectedCorrectComponent;
     }
 
     public bool CanRepairParallel()
     {
-        return currentStep >= 2;
+        return currentStep >= 2 &&
+               hasMeasuredCorrectly;
     }
 }
