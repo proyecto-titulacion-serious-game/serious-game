@@ -6,6 +6,7 @@ public class GameManager : MonoBehaviour
     public CircuitManager circuit;
     public Multimeter multimeter;
     public PerformanceTracker performance;
+    public InstructionSystem instructionSystem;
 
     [Header("Nivel actual")]
     public LevelType currentLevel = LevelType.OhmLaw;
@@ -20,6 +21,9 @@ public class GameManager : MonoBehaviour
     [Header("Progresión")]
     public LevelType[] levels;
     private int currentLevelIndex = 0;
+
+    [Header("Seguimiento del jugador")]
+    public bool repairPerformed = false;
 
     void Start()
     {
@@ -58,16 +62,34 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    public bool HasPerformedRepair()
+    {
+        return repairPerformed;
+    }
+
+    public void RegisterRepairAction()
+    {
+        repairPerformed = true;
+        Debug.Log("🛠 Reparación registrada");
+    }
+
     void LoadLevel(int index)
     {
         currentLevel = levels[index];
         levelCompleted = false;
+        repairPerformed = false;
 
         if (performance != null)
             performance.ResetTracker();
 
         if (multimeter != null)
             multimeter.ResetProbes();
+
+        if (instructionSystem != null)
+        {
+            instructionSystem.ResetInstructions();
+            instructionSystem.BuildInstructions();
+        }
 
         Debug.Log("🎮 Cargando nivel: " + currentLevel);
         SetupLevel();
@@ -120,9 +142,9 @@ public class GameManager : MonoBehaviour
 
     void CheckOhmLaw()
     {
+        if (!repairPerformed) return;
         if (multimeter == null) return;
-        if (multimeter.probeA == null || multimeter.probeB == null)
-            return;
+        if (multimeter.probeA == null || multimeter.probeB == null) return;
 
         float measured = multimeter.measuredVoltage;
 
@@ -163,6 +185,8 @@ public class GameManager : MonoBehaviour
 
     void CheckParallel()
     {
+        if (!repairPerformed) return;
+
         bool allWorking = true;
 
         foreach (var comp in circuit.components)

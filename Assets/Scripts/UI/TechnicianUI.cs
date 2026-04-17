@@ -11,20 +11,21 @@ public class TechnicianUI : MonoBehaviour
     public GameManager gameManager;
     public PerformanceTracker performance;
     public InstructionSystem instructionSystem;
+    public TechnicianActions technicianActions;
 
     [Header("UI Textos")]
     public Text voltageText;
     public Text currentText;
     public Text componentsText;
     public Text diagnosisText;
+    public Text detailedAnalysisText;
     public Text performanceText;
     public Text objectiveText;
     public Text resultText;
     public Text instructionText;
-    public TechnicianActions technicianActions;
     public Text selectedComponentText;
     public Text stepText;
-    public Text detailedAnalysisText;
+    public Text feedbackText;
 
     public TMP_Text multimeterText;
 
@@ -40,18 +41,18 @@ public class TechnicianUI : MonoBehaviour
         UpdateMultimeter();
         UpdateObjective();
         UpdateDiagnosis();
+        UpdateDetailedAnalysis();
         UpdateResult();
         UpdatePerformance();
         UpdateInstructions();
         UpdateSelectedComponent();
         UpdateStepInfo();
-        UpdateDetailedAnalysis();
-
-        
     }
 
     void UpdateVoltage()
     {
+        if (voltageText == null) return;
+
         float voltage = 0f;
 
         foreach (var comp in circuit.components)
@@ -63,30 +64,14 @@ public class TechnicianUI : MonoBehaviour
             }
         }
 
-        if (voltageText != null)
-            voltageText.text = "Voltaje Fuente: " + voltage + " V";
-    }
-
-
-    void UpdateDetailedAnalysis()
-    {
-        detailedAnalysisText.text = diagnostic.GetDetailedAnalysis(
-            circuit.components,
-            circuit.totalCurrent
-        );
-    }
-
-    void UpdateStepInfo()
-    {
-        if (instructionSystem == null || stepText == null) return;
-
-        stepText.text = "Paso actual: " + (instructionSystem.currentStep + 1);
+        voltageText.text = "Voltaje Fuente: " + voltage + " V";
     }
 
     void UpdateCurrent()
     {
-        if (currentText != null)
-            currentText.text = "Corriente Total: " + circuit.totalCurrent.ToString("F2") + " A";
+        if (currentText == null) return;
+
+        currentText.text = "Corriente Total: " + circuit.totalCurrent.ToString("F2") + " A";
     }
 
     void UpdateComponents()
@@ -100,7 +85,7 @@ public class TechnicianUI : MonoBehaviour
         {
             if (comp is Resistor res)
             {
-                sb.AppendLine("- Resistor: " + res.resistance + " Ω");
+                sb.AppendLine("- Resistor: " + res.resistance + " ohmios");
             }
             else if (comp is LED led)
             {
@@ -112,64 +97,74 @@ public class TechnicianUI : MonoBehaviour
         componentsText.text = sb.ToString();
     }
 
-    void UpdateSelectedComponent()
-    {
-        if (technicianActions == null || selectedComponentText == null) return;
-
-        selectedComponentText.text = "Seleccionado: " + technicianActions.GetSelectedComponentName();
-    }
-
     void UpdateMultimeter()
     {
         if (multimeter == null || multimeterText == null) return;
 
         multimeterText.text =
             "Voltaje: " + multimeter.measuredVoltage.ToString("F2") + " V\n" +
-            "🔴 Punta Roja: " + (multimeter.probeA != null ? multimeter.probeA.name : "None") + "\n" +
-            "⚫ Punta Negra: " + (multimeter.probeB != null ? multimeter.probeB.name : "None");
+            "Punta Roja: " + (multimeter.probeA != null ? multimeter.probeA.name : "None") + "\n" +
+            "Punta Negra: " + (multimeter.probeB != null ? multimeter.probeB.name : "None");
     }
 
     void UpdateObjective()
     {
         if (gameManager == null || objectiveText == null) return;
-        objectiveText.text = GetObjectiveText();
-    }
 
-    string GetObjectiveText()
-    {
         switch (gameManager.currentLevel)
         {
             case LevelType.OhmLaw:
-                return "RETO 1:\nMide el voltaje correcto en el circuito serie y corrige la resistencia.";
+                objectiveText.text = "RETO 1:\nMide el voltaje correcto del circuito serie y corrige la resistencia.";
+                break;
 
             case LevelType.Parallel:
-                return "RETO 2:\nDiagnostica la rama paralela fallando y repárala.";
+                objectiveText.text = "RETO 2:\nDiagnostica la rama paralela con falla y reparala.";
+                break;
 
             case LevelType.Mixed:
-                return "RETO 3:\nDetecta errores de polaridad y valores.";
+                objectiveText.text = "RETO 3:\nDetecta errores de polaridad y valor.";
+                break;
 
             case LevelType.Arduino:
-                return "RETO 4:\nConfigura correctamente el sistema Arduino.";
+                objectiveText.text = "RETO 4:\nConfigura correctamente el sistema Arduino.";
+                break;
 
             default:
-                return "Sin objetivo";
+                objectiveText.text = "Sin objetivo";
+                break;
         }
     }
 
     void UpdateDiagnosis()
     {
-        diagnosisText.text = "Diagnostico:\n" + 
+        if (diagnosisText == null) return;
+
+        diagnosisText.text = "Diagnostico:\n" +
             diagnostic.GetDiagnosis(circuit.components, circuit.totalCurrent);
+    }
+
+    void UpdateDetailedAnalysis()
+    {
+        if (detailedAnalysisText == null) return;
+
+        detailedAnalysisText.text = diagnostic.GetDetailedAnalysis(
+            circuit.components,
+            circuit.totalCurrent
+        );
     }
 
     void UpdateResult()
     {
-        if (gameManager == null || resultText == null) return;
+        if (resultText == null || gameManager == null || performance == null) return;
 
         if (gameManager.levelCompleted)
-            resultText.text = "✅ Correcto";
+        {
+            resultText.text = "Correcto\n" + performance.GetEvaluation();
+        }
         else
-            resultText.text = "❌ Aún no completado";
+        {
+            resultText.text = "Aun no completado";
+        }
     }
 
     void UpdatePerformance()
@@ -186,5 +181,19 @@ public class TechnicianUI : MonoBehaviour
         if (instructionSystem == null || instructionText == null) return;
 
         instructionText.text = instructionSystem.GetCurrentInstruction();
+    }
+
+    void UpdateSelectedComponent()
+    {
+        if (technicianActions == null || selectedComponentText == null) return;
+
+        selectedComponentText.text = "Seleccionado: " + technicianActions.GetSelectedComponentName();
+    }
+
+    void UpdateStepInfo()
+    {
+        if (instructionSystem == null || stepText == null) return;
+
+        stepText.text = "Paso actual: " + (instructionSystem.currentStep + 1);
     }
 }

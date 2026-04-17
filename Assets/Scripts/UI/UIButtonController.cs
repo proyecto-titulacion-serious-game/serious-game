@@ -13,6 +13,11 @@ public class UIButtonController : MonoBehaviour
     public Button fixParallelButton;
     public Button nextStepButton;
 
+    [Header("Textos opcionales")]
+    public Text fixResistorLabel;
+    public Text fixParallelLabel;
+    public Text nextStepLabel;
+
     void Update()
     {
         UpdateButtons();
@@ -20,32 +25,62 @@ public class UIButtonController : MonoBehaviour
 
     void UpdateButtons()
     {
-        if (instructionSystem == null || gameManager == null) return;
+        if (instructionSystem == null || gameManager == null)
+            return;
 
-        // Reto 1
-        if (fixResistorButton != null)
+        UpdateFixResistorButton();
+        UpdateFixParallelButton();
+        UpdateNextStepButton();
+    }
+
+    void UpdateFixResistorButton()
+    {
+        if (fixResistorButton == null) return;
+
+        bool enabled =
+            gameManager.currentLevel == LevelType.OhmLaw &&
+            instructionSystem.CanRepairResistor();
+
+        fixResistorButton.interactable = enabled;
+
+        if (fixResistorLabel != null)
         {
-            bool canFixResistor =
-                gameManager.currentLevel == LevelType.OhmLaw &&
-                instructionSystem.CanRepairResistor();
-
-            fixResistorButton.interactable = canFixResistor;
+            if (enabled)
+                fixResistorLabel.text = "Reemplazar Resistencia";
+            else
+                fixResistorLabel.text = "Mide y selecciona la resistencia";
         }
+    }
 
-        // Reto 2
-        if (fixParallelButton != null)
+    void UpdateFixParallelButton()
+    {
+        if (fixParallelButton == null) return;
+
+        bool enabled =
+            gameManager.currentLevel == LevelType.Parallel &&
+            instructionSystem.CanRepairParallel();
+
+        fixParallelButton.interactable = enabled;
+
+        if (fixParallelLabel != null)
         {
-            bool canFixParallel =
-                gameManager.currentLevel == LevelType.Parallel &&
-                instructionSystem.CanRepairParallel();
-
-            fixParallelButton.interactable = canFixParallel;
+            if (enabled)
+                fixParallelLabel.text = "Reparar Circuito Paralelo";
+            else
+                fixParallelLabel.text = "Primero mide el circuito";
         }
+    }
 
-        // Botón siguiente solo como apoyo
-        if (nextStepButton != null)
+    void UpdateNextStepButton()
+    {
+        if (nextStepButton == null) return;
+
+        // El paso se valida automáticamente, así que el botón queda desactivado
+        nextStepButton.interactable = false;
+
+        if (nextStepLabel != null)
         {
-            nextStepButton.interactable = false;
+            nextStepLabel.text = "Paso automático";
         }
     }
 }
