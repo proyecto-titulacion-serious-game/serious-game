@@ -12,12 +12,13 @@ public class CircuitManager : MonoBehaviour
 
     void Update()
     {
-        Debug.Log("Simulando circuito...");
         Simulate();
     }
 
     void Simulate()
     {
+        if (components == null || components.Count == 0) return;
+
         VoltageSource source = null;
         Resistor resistor = null;
         LED led = null;
@@ -30,6 +31,13 @@ public class CircuitManager : MonoBehaviour
         }
 
         if (source == null || resistor == null || led == null) return;
+
+        if (source.nodeA == null || source.nodeB == null ||
+            resistor.nodeA == null || resistor.nodeB == null ||
+            led.nodeA == null || led.nodeB == null)
+        {
+            return;
+        }
 
         // 🔥 Aplicar fuente PRIMERO
         source.nodeA.voltage = source.voltage;
