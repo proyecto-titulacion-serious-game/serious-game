@@ -24,10 +24,11 @@ public class TechnicianUI : MonoBehaviour
     public TechnicianActions technicianActions;
     public Text selectedComponentText;
     public Text stepText;
+    public Text detailedAnalysisText;
 
     public TMP_Text multimeterText;
 
-    private CircuitAnalyzer analyzer = new CircuitAnalyzer();
+    private DiagnosticSystem diagnostic = new DiagnosticSystem();
 
     void Update()
     {
@@ -44,6 +45,9 @@ public class TechnicianUI : MonoBehaviour
         UpdateInstructions();
         UpdateSelectedComponent();
         UpdateStepInfo();
+        UpdateDetailedAnalysis();
+
+        
     }
 
     void UpdateVoltage()
@@ -61,6 +65,15 @@ public class TechnicianUI : MonoBehaviour
 
         if (voltageText != null)
             voltageText.text = "Voltaje Fuente: " + voltage + " V";
+    }
+
+
+    void UpdateDetailedAnalysis()
+    {
+        detailedAnalysisText.text = diagnostic.GetDetailedAnalysis(
+            circuit.components,
+            circuit.totalCurrent
+        );
     }
 
     void UpdateStepInfo()
@@ -145,15 +158,8 @@ public class TechnicianUI : MonoBehaviour
 
     void UpdateDiagnosis()
     {
-        if (gameManager == null || diagnosisText == null || multimeter == null) return;
-
-        diagnosisText.text = analyzer.AnalyzeByLevel(
-            gameManager.currentLevel,
-            multimeter.measuredVoltage,
-            gameManager.targetVoltage,
-            gameManager.tolerance,
-            circuit
-        );
+        diagnosisText.text = "Diagnostico:\n" + 
+            diagnostic.GetDiagnosis(circuit.components, circuit.totalCurrent);
     }
 
     void UpdateResult()
