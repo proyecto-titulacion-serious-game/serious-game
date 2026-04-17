@@ -19,6 +19,12 @@ public class Multimeter : MonoBehaviour
 
     void MeasureVoltage()
     {
+        if (circuit == null)
+        {
+            measuredVoltage = 0f;
+            return;
+        }
+
         // Si no están conectadas ambas puntas
         if (probeA == null || probeB == null)
         {
@@ -41,14 +47,18 @@ public class Multimeter : MonoBehaviour
     public void SetProbeA(ElectricalNode node)
     {
         probeA = node;
-        Debug.Log("🔴 Punta roja conectada a: " + node.name);
+        Debug.Log(node != null
+            ? "🔴 Punta roja conectada a: " + node.name
+            : "🔴 Punta roja desconectada");
     }
 
     // ⚫ Conectar punta negra
     public void SetProbeB(ElectricalNode node)
     {
         probeB = node;
-        Debug.Log("⚫ Punta negra conectada a: " + node.name);
+        Debug.Log(node != null
+            ? "⚫ Punta negra conectada a: " + node.name
+            : "⚫ Punta negra desconectada");
     }
 
     // 🔄 Reset (útil para gameplay)

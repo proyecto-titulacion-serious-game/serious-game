@@ -18,6 +18,14 @@ public class LED : ElectricalComponent
     {
         // Seguridad
         if (nodeA == null || nodeB == null || ledRenderer == null) return;
+        if (resistance <= 0f)
+        {
+            current = 0f;
+            voltageDrop = 0f;
+            isOn = false;
+            SetColor(Color.black);
+            return;
+        }
 
         float voltageDiff = nodeA.voltage - nodeB.voltage;
 
