@@ -397,7 +397,7 @@ MonoBehaviour:
       m_Calls: []
   m_FontData:
     m_Font: {fileID: 10102, guid: 0000000000000000e000000000000000, type: 0}
-    m_FontSize: 20
+    m_FontSize: 25
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 1
@@ -452,7 +452,7 @@ MonoBehaviour:
   m_MinWidth: -1
   m_MinHeight: -1
   m_PreferredWidth: 220
-  m_PreferredHeight: 40
+  m_PreferredHeight: 30
   m_FlexibleWidth: -1
   m_FlexibleHeight: -1
   m_LayoutPriority: 1
@@ -826,12 +826,16 @@ MonoBehaviour:
   multimeter: {fileID: 2102497100}
   performance: {fileID: 1208286643}
   instructionSystem: {fileID: 2062743900}
-  currentLevel: 0
-  targetVoltage: 9
-  tolerance: 0.5
-  levelCompleted: 0
-  levels: 
-  repairPerformed: 0
+  timeLimits:
+  - 480
+  - 600
+  - 720
+  - 900
+  _currentLevel: 0
+  _currentIndex: 0
+  _levelCompleted: 0
+  _repairPerformed: 0
+  _wrongAttempts: 0
 --- !u!1 &498063185
 GameObject:
   m_ObjectHideFlags: 0
@@ -1097,8 +1101,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f0da82644e37be1488f53b11ce254ddf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NodeInteractable
-  node: {fileID: 601087376}
-  multimeter: {fileID: 2102497100}
+  nodeTarget: {fileID: 0}
+  probeType: 0
+  playerInteraction: {fileID: 0}
+  nodeRenderer: {fileID: 0}
+  hoverColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  selectedColor: {r: 0, g: 1, b: 1, a: 1}
 --- !u!1 &614950711
 GameObject:
   m_ObjectHideFlags: 0
@@ -1339,15 +1347,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 10fd39808b54ef44c8b939a90c42e049, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CircuitManager
-  nodes:
-  - {fileID: 601087376}
-  - {fileID: 2118654564}
-  - {fileID: 1779913119}
   components:
   - {fileID: 1797529853}
   - {fileID: 1058722873}
   - {fileID: 1118367297}
-  totalCurrent: 0.05
+  topology: 0
+  _totalCurrent: 0
+  _sourceVoltage: 0
+  simulationInterval: 0.05
 --- !u!4 &766404403
 Transform:
   m_ObjectHideFlags: 0
@@ -1852,6 +1859,10 @@ MonoBehaviour:
   current: 0
   voltageDrop: 0
   resistance: 10
+  correctResistance: 100
+  faultyResistance: 10
+  hasFault: 0
+  tolerancePercent: 5
 --- !u!65 &1058722874
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -1977,6 +1988,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SelectableComponent
   component: {fileID: 1058722873}
   technicianActions: {fileID: 569234928}
+  playerInteraction: {fileID: 0}
+  hoverColor: {r: 1, g: 1, b: 0, a: 0.5}
+  selectedColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
 --- !u!1 &1110785372
 GameObject:
   m_ObjectHideFlags: 0
@@ -2126,8 +2140,8 @@ MonoBehaviour:
   m_IgnoreLayout: 0
   m_MinWidth: -1
   m_MinHeight: -1
-  m_PreferredWidth: 160
-  m_PreferredHeight: 40
+  m_PreferredWidth: 200
+  m_PreferredHeight: 50
   m_FlexibleWidth: -1
   m_FlexibleHeight: -1
   m_LayoutPriority: 1
@@ -2168,8 +2182,15 @@ MonoBehaviour:
   current: 0
   voltageDrop: 0
   resistance: 50
-  ledRenderer: {fileID: 1118367299}
+  polarityInverted: 0
+  minOperatingCurrent: 0.005
+  maxSafeCurrent: 0.02
+  overloadCurrent: 0.1
+  colorOff: {r: 0, g: 0, b: 0, a: 1}
+  colorCorrect: {r: 0, g: 1, b: 0, a: 1}
+  colorOverload: {r: 1, g: 0, b: 0, a: 1}
   isOn: 0
+  state: 0
 --- !u!135 &1118367298
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -2660,8 +2681,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: efa921bf40f04a44d8c2251bfd662790, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PerformanceTracker
-  excellentTime: 60
-  maxGoodErrors: 3
+  excellentTimeLimits:
+  - 240
+  - 300
+  - 360
+  - 450
+  maxErrorsForGood: 3
+  _currentErrors: 0
+  _startTime: 0
+  _currentLevelIndex: 0
 --- !u!1 &1269033278
 GameObject:
   m_ObjectHideFlags: 0
@@ -2832,8 +2860,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 0}
-  m_AnchoredPosition: {x: 0, y: 10}
-  m_SizeDelta: {x: -20, y: 120}
+  m_AnchoredPosition: {x: 0, y: 40}
+  m_SizeDelta: {x: -20, y: 200}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1295894044
 MonoBehaviour:
@@ -2854,7 +2882,7 @@ MonoBehaviour:
     m_Bottom: 10
   m_ChildAlignment: 4
   m_Spacing: 20
-  m_ChildForceExpandWidth: 0
+  m_ChildForceExpandWidth: 1
   m_ChildForceExpandHeight: 0
   m_ChildControlWidth: 1
   m_ChildControlHeight: 1
@@ -3337,8 +3365,8 @@ MonoBehaviour:
   m_IgnoreLayout: 0
   m_MinWidth: -1
   m_MinHeight: -1
-  m_PreferredWidth: 160
-  m_PreferredHeight: 40
+  m_PreferredWidth: 200
+  m_PreferredHeight: 50
   m_FlexibleWidth: -1
   m_FlexibleHeight: -1
   m_LayoutPriority: 1
@@ -3491,7 +3519,7 @@ MonoBehaviour:
   m_IgnoreLayout: 0
   m_MinWidth: -1
   m_MinHeight: -1
-  m_PreferredWidth: 180
+  m_PreferredWidth: 200
   m_PreferredHeight: 50
   m_FlexibleWidth: -1
   m_FlexibleHeight: -1
@@ -4070,8 +4098,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f0da82644e37be1488f53b11ce254ddf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NodeInteractable
-  node: {fileID: 1779913119}
-  multimeter: {fileID: 2102497100}
+  nodeTarget: {fileID: 0}
+  probeType: 0
+  playerInteraction: {fileID: 0}
+  nodeRenderer: {fileID: 0}
+  hoverColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  selectedColor: {r: 0, g: 1, b: 1, a: 1}
 --- !u!1 &1797529852
 GameObject:
   m_ObjectHideFlags: 0
@@ -4308,8 +4340,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: efa921bf40f04a44d8c2251bfd662790, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PerformanceTracker
-  excellentTime: 60
-  maxGoodErrors: 3
+  excellentTimeLimits:
+  - 240
+  - 300
+  - 360
+  - 450
+  maxErrorsForGood: 3
+  _currentErrors: 0
+  _startTime: 0
+  _currentLevelIndex: 0
 --- !u!1 &2062743899
 GameObject:
   m_ObjectHideFlags: 0
@@ -4469,8 +4508,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f0da82644e37be1488f53b11ce254ddf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NodeInteractable
-  node: {fileID: 2118654564}
-  multimeter: {fileID: 2102497100}
+  nodeTarget: {fileID: 0}
+  probeType: 0
+  playerInteraction: {fileID: 0}
+  nodeRenderer: {fileID: 0}
+  hoverColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  selectedColor: {r: 0, g: 1, b: 1, a: 1}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

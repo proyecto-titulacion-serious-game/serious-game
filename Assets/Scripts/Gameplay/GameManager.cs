@@ -1,233 +1,399 @@
+using System;
 using UnityEngine;
 
+/// <summary>
+/// Controlador principal del juego. Gestiona los 4 retos del Serious Game VR.
+/// Usa eventos para comunicarse con UI y otros sistemas (sin acoplamiento directo).
+/// </summary>
 public class GameManager : MonoBehaviour
 {
-    [Header("Referencias")]
-    public CircuitManager circuit;
-    public Multimeter multimeter;
+    // ─────────────────────────────────────────────
+    //  Inspector
+    // ─────────────────────────────────────────────
+    [Header("Referencias principales")]
+    public CircuitManager  circuit;
+    public Multimeter      multimeter;
     public PerformanceTracker performance;
-    public InstructionSystem instructionSystem;
+    public InstructionSystem  instructionSystem;
 
-    [Header("Nivel actual")]
-    public LevelType currentLevel = LevelType.OhmLaw;
+    [Header("Configuración de niveles")]
+    [Tooltip("Tiempo límite en segundos para cada reto (0 = sin límite).")]
+    public float[] timeLimits = { 480f, 600f, 720f, 900f };  // 8, 10, 12, 15 min
 
-    [Header("Objetivo")]
-    public float targetVoltage = 9f;
-    public float tolerance = 0.5f;
+    // ─────────────────────────────────────────────
+    //  Estado (solo lectura desde inspector)
+    // ─────────────────────────────────────────────
+    [Header("Estado actual (solo lectura)")]
+    [SerializeField] private LevelType _currentLevel   = LevelType.OhmLaw;
+    [SerializeField] private int       _currentIndex   = 0;
+    [SerializeField] private bool      _levelCompleted = false;
+    [SerializeField] private bool      _repairPerformed = false;
+    [SerializeField] private int       _wrongAttempts  = 0;
 
-    [Header("Estado")]
-    public bool levelCompleted = false;
+    // ─────────────────────────────────────────────
+    //  Propiedades públicas
+    // ─────────────────────────────────────────────
+    public LevelType currentLevel    => _currentLevel;
+    public bool      levelCompleted  => _levelCompleted;
+    public float     currentTimeLimit => timeLimits[_currentIndex];
 
-    [Header("Progresión")]
-    public LevelType[] levels;
-    private int currentLevelIndex = 0;
+    // ─────────────────────────────────────────────
+    //  Eventos
+    // ─────────────────────────────────────────────
+    public static event Action<LevelType>      OnLevelLoaded;
+    public static event Action<LevelType, bool> OnLevelCompleted;   // nivel, éxito
+    public static event Action<string>         OnFaultDetected;
+    public static event Action                 OnGameCompleted;
 
-    [Header("Seguimiento del jugador")]
-    public bool repairPerformed = false;
+    // ─────────────────────────────────────────────
+    //  Constantes de configuración de retos
+    // ─────────────────────────────────────────────
+    private const float RETO1_FAULTY_RESISTANCE  = 10f;
+    private const float RETO1_CORRECT_RESISTANCE = 100f;
+    private const float RETO1_LED_RESISTANCE     = 50f;
+    private const float RETO1_SOURCE_VOLTAGE     = 9f;
+    private const float RETO1_TARGET_VOLTAGE     = 9f;
+    private const float RETO1_TOLERANCE          = 0.5f;
 
+    private const float RETO2_BROKEN_RESISTANCE  = 9999f; // Rama abierta
+    private const float RETO2_NORMAL_RESISTANCE  = 50f;
+
+    // ─────────────────────────────────────────────
+    //  Unity Lifecycle
+    // ─────────────────────────────────────────────
     void Start()
     {
-        levels = new LevelType[]
-        {
-            LevelType.OhmLaw,
-            LevelType.Parallel,
-            LevelType.Mixed,
-            LevelType.Arduino
-        };
-
-        LoadLevel(currentLevelIndex);
+        // Suscribirse al evento de circuito para verificar condiciones de éxito
+        CircuitManager.OnCircuitChanged += CheckWinCondition;
+        LoadLevel(0);
     }
 
-    void Update()
+    void OnDestroy()
     {
-        if (levelCompleted) return;
-
-        switch (currentLevel)
-        {
-            case LevelType.OhmLaw:
-                CheckOhmLaw();
-                break;
-
-            case LevelType.Parallel:
-                CheckParallel();
-                break;
-
-            case LevelType.Mixed:
-                // Futuro
-                break;
-
-            case LevelType.Arduino:
-                // Futuro
-                break;
-        }
+        CircuitManager.OnCircuitChanged -= CheckWinCondition;
     }
 
-    public bool HasPerformedRepair()
-    {
-        return repairPerformed;
-    }
+    // ─────────────────────────────────────────────
+    //  API Pública
+    // ─────────────────────────────────────────────
 
     public void RegisterRepairAction()
     {
-        repairPerformed = true;
-        Debug.Log("🛠 Reparación registrada");
+        _repairPerformed = true;
+        circuit?.MarkDirty();   // Resimular tras la reparación
+        Debug.Log("[GameManager] Reparación registrada.");
     }
+
+    public void RegisterWrongAttempt(string reason = "")
+    {
+        _wrongAttempts++;
+        performance?.AddError(reason);
+        Debug.Log($"[GameManager] Intento incorrecto #{_wrongAttempts}: {reason}");
+    }
+
+    public bool HasPerformedRepair()   => _repairPerformed;
+    public int  GetWrongAttempts()     => _wrongAttempts;
+
+    // ─────────────────────────────────────────────
+    //  Carga de niveles
+    // ─────────────────────────────────────────────
 
     void LoadLevel(int index)
     {
-        currentLevel = levels[index];
-        levelCompleted = false;
-        repairPerformed = false;
+        if (index >= 4) { CompleteGame(); return; }
 
-        if (performance != null)
-            performance.ResetTracker();
+        _currentIndex    = index;
+        _currentLevel    = (LevelType)index;
+        _levelCompleted  = false;
+        _repairPerformed = false;
+        _wrongAttempts   = 0;
 
-        if (multimeter != null)
-            multimeter.ResetProbes();
+        performance?.ResetTracker();
+        multimeter?.ResetProbes();
+        instructionSystem?.ResetInstructions();
+        instructionSystem?.BuildInstructions();
 
-        if (instructionSystem != null)
-        {
-            instructionSystem.ResetInstructions();
-            instructionSystem.BuildInstructions();
-        }
-
-        Debug.Log("🎮 Cargando nivel: " + currentLevel);
         SetupLevel();
+        circuit?.ForceSimulate();
+
+        OnLevelLoaded?.Invoke(_currentLevel);
+        Debug.Log($"[GameManager] Cargando: {_currentLevel}");
     }
+
+    public void NextLevel() => LoadLevel(_currentIndex + 1);
 
     void SetupLevel()
     {
-        switch (currentLevel)
+        switch (_currentLevel)
         {
-            case LevelType.OhmLaw:
-                SetupOhmLaw();
-                break;
-
-            case LevelType.Parallel:
-                SetupParallel();
-                break;
-
-            case LevelType.Mixed:
-                Debug.Log("⚠ Nivel 3 aún no implementado");
-                break;
-
-            case LevelType.Arduino:
-                Debug.Log("⚠ Nivel 4 aún no implementado");
-                break;
+            case LevelType.OhmLaw:   SetupReto1(); break;
+            case LevelType.Parallel: SetupReto2(); break;
+            case LevelType.Mixed:    SetupReto3(); break;
+            case LevelType.Arduino:  SetupReto4(); break;
         }
     }
 
-    // -------------------------
-    // RETO 1
-    // -------------------------
-    void SetupOhmLaw()
+    // ─────────────────────────────────────────────
+    //  RETO 1 — Circuito Serie & Ley de Ohm
+    // ─────────────────────────────────────────────
+
+    void SetupReto1()
     {
+        circuit.topology = CircuitTopology.Series;
+
         foreach (var comp in circuit.components)
         {
             if (comp is Resistor r)
             {
-                r.resistance = 10f; // falla inicial
-                Debug.Log("⚠ Reto 1: resistencia incorrecta aplicada");
+                r.faultyResistance  = RETO1_FAULTY_RESISTANCE;
+                r.correctResistance = RETO1_CORRECT_RESISTANCE;
+                r.ApplyFault();    // Resistencia inicial INCORRECTA
             }
-
             if (comp is LED led)
             {
-                led.resistance = 50f; // normal
+                led.resistance       = RETO1_LED_RESISTANCE;
+                led.polarityInverted = false;
+            }
+            if (comp is VoltageSource vs)
+            {
+                vs.voltage = RETO1_SOURCE_VOLTAGE;
             }
         }
 
-        targetVoltage = 9f;
-        tolerance = 0.5f;
+        OnFaultDetected?.Invoke("Reto 1: La resistencia tiene valor incorrecto.\n" +
+                                 "El Técnico debe calcular el valor correcto usando Ley de Ohm.");
     }
 
-    void CheckOhmLaw()
+    void CheckReto1()
     {
-        if (!repairPerformed) return;
-        if (multimeter == null) return;
-        if (multimeter.probeA == null || multimeter.probeB == null) return;
+        if (!_repairPerformed) return;
+        if (multimeter?.probeA == null || multimeter?.probeB == null) return;
 
         float measured = multimeter.measuredVoltage;
 
-        if (Mathf.Abs(measured - targetVoltage) <= tolerance)
-        {
-            levelCompleted = true;
-            Debug.Log("✅ RETO 1 COMPLETADO");
-
-            if (performance != null)
-                Debug.Log(performance.GetEvaluation());
-
-            Invoke(nameof(NextLevel), 2f);
-        }
+        if (Mathf.Abs(measured - RETO1_TARGET_VOLTAGE) <= RETO1_TOLERANCE)
+            CompleteLevel(true);
     }
 
-    // -------------------------
-    // RETO 2
-    // -------------------------
-    void SetupParallel()
+    // ─────────────────────────────────────────────
+    //  RETO 2 — Circuito Paralelo & Divisor de Corriente
+    // ─────────────────────────────────────────────
+
+    void SetupReto2()
     {
+        circuit.topology = CircuitTopology.Parallel;
+
+        int index = 0;
         foreach (var comp in circuit.components)
         {
+            if (comp is LED led)
+            {
+                led.resistance       = index == 0 ? RETO2_BROKEN_RESISTANCE : RETO2_NORMAL_RESISTANCE;
+                led.polarityInverted = false;
+                index++;
+            }
             if (comp is Resistor r)
             {
-                r.resistance = 100f; // restaurar valor normal
-            }
-
-            if (comp is LED led)
-            {
-                led.resistance = 9999f; // simula rama abierta / fallo
-                Debug.Log("⚠ Reto 2: rama en paralelo fallando");
+                r.Repair();  // Resistencias correctas en Reto 2
             }
         }
 
-        targetVoltage = 9f;
-        tolerance = 0.5f;
+        OnFaultDetected?.Invoke("Reto 2: Una rama del circuito paralelo está abierta.\n" +
+                                 "El Técnico debe identificar cuál sensor no recibe corriente.");
     }
 
-    void CheckParallel()
+    void CheckReto2()
     {
-        if (!repairPerformed) return;
+        if (!_repairPerformed) return;
 
-        bool allWorking = true;
+        if (circuit.AreAllLEDsOn())
+            CompleteLevel(true);
+    }
+
+    // ─────────────────────────────────────────────
+    //  RETO 3 — Circuito Mixto & Polaridad
+    // ─────────────────────────────────────────────
+
+    void SetupReto3()
+    {
+        circuit.topology = CircuitTopology.Mixed;
+
+        int ledIndex = 0;
+        foreach (var comp in circuit.components)
+        {
+            // Falla 1: LED con polaridad invertida
+            if (comp is LED led)
+            {
+                led.polarityInverted = (ledIndex == 0);   // Solo el primer LED
+                ledIndex++;
+            }
+
+            // Falla 2: Capacitor con polaridad invertida
+            if (comp is Capacitor cap)
+            {
+                cap.SetPolarityInverted(true);
+            }
+
+            // Falla 3: Resistencia con valor incorrecto (código de colores erróneo)
+            if (comp is Resistor r)
+            {
+                r.faultyResistance  = 470f;   // Color de bandas equivocado
+                r.correctResistance = 220f;   // El que pide el circuito
+                r.ApplyFault();
+            }
+        }
+
+        // En mixto, el GameManager asigna voltajes a los nodos manualmente
+        SetupMixedNodeVoltages();
+
+        OnFaultDetected?.Invoke("Reto 3: 3 fallas simultáneas.\n" +
+                                 "1) LED con polaridad invertida\n" +
+                                 "2) Capacitor con polaridad invertida\n" +
+                                 "3) Resistencia con código de colores erróneo");
+    }
+
+    void SetupMixedNodeVoltages()
+    {
+        // Topología Reto 3: Fuente → Resistencia en serie → dos ramas paralelas (LED, Capacitor)
+        VoltageSource source = null;
+        Resistor      resistor = null;
 
         foreach (var comp in circuit.components)
         {
-            if (comp is LED led)
+            if (comp is VoltageSource vs) source = vs;
+            if (comp is Resistor r)       resistor = r;
+        }
+
+        if (source == null || resistor == null) return;
+
+        float V = source.voltage;
+        float I = V / (resistor.GetResistance() + 50f);   // 50Ω estimado de ramas
+        float vAfterR = V - I * resistor.GetResistance();
+
+        if (resistor.nodeA != null) resistor.nodeA.voltage = V;
+        if (resistor.nodeB != null) resistor.nodeB.voltage = vAfterR;
+
+        // Las ramas paralelas comparten el mismo nodo después de la resistencia
+        foreach (var comp in circuit.components)
+        {
+            if (comp is LED || comp is Capacitor)
             {
-                if (!led.isOn)
-                {
-                    allWorking = false;
-                }
+                if (comp.nodeA != null) comp.nodeA.voltage = vAfterR;
+                if (comp.nodeB != null) comp.nodeB.voltage = 0f;
+            }
+        }
+    }
+
+    void CheckReto3()
+    {
+        if (!_repairPerformed) return;
+
+        bool ledFixed = true, capFixed = true, resFixed = true;
+
+        foreach (var comp in circuit.components)
+        {
+            if (comp is LED led        && led.polarityInverted) ledFixed = false;
+            if (comp is Capacitor cap  && cap.polarityInverted) capFixed = false;
+            if (comp is Resistor r     && r.hasFault)           resFixed = false;
+        }
+
+        if (ledFixed && capFixed && resFixed)
+            CompleteLevel(true);
+    }
+
+    // ─────────────────────────────────────────────
+    //  RETO 4 — Sensor-Actuador con Arduino
+    // ─────────────────────────────────────────────
+
+    void SetupReto4()
+    {
+        circuit.topology = CircuitTopology.Mixed;
+
+        // Fallas del Reto 4
+        foreach (var comp in circuit.components)
+        {
+            if (comp is ArduinoPin pin)
+            {
+                pin.ApplyFault();     // Pin incorrecto
+            }
+            if (comp is Resistor r)
+            {
+                r.faultyResistance  = 0f;    // Sin resistencia limitadora al buzzer
+                r.correctResistance = 330f;  // 330Ω para proteger el buzzer
+                r.ApplyFault();
             }
         }
 
-        if (allWorking)
-        {
-            levelCompleted = true;
-            Debug.Log("✅ RETO 2 COMPLETADO");
-
-            if (performance != null)
-                Debug.Log(performance.GetEvaluation());
-
-            Invoke(nameof(NextLevel), 2f);
-        }
+        // El cable suelto en la protoboard lo maneja ArduinoPin
+        OnFaultDetected?.Invoke("Reto 4: Sistema sensor-temperatura no activa alarma.\n" +
+                                 "1) Sensor en pin incorrecto del Arduino\n" +
+                                 "2) Buzzer sin resistencia limitadora\n" +
+                                 "3) Cable suelto en la protoboard");
     }
 
-    void NextLevel()
+    void CheckReto4()
     {
-        currentLevelIndex++;
+        if (!_repairPerformed) return;
 
-        if (currentLevelIndex >= levels.Length)
+        bool allPinsCorrect = true;
+        bool resistorFixed  = true;
+        bool cableFixed     = true;
+
+        foreach (var comp in circuit.components)
         {
-            Debug.Log("🏆 JUEGO COMPLETADO");
-            return;
+            if (comp is ArduinoPin pin)
+            {
+                if (pin.hasFault)           allPinsCorrect = false;
+                if (pin.hasLooseCable)      cableFixed     = false;
+            }
+            if (comp is Resistor r && r.hasFault) resistorFixed = false;
         }
 
-        LoadLevel(currentLevelIndex);
+        if (allPinsCorrect && resistorFixed && cableFixed)
+            CompleteLevel(true);
     }
 
+    // ─────────────────────────────────────────────
+    //  Verificación de condiciones de victoria
+    // ─────────────────────────────────────────────
+
+    /// <summary>Se llama automáticamente cada vez que el circuito cambia.</summary>
+    void CheckWinCondition()
+    {
+        if (_levelCompleted) return;
+
+        switch (_currentLevel)
+        {
+            case LevelType.OhmLaw:   CheckReto1(); break;
+            case LevelType.Parallel: CheckReto2(); break;
+            case LevelType.Mixed:    CheckReto3(); break;
+            case LevelType.Arduino:  CheckReto4(); break;
+        }
+    }
+
+    void CompleteLevel(bool success)
+    {
+        _levelCompleted = true;
+        OnLevelCompleted?.Invoke(_currentLevel, success);
+
+        if (performance != null)
+            Debug.Log($"[GameManager] {_currentLevel} completado — {performance.GetEvaluation()}");
+
+        Invoke(nameof(NextLevel), 3f);
+    }
+
+    void CompleteGame()
+    {
+        OnGameCompleted?.Invoke();
+        Debug.Log("[GameManager] ¡Juego completado!");
+    }
+
+    // ─────────────────────────────────────────────
+    //  Helpers
+    // ─────────────────────────────────────────────
     public bool IsVoltageCorrect()
     {
         if (multimeter == null) return false;
-        return Mathf.Abs(multimeter.measuredVoltage - targetVoltage) <= tolerance;
+        return Mathf.Abs(multimeter.measuredVoltage - RETO1_TARGET_VOLTAGE) <= RETO1_TOLERANCE;
     }
 }

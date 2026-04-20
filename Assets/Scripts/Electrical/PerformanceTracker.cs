@@ -1,51 +1,123 @@
+using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+/// Registra el desempeño del jugador por reto:
+/// tiempo empleado, errores cometidos, evaluación final.
+/// Se suscribe a eventos de GameManager para registrar automáticamente.
+/// </summary>
 public class PerformanceTracker : MonoBehaviour
 {
-    private float startTime;
-    private int errors = 0;
+    // ─────────────────────────────────────────────
+    //  Inspector
+    // ─────────────────────────────────────────────
+    [Header("Umbrales de evaluación")]
+    [Tooltip("Tiempo máximo (segundos) para calificación Excelente por reto.")]
+    public float[] excellentTimeLimits = { 240f, 300f, 360f, 450f };  // 4,5,6,7.5 min
+    public int     maxErrorsForGood    = 3;
 
-    [Header("Configuración")]
-    public float excellentTime = 60f;
-    public int maxGoodErrors = 3;
+    // ─────────────────────────────────────────────
+    //  Registro de sesión
+    // ─────────────────────────────────────────────
+    [Header("Sesión actual (solo lectura)")]
+    [SerializeField] private int   _currentErrors = 0;
+    [SerializeField] private float _startTime;
+    [SerializeField] private int   _currentLevelIndex = 0;
 
+    private List<LevelRecord> _records = new List<LevelRecord>();
+
+    // ─────────────────────────────────────────────
+    //  Unity Lifecycle
+    // ─────────────────────────────────────────────
     void Start()
     {
+        GameManager.OnLevelLoaded    += HandleLevelLoaded;
+        GameManager.OnLevelCompleted += HandleLevelCompleted;
         ResetTracker();
     }
 
+    void OnDestroy()
+    {
+        GameManager.OnLevelLoaded    -= HandleLevelLoaded;
+        GameManager.OnLevelCompleted -= HandleLevelCompleted;
+    }
+
+    // ─────────────────────────────────────────────
+    //  API Pública
+    // ─────────────────────────────────────────────
+
     public void ResetTracker()
     {
-        startTime = Time.time;
-        errors = 0;
+        _startTime     = Time.time;
+        _currentErrors = 0;
     }
 
     public void AddError(string errorType = "general")
     {
-        errors++;
-        Debug.Log("Error registrado: " + errorType);
+        _currentErrors++;
+        Debug.Log($"[PerformanceTracker] Error #{_currentErrors}: {errorType}");
     }
 
-    public float GetTime()
-    {
-        return Time.time - startTime;
-    }
-
-    public int GetErrors()
-    {
-        return errors;
-    }
+    public float GetTime()   => Time.time - _startTime;
+    public int   GetErrors() => _currentErrors;
 
     public string GetEvaluation()
     {
-        float time = GetTime();
+        float time  = GetTime();
+        float limit = _currentLevelIndex < excellentTimeLimits.Length
+                      ? excellentTimeLimits[_currentLevelIndex]
+                      : 300f;
 
-        if (errors == 0 && time < excellentTime)
-            return "⭐ Excelente desempeño";
+        if (_currentErrors == 0 && time <= limit)
+            return "⭐ Excelente — Sin errores y en tiempo récord";
 
-        if (errors <= maxGoodErrors)
-            return "👍 Buen desempeño";
+        if (_currentErrors <= maxErrorsForGood)
+            return $"👍 Bueno — {_currentErrors} errores, {time:F0}s";
 
-        return "⚠️ Necesita mejorar";
+        return $"⚠️ Necesita mejorar — {_currentErrors} errores";
     }
+
+    /// <summary>Devuelve factor de bono (0-1) basado en velocidad de resolución.</summary>
+    public float GetTimeBonus()
+    {
+        float time  = GetTime();
+        float limit = _currentLevelIndex < excellentTimeLimits.Length
+                      ? excellentTimeLimits[_currentLevelIndex]
+                      : 300f;
+        return Mathf.Clamp01(1f - time / limit);
+    }
+
+    public List<LevelRecord> GetAllRecords() => _records;
+
+    // ─────────────────────────────────────────────
+    //  Internos
+    // ─────────────────────────────────────────────
+
+    void HandleLevelLoaded(LevelType level)
+    {
+        _currentLevelIndex = (int)level;
+        ResetTracker();
+    }
+
+    void HandleLevelCompleted(LevelType level, bool success)
+    {
+        _records.Add(new LevelRecord
+        {
+            level      = level,
+            timeSeconds = GetTime(),
+            errors     = _currentErrors,
+            success    = success,
+            evaluation = GetEvaluation()
+        });
+    }
+}
+
+[System.Serializable]
+public struct LevelRecord
+{
+    public LevelType level;
+    public float     timeSeconds;
+    public int       errors;
+    public bool      success;
+    public string    evaluation;
 }
