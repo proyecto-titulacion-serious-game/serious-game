@@ -1,44 +1,112 @@
 using UnityEngine;
+using UnityEngine.XR.Interaction.Toolkit;
 
+/// <summary>
+/// Versión VR de SelectableComponent.
+/// Reemplaza OnMouseDown() con XRSimpleInteractable para funcionar con los
+/// controladores del Meta Quest.
+///
+/// SETUP:
+///   1. Agregar XRSimpleInteractable (o XRGrabInteractable si el componente se puede agarrar)
+///   2. Asignar el ElectricalComponent en component
+///   3. Asignar TechnicianActions desde el inspector
+/// </summary>
+[RequireComponent(typeof(UnityEngine.XR.Interaction.Toolkit.Interactables.XRSimpleInteractable))]
+[RequireComponent(typeof(Collider))]
 public class SelectableComponent : MonoBehaviour
 {
+    // ─────────────────────────────────────────────
+    //  Inspector
+    // ─────────────────────────────────────────────
+    [Header("Componente eléctrico")]
     public ElectricalComponent component;
+
+    [Header("Referencias")]
     public TechnicianActions technicianActions;
+    public PlayerInteraction  playerInteraction;   // Para Explorador VR
 
-    private Renderer rend;
-    private Color originalColor;
+    [Header("Feedback visual")]
+    public Color hoverColor    = new Color(1f, 1f, 0f, 0.5f);
+    public Color selectedColor = Color.yellow;
 
-    void Start()
+    // ─────────────────────────────────────────────
+    //  Internos
+    // ─────────────────────────────────────────────
+    private UnityEngine.XR.Interaction.Toolkit.Interactables.XRSimpleInteractable _interactable;
+    private Renderer             _renderer;
+    private Color                _originalColor;
+    private MaterialPropertyBlock _mpb;
+    private static readonly int  _colorID = Shader.PropertyToID("_Color");
+
+    // ─────────────────────────────────────────────
+    //  Unity Lifecycle
+    // ─────────────────────────────────────────────
+    void Awake()
     {
-        rend = GetComponent<Renderer>();
+        _interactable = GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactables.XRSimpleInteractable>();
+        _renderer     = GetComponent<Renderer>();
+        _mpb          = new MaterialPropertyBlock();
 
-        if (rend != null)
-        {
-            originalColor = rend.material.color;
-        }
+        if (_renderer != null)
+            _originalColor = _renderer.material.color;
+
+        if (technicianActions == null)
+            technicianActions = FindObjectOfType<TechnicianActions>();
+        if (playerInteraction == null)
+            playerInteraction = FindObjectOfType<PlayerInteraction>();
     }
 
-    void OnMouseDown()
+    void OnEnable()
     {
-        if (component == null || technicianActions == null) return;
-
-        technicianActions.SelectComponent(component, this);
-        Debug.Log("🔍 Componente seleccionado: " + component.name);
+        _interactable.hoverEntered.AddListener(OnHoverEnter);
+        _interactable.hoverExited.AddListener(OnHoverExit);
+        _interactable.selectEntered.AddListener(OnSelect);
     }
 
-    public void Highlight()
+    void OnDisable()
     {
-        if (rend != null)
-        {
-            rend.material.color = Color.yellow;
-        }
+        _interactable.hoverEntered.RemoveListener(OnHoverEnter);
+        _interactable.hoverExited.RemoveListener(OnHoverExit);
+        _interactable.selectEntered.RemoveListener(OnSelect);
     }
 
-    public void ResetHighlight()
+    // ─────────────────────────────────────────────
+    //  Eventos XR
+    // ─────────────────────────────────────────────
+
+    void OnHoverEnter(HoverEnterEventArgs args) => SetColor(hoverColor);
+    void OnHoverExit (HoverExitEventArgs  args) => ResetHighlight();
+
+    void OnSelect(SelectEnterEventArgs args)
     {
-        if (rend != null)
-        {
-            rend.material.color = originalColor;
-        }
+        if (component == null) return;
+
+        // El Técnico selecciona (diagnostica)
+        technicianActions?.SelectComponent(component, this);
+
+        // El Explorador puede agarrar el componente
+        playerInteraction?.OnGrabComponent(this);
+
+        SetColor(selectedColor);
+        Debug.Log($"[SelectableComponent] Seleccionado: {component.name}");
+    }
+
+    // ─────────────────────────────────────────────
+    //  Highlight API (llamado desde TechnicianActions)
+    // ─────────────────────────────────────────────
+
+    public void Highlight()    => SetColor(selectedColor);
+    public void ResetHighlight() => SetColor(_originalColor);
+
+    // ─────────────────────────────────────────────
+    //  Helper
+    // ─────────────────────────────────────────────
+
+    void SetColor(Color c)
+    {
+        if (_renderer == null) return;
+        _renderer.GetPropertyBlock(_mpb);
+        _mpb.SetColor(_colorID, c);
+        _renderer.SetPropertyBlock(_mpb);
     }
 }
