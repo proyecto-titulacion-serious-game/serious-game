@@ -6,7 +6,6 @@ on:
   pull_request:
     branches: [ main ]
 
-# Permisos necesarios para publicar en GitHub Pages
 permissions:
   contents: read
   pages: write
@@ -21,7 +20,8 @@ jobs:
 
       - name: Build Unity (Windows)
         run: |
-          /home/mauros/Unity/Hub/Editor/6000.3.12f1/Editor/Unity \
+          # Usamos la 6000.4.3f1 que tienes en tu Cachy
+          /home/mauros/Unity/Hub/Editor/6000.4.3f1/Editor/Unity \
             -batchmode \
             -nographics \
             -silent-crashes \
@@ -35,15 +35,19 @@ jobs:
           mkdir -p docs
           doxygen Doxyfile
 
-      # --- AQUÍ EMPIEZA LO DE GITHUB PAGES ---
-      
+      - name: Upload Artifact (Juego)
+        uses: actions/upload-artifact@v4
+        with:
+          name: SeriousGame-Build-Windows
+          path: build/
+
       - name: Configurar Pages
         uses: actions/configure-pages@v4
 
       - name: Subir a GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'docs/html/' # La carpeta que genera tu PC
+          path: 'docs/html/'
 
       - name: Desplegar Documentación
         id: deployment
