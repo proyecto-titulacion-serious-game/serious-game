@@ -449,7 +449,6 @@
 "Assets/Scripts/Gameplay/ObjectiveSystem.cs"
 "Assets/Scripts/Gameplay/TechnicianActions.cs"
 "Assets/Scripts/Gameplay/TechnicianManual.cs"
-"Assets/Scripts/Interaction/IInteractable.cs"
 "Assets/Scripts/Interaction/Multimeter.cs"
 "Assets/Scripts/Interaction/NodeInteractable.cs"
 "Assets/Scripts/Interaction/SelectableComponent.cs"

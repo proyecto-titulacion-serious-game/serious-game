@@ -1,36 +1,90 @@
 using UnityEngine;
 
+/// <summary>
+/// Sistema de pasos e instrucciones del reto activo.
+/// Valida automáticamente las condiciones de cada paso y avanza
+/// cuando el Explorador o el Técnico cumplen el requisito.
+/// </summary>
+/// <remarks>
+/// Flujo por reto:
+/// <list type="bullet">
+///   <item>Reto 1: medir → verificar voltaje → seleccionar resistencia → reemplazar</item>
+///   <item>Reto 2: medir → identificar rama rota → reconectar</item>
+///   <item>Reto 3: capacitor → LED → resistencia</item>
+///   <item>Reto 4: localizar pin → mover cable → instalar resistencia → reconectar cable suelto</item>
+/// </list>
+/// </remarks>
 public class InstructionSystem : MonoBehaviour
 {
+    // ─────────────────────────────────────────────
+    //  Inspector
+    // ─────────────────────────────────────────────
+
+    /// <summary>Paso actual del reto (0-based). Solo lectura en runtime.</summary>
     [Header("Estado")]
     public int currentStep = 0;
 
+    /// <summary>Multímetro del Explorador — se consulta para validar mediciones.</summary>
     [Header("Referencias")]
     public Multimeter multimeter;
+
+    /// <summary>Gestor del juego — provee el nivel activo.</summary>
     public GameManager gameManager;
+
+    /// <summary>Acciones del Técnico — se consulta para validar selecciones.</summary>
     public TechnicianActions technicianActions;
 
+    // ─────────────────────────────────────────────
+    //  Flags de progreso
+    // ─────────────────────────────────────────────
+
+    /// <summary>True cuando el Explorador realizó al menos una medición válida.</summary>
     [Header("Flags de progreso")]
     public bool hasMeasuredCorrectly = false;
+
+    /// <summary>True cuando el Técnico seleccionó el componente correcto.</summary>
     public bool hasSelectedCorrectComponent = false;
+
+    /// <summary>True cuando se aplicó la reparación al circuito.</summary>
     public bool hasAppliedFix = false;
 
-    [Header("Instrucciones")]
+    // ─────────────────────────────────────────────
+    //  Instrucciones
+    // ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Array de instrucciones del reto activo.
+    /// Se construye en BuildInstructions() al cargar cada nivel.
+    /// </summary>
+    [Header("Instrucciones generadas")]
     public string[] instructions;
 
-    void Start()
+    // ─────────────────────────────────────────────
+    //  Unity Lifecycle
+    // ─────────────────────────────────────────────
+
+    /// <summary>Inicializa y construye las instrucciones al arrancar.</summary>
+    private void Start()
     {
         ResetInstructions();
         BuildInstructions();
     }
 
-    void Update()
+    /// <summary>Valida el paso actual cada frame.</summary>
+    private void Update()
     {
         if (gameManager == null) return;
-
         ValidateCurrentStep();
     }
 
+    // ─────────────────────────────────────────────
+    //  Construcción de instrucciones
+    // ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Genera el array de instrucciones según el nivel activo.
+    /// Llamar al cargar cada nivel (GameManager.OnLevelLoaded).
+    /// </summary>
     public void BuildInstructions()
     {
         if (gameManager == null) return;
@@ -38,60 +92,81 @@ public class InstructionSystem : MonoBehaviour
         switch (gameManager.currentLevel)
         {
             case LevelType.OhmLaw:
-                instructions = new string[]
+                instructions = new[]
                 {
-                    "Paso 1: Conecta la punta roja y negra del multimetro a dos nodos.",
-                    "Paso 2: Observa la medicion y verifica si el voltaje es el esperado.",
-                    "Paso 3: Selecciona la resistencia defectuosa.",
-                    "Paso 4: Reemplaza la resistencia por el valor correcto."
+                    "Paso 1: Pide al Explorador conectar el multímetro a dos nodos.",
+                    "Paso 2: Lee el voltaje medido e identifica la anomalía.",
+                    "Paso 3: Selecciona la resistencia defectuosa en el panel.",
+                    "Paso 4: Calcula el valor correcto y envíalo al Explorador."
                 };
                 break;
 
             case LevelType.Parallel:
-                instructions = new string[]
+                instructions = new[]
                 {
-                    "Paso 1: Mide el circuito para identificar una rama fallando.",
-                    "Paso 2: Analiza que componente esta provocando la falla.",
-                    "Paso 3: Aplica la reparacion del circuito paralelo."
+                    "Paso 1: Pide al Explorador medir voltaje en cada sensor.",
+                    "Paso 2: Identifica la rama con voltaje 0V (rama rota).",
+                    "Paso 3: Autoriza la reparación del circuito paralelo."
+                };
+                break;
+
+            case LevelType.Mixed:
+                instructions = new[]
+                {
+                    "Paso 1: Localiza el capacitor con humo — prioridad máxima.",
+                    "Paso 2: Indica al Explorador girar el capacitor 180°.",
+                    "Paso 3: Indica girar el LED invertido 180°.",
+                    "Paso 4: Calcula la resistencia correcta (220Ω) y envíala."
+                };
+                break;
+
+            case LevelType.Arduino:
+                instructions = new[]
+                {
+                    "Paso 1: Pide al Explorador localizar el cable del sensor.",
+                    "Paso 2: Indica mover el cable del pin D4 al pin D2.",
+                    "Paso 3: Envía la resistencia de 330Ω para el buzzer.",
+                    "Paso 4: Indica reconectar el cable suelto en protoboard.",
+                    "Paso 5: Verifica señal en el monitor serial."
                 };
                 break;
 
             default:
-                instructions = new string[]
-                {
-                    "Nivel en desarrollo."
-                };
+                instructions = new[] { "Nivel en desarrollo." };
                 break;
         }
     }
 
-    void ValidateCurrentStep()
+    // ─────────────────────────────────────────────
+    //  Validación automática de pasos
+    // ─────────────────────────────────────────────
+
+    /// <summary>Delega la validación al método correspondiente del reto activo.</summary>
+    private void ValidateCurrentStep()
     {
         switch (gameManager.currentLevel)
         {
-            case LevelType.OhmLaw:
-                ValidateOhmLaw();
-                break;
-
-            case LevelType.Parallel:
-                ValidateParallel();
-                break;
+            case LevelType.OhmLaw:   ValidateOhmLaw();   break;
+            case LevelType.Parallel: ValidateParallel();  break;
+            case LevelType.Mixed:    ValidateMixed();     break;
+            case LevelType.Arduino:  ValidateArduino();   break;
         }
     }
 
-    void ValidateOhmLaw()
+    // ── Reto 1 ─────────────────────────────────
+
+    /// <summary>Valida los 4 pasos del Reto 1 — Ley de Ohm.</summary>
+    private void ValidateOhmLaw()
     {
         switch (currentStep)
         {
+            // Paso 0 → Explorador conecta ambas puntas
             case 0:
-                if (multimeter != null &&
-                    multimeter.probeA != null &&
-                    multimeter.probeB != null)
-                {
+                if (multimeter?.probeA != null && multimeter?.probeB != null)
                     NextStep();
-                }
                 break;
 
+            // Paso 1 → Se lee un voltaje real
             case 1:
                 if (multimeter != null && multimeter.measuredVoltage > 0f)
                 {
@@ -100,6 +175,7 @@ public class InstructionSystem : MonoBehaviour
                 }
                 break;
 
+            // Paso 2 → Técnico selecciona la resistencia
             case 2:
                 if (technicianActions != null && technicianActions.HasSelectedResistor())
                 {
@@ -108,30 +184,28 @@ public class InstructionSystem : MonoBehaviour
                 }
                 break;
 
+            // Paso 3 → Se aplica la reparación
             case 3:
-                if (gameManager != null && gameManager.HasPerformedRepair())
-                {
+                if (gameManager.HasPerformedRepair())
                     hasAppliedFix = true;
-                }
                 break;
         }
     }
 
-    void ValidateParallel()
+    // ── Reto 2 ─────────────────────────────────
+
+    /// <summary>Valida los 3 pasos del Reto 2 — Circuito Paralelo.</summary>
+    private void ValidateParallel()
     {
         switch (currentStep)
         {
             case 0:
-                if (multimeter != null &&
-                    multimeter.probeA != null &&
-                    multimeter.probeB != null)
-                {
+                if (multimeter?.probeA != null && multimeter?.probeB != null)
                     NextStep();
-                }
                 break;
 
             case 1:
-                if (multimeter != null && multimeter.measuredVoltage > 0f)
+                if (multimeter != null && multimeter.measuredVoltage >= 0f)
                 {
                     hasMeasuredCorrectly = true;
                     NextStep();
@@ -139,49 +213,105 @@ public class InstructionSystem : MonoBehaviour
                 break;
 
             case 2:
-                if (gameManager != null && gameManager.HasPerformedRepair())
-                {
+                if (gameManager.HasPerformedRepair())
                     hasAppliedFix = true;
-                }
                 break;
         }
     }
 
+    // ── Reto 3 ─────────────────────────────────
+
+    /// <summary>Valida los 4 pasos del Reto 3 — Circuito Mixto y Polaridad.</summary>
+    private void ValidateMixed()
+    {
+        switch (currentStep)
+        {
+            // Paso 0 → Explorador reporta humo en el capacitor
+            case 0:
+                if (multimeter?.probeA != null) NextStep();
+                break;
+
+            // Pasos 1-3 → validados desde GameManager al corregir fallas
+            case 1:
+            case 2:
+            case 3:
+                if (gameManager.HasPerformedRepair())
+                    NextStep();
+                break;
+        }
+    }
+
+    // ── Reto 4 ─────────────────────────────────
+
+    /// <summary>Valida los 5 pasos del Reto 4 — Sensor-Actuador Arduino.</summary>
+    private void ValidateArduino()
+    {
+        switch (currentStep)
+        {
+            case 0:
+                if (multimeter?.probeA != null) NextStep();
+                break;
+
+            case 1:
+            case 2:
+            case 3:
+            case 4:
+                if (gameManager.HasPerformedRepair())
+                    NextStep();
+                break;
+        }
+    }
+
+    // ─────────────────────────────────────────────
+    //  API pública
+    // ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Devuelve el texto de la instrucción del paso actual.
+    /// Retorna "Procedimiento completado." si se superaron todos los pasos.
+    /// </summary>
     public string GetCurrentInstruction()
     {
         if (instructions == null || instructions.Length == 0)
             return "Sin instrucciones.";
 
-        if (currentStep < instructions.Length)
-            return instructions[currentStep];
-
-        return "Procedimiento completado.";
+        return currentStep < instructions.Length
+            ? instructions[currentStep]
+            : "Procedimiento completado.";
     }
 
+    /// <summary>
+    /// Avanza al siguiente paso y lo registra en consola.
+    /// </summary>
     public void NextStep()
     {
         currentStep++;
-        Debug.Log("➡ Paso actual: " + currentStep);
+        Debug.Log($"[InstructionSystem] ➡ Paso {currentStep}");
     }
 
+    /// <summary>
+    /// Reinicia todos los flags y el contador de pasos.
+    /// Llamar al cargar un nuevo nivel.
+    /// </summary>
     public void ResetInstructions()
     {
-        currentStep = 0;
-        hasMeasuredCorrectly = false;
+        currentStep                 = 0;
+        hasMeasuredCorrectly        = false;
         hasSelectedCorrectComponent = false;
-        hasAppliedFix = false;
+        hasAppliedFix               = false;
     }
 
+    /// <summary>
+    /// True cuando el Técnico puede enviar la resistencia al Explorador.
+    /// Requiere haber medido y seleccionado el componente correcto (paso 3+).
+    /// </summary>
     public bool CanRepairResistor()
-    {
-        return currentStep >= 3 &&
-               hasMeasuredCorrectly &&
-               hasSelectedCorrectComponent;
-    }
+        => currentStep >= 3 && hasMeasuredCorrectly && hasSelectedCorrectComponent;
 
+    /// <summary>
+    /// True cuando el Técnico puede autorizar la reparación del paralelo.
+    /// Requiere haber completado las mediciones (paso 2+).
+    /// </summary>
     public bool CanRepairParallel()
-    {
-        return currentStep >= 2 &&
-               hasMeasuredCorrectly;
-    }
+        => currentStep >= 2 && hasMeasuredCorrectly;
 }
