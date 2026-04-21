@@ -1,135 +1,177 @@
 using UnityEngine;
 
+/// <summary>
+/// Acciones del Técnico sobre el circuito.
+/// CORRECCIÓN CRÍTICA: ReplaceSelectedResistor ahora llama circuit.MarkDirty()
+/// para que el CircuitManager resimule y el LED cambie de color.
+/// </summary>
 public class TechnicianActions : MonoBehaviour
 {
+    // ─────────────────────────────────────────────
+    //  Inspector
+    // ─────────────────────────────────────────────
+
     [Header("Referencias")]
-    public CircuitManager circuit;
-    public Multimeter multimeter;
+    public CircuitManager    circuit;
+    public Multimeter        multimeter;
     public InstructionSystem instructionSystem;
-    public GameManager gameManager;
+    public GameManager       gameManager;
     public PerformanceTracker performance;
 
-    [Header("Selección actual")]
+    [Header("Valores correctos por reto")]
+    public float correctResistance   = 100f;   // Reto 1
+    public float normalLedResistance = 50f;    // Reto 2
+
+    [Header("Modo demo (sin InstructionSystem)")]
+    [Tooltip("True = repara sin requerir pasos previos del InstructionSystem")]
+    public bool demoMode = true;
+
+    [Header("Selección actual (solo lectura)")]
     public ElectricalComponent selectedComponent;
-    private SelectableComponent selectedVisual;
+    private SelectableComponent _selectedVisual;
 
-    [Header("Valores correctos")]
-    public float correctResistance = 100f;
-    public float normalLedResistance = 50f;
+    // ─────────────────────────────────────────────
+    //  Selección de componente
+    // ─────────────────────────────────────────────
 
+    /// <summary>
+    /// Selecciona un componente del circuito para diagnosticar o reparar.
+    /// Llamado desde SelectableComponent.OnSelect() o DeskComponent.
+    /// </summary>
     public void SelectComponent(ElectricalComponent component, SelectableComponent visual)
     {
-        if (selectedVisual != null)
-        {
-            selectedVisual.ResetHighlight();
-        }
+        // Quitar highlight del anterior
+        if (_selectedVisual != null)
+            _selectedVisual.ResetHighlight();
 
         selectedComponent = component;
-        selectedVisual = visual;
+        _selectedVisual   = visual;
 
-        if (selectedVisual != null)
-        {
-            selectedVisual.Highlight();
-        }
+        if (_selectedVisual != null)
+            _selectedVisual.Highlight();
 
-        // Penalización contextual solo para Reto 1
-        if (gameManager != null &&
+        // Penalización solo en modo normal (no demo)
+        if (!demoMode && gameManager != null &&
             gameManager.currentLevel == LevelType.OhmLaw &&
             !(component is Resistor))
         {
             RegisterError("Seleccion de componente incorrecto en Reto 1");
-            Debug.Log("❌ Seleccionaste un componente incorrecto. En este reto debes elegir la resistencia.");
+            Debug.Log("[TechnicianActions] Seleccionaste el componente incorrecto.");
         }
         else
         {
-            Debug.Log("🔍 Técnico seleccionó: " + component.name);
+            Debug.Log($"[TechnicianActions] Seleccionado: {component.name}");
         }
     }
 
+    // ─────────────────────────────────────────────
+    //  Reparaciones
+    // ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Reemplaza la resistencia seleccionada con el valor correcto.
+    /// CRÍTICO: llama circuit.MarkDirty() para que el LED cambie de color.
+    /// </summary>
     public void ReplaceSelectedResistor()
     {
-        if (instructionSystem == null)
+        if (!demoMode && instructionSystem != null && !instructionSystem.CanRepairResistor())
         {
-            Debug.Log("❌ InstructionSystem no asignado");
-            RegisterError("InstructionSystem no asignado");
-            return;
-        }
-
-        if (!instructionSystem.CanRepairResistor())
-        {
-            Debug.Log("❌ Aún no puedes reparar. Primero mide y selecciona la resistencia.");
+            Debug.Log("[TechnicianActions] Primero mide y selecciona la resistencia.");
             RegisterError("Intento de reparar antes de tiempo");
             return;
         }
 
         if (selectedComponent == null)
         {
-            Debug.Log("❌ No hay componente seleccionado");
-            RegisterError("Sin componente seleccionado");
+            Debug.Log("[TechnicianActions] No hay componente seleccionado.");
             return;
         }
 
         if (selectedComponent is Resistor r)
         {
             r.resistance = correctResistance;
+            r.hasFault   = false;
 
-            if (gameManager != null)
-                gameManager.RegisterRepairAction();
+            // CRÍTICO: sin esto el LED no cambia de color
+            circuit?.MarkDirty();
+            gameManager?.RegisterRepairAction();
 
-            Debug.Log("🔧 Resistencia reemplazada correctamente");
+            Debug.Log($"[TechnicianActions] Resistencia reemplazada: {correctResistance} Ohm. LED debe cambiar a verde.");
         }
         else
         {
-            Debug.Log("❌ El componente seleccionado no es una resistencia");
-            RegisterError("Intento de reparar componente incorrecto");
+            Debug.Log("[TechnicianActions] El componente seleccionado no es una resistencia.");
+            if (!demoMode) RegisterError("Intento reparar componente incorrecto");
         }
     }
 
+    /// <summary>
+    /// Repara la rama rota del circuito paralelo (Reto 2).
+    /// </summary>
     public void FixParallelCircuit()
     {
-        if (instructionSystem == null)
+        if (!demoMode && instructionSystem != null && !instructionSystem.CanRepairParallel())
         {
-            Debug.Log("❌ InstructionSystem no asignado");
-            RegisterError("InstructionSystem no asignado");
-            return;
-        }
-
-        if (!instructionSystem.CanRepairParallel())
-        {
-            Debug.Log("❌ Primero debes medir y diagnosticar la rama fallando.");
+            Debug.Log("[TechnicianActions] Primero mide la rama rota.");
             RegisterError("Intento de reparar paralelo antes de medir");
             return;
         }
 
         foreach (var comp in circuit.components)
         {
-            if (comp is LED led)
+            if (comp is LED led && !led.isOn)
             {
                 led.resistance = normalLedResistance;
             }
         }
 
-        if (gameManager != null)
-            gameManager.RegisterRepairAction();
+        circuit?.MarkDirty();
+        gameManager?.RegisterRepairAction();
 
-        Debug.Log("🔧 Circuito paralelo reparado");
+        Debug.Log("[TechnicianActions] Circuito paralelo reparado.");
     }
 
+    /// <summary>
+    /// Aplica directamente un valor de resistencia al circuito.
+    /// Usado por ComponentSendingTray en modo demo.
+    /// </summary>
+    public bool ApplyResistorValue(float value)
+    {
+        foreach (var comp in circuit.components)
+        {
+            if (comp is Resistor r)
+            {
+                if (r.IsValueCorrect(value))
+                {
+                    r.resistance = value;
+                    r.hasFault   = false;
+                    circuit?.MarkDirty();
+                    gameManager?.RegisterRepairAction();
+                    Debug.Log($"[TechnicianActions] Resistencia {value} Ohm aplicada. LED cambiando.");
+                    return true;
+                }
+                else
+                {
+                    RegisterError($"R incorrecta: {value} Ohm");
+                    Debug.Log($"[TechnicianActions] Valor incorrecto: {value} Ohm. Correcto: {r.correctResistance} Ohm");
+                    return false;
+                }
+            }
+        }
+        return false;
+    }
+
+    // ─────────────────────────────────────────────
+    //  Helpers
+    // ─────────────────────────────────────────────
+
+    /// <summary>Nombre del componente seleccionado actualmente.</summary>
     public string GetSelectedComponentName()
-    {
-        return selectedComponent == null ? "None" : selectedComponent.name;
-    }
+        => selectedComponent == null ? "None" : selectedComponent.name;
 
-    public bool HasSelectedResistor()
-    {
-        return selectedComponent is Resistor;
-    }
+    /// <summary>True si el componente seleccionado es una Resistencia.</summary>
+    public bool HasSelectedResistor() => selectedComponent is Resistor;
 
     void RegisterError(string reason)
-    {
-        if (performance != null)
-        {
-            performance.AddError(reason);
-        }
-    }
+        => performance?.AddError(reason);
 }
