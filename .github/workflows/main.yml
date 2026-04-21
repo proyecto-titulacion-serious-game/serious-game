@@ -20,7 +20,6 @@ jobs:
 
       - name: Build Unity (Windows)
         run: |
-          # Usamos la 6000.4.3f1 que tienes en tu Cachy
           /home/mauros/Unity/Hub/Editor/6000.4.3f1/Editor/Unity \
             -batchmode \
             -nographics \
@@ -35,6 +34,24 @@ jobs:
           mkdir -p docs
           doxygen Doxyfile
 
+      # --- PASO CRUCIAL: Convertir HTML a Texto Plano para el script de Python ---
+      - name: Extraer Texto de Documentación
+        run: |
+          find docs/html/ -name "*.html" -exec lynx -dump -nolist {} \; > documentacion_plana_tesis.txt
+
+      - name: Generar README dinámico
+        run: python generate_readme.py
+
+      - name: Actualizar Repositorio
+        run: |
+          git config --global user.name "Mauro Runner Bot"
+          git config --global user.email "mauro-bot@users.noreply.github.com"
+          # Añadimos progreso.txt por si lo editaste localmente
+          git add README.md progreso.txt
+          git commit -m "docs: auto-update architecture and progress [skip ci]" || echo "No changes"
+          git push
+
+      # --- Pasos de Publicación en Web ---
       - name: Upload Artifact (Juego)
         uses: actions/upload-artifact@v4
         with:
@@ -52,16 +69,3 @@ jobs:
       - name: Desplegar Documentación
         id: deployment
         uses: actions/deploy-pages@v4
-      # ... después de Doxygen y generar el .txt con lynx ...
-
-      - name: Generar README dinámico
-        run: python generate_readme.py
-
-      - name: Actualizar Repositorio
-        run: |
-          git config --global user.name "Mauro Runner Bot"
-          git config --global user.email "mauro-bot@users.noreply.github.com"
-          git add README.md
-          # El [skip ci] evita que GitHub entre en un bucle infinito
-          git commit -m "docs: auto-update architecture and progress [skip ci]" || echo "No changes"
-          git push
