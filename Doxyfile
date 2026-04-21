@@ -1,0 +1,30 @@
+# Nombre del proyecto
+PROJECT_NAME           = "Serious Game - Electrónica VR"
+PROJECT_NUMBER         = "1.0.0"
+
+# Rutas de entrada (Solo tus scripts para que sea rápido)
+INPUT                  = ./Assets/Scripts README.md
+RECURSIVE              = YES
+FILE_PATTERNS          = *.cs *.md
+
+# Salida
+OUTPUT_DIRECTORY       = ./docs
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+
+# Configuración de extracción (Para que lea los XML)
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = YES
+EXTRACT_STATIC         = YES
+
+# Diagramas (Aquí usamos Graphviz)
+HAVE_DOT               = YES
+CLASS_GRAPH            = YES
+COLLABORATION_GRAPH    = YES
+DIRECTORY_GRAPH        = YES
+UML_LOOK               = YES
+TEMPLATE_RELATIONS     = YES
+DOT_PATH               = /usr/bin/dot
+
+# Optimización para C#
+OPTIMIZE_OUTPUT_JAVA   = YES
