@@ -30,3 +30,15 @@ jobs:
         with:
           name: SeriousGame-Build-Windows
           path: build/
+
+      - name: Generar Documentación (Doxygen)
+        run: |
+          # Asegúrate de haber creado el archivo Doxyfile en la raíz del repo
+          mkdir -p docs
+          doxygen Doxyfile
+
+      - name: Subir Documentación como Artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: SeriousGame-Documentacion-Tecnica
+          path: docs/html/
