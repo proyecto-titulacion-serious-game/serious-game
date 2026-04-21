@@ -2,40 +2,31 @@ name: Tesis VR CI
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  buildForWindows:
-    name: Build para Windows 
-    runs-on: self-hosted
+  build-windows:
+    runs-on: self-hosted  # Usa tu CachyOS
     steps:
-      - name: Checkout Código
+      - name: Checkout Code
         uses: actions/checkout@v4
-        with:
-          lfs: true
 
-      - name: Cache de Librerías 
-        uses: actions/cache@v4 # Actualizado a v4
-        with:
-          path: Library
-          key: Library-SeriousGame-Windows
-          restore-keys: |
-            Library-SeriousGame-
-
-      - name: Ejecutar Build en Unity 🛠️
+      - name: Build StandaloneWindows64
         run: |
-          # Asegúrate de que esta ruta sea la de tu Unity en Linux (CachyOS)
-          /opt/unity/Editor/6000.4.3f1/Editor/Unity \
-          -quit \
-          -batchmode \
-          -projectPath . \
-          -buildTarget StandaloneWindows64 \
-          -buildWindows64Player "build/StandaloneWindows64/SeriousGame.exe" \
-          -logFile "unity_build.log"
+          # Ruta exacta encontrada en tu CachyOS
+          /home/mauros/Unity/Hub/Editor/6000.3.12f1/Editor/Unity \
+            -batchmode \
+            -nographics \
+            -silent-crashes \
+            -quit \
+            -projectPath . \
+            -buildWindows64Player "build/SeriousGame.exe" \
+            -logFile /dev/stdout
 
-      - name: Subir Artefacto 
-        uses: actions/upload-artifact@v4 # ¡LA CLAVE! Actualizado a v4
+      - name: Subir Artefacto (.exe)
+        uses: actions/upload-artifact@v4
         with:
-          name: Build-Windows-Tesis
-          path: build/StandaloneWindows64/
+          name: SeriousGame-Build-Windows
+          path: build/
