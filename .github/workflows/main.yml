@@ -1,4 +1,4 @@
-name: Tesis VR CI 🚀
+name: Tesis VR CI 
 
 on:
   push:
@@ -7,16 +7,16 @@ on:
 
 jobs:
   buildForWindows:
-    name: Build para Windows 🎮
-    runs-on: self-hosted  # <--- Aquí es donde sucede la magia
+    name: Build para Windows 
+    runs-on: self-hosted
     steps:
       - name: Checkout Código
         uses: actions/checkout@v4
         with:
           lfs: true
 
-      - name: Cache de Librerías ⚡
-        uses: actions/cache@v3
+      - name: Cache de Librerías 
+        uses: actions/cache@v4 # Actualizado a v4
         with:
           path: Library
           key: Library-SeriousGame-Windows
@@ -25,16 +25,17 @@ jobs:
 
       - name: Ejecutar Build en Unity 🛠️
         run: |
-          & "C:\Program Files\Unity\Hub\Editor\6000.4.3f1\Editor\Unity.exe" `
-          -quit `
-          -batchmode `
-          -projectPath . `
-          -buildTarget StandaloneWindows64 `
-          -buildWindows64Player "build/StandaloneWindows64/SeriousGame.exe" `
+          # Asegúrate de que esta ruta sea la de tu Unity en Linux (CachyOS)
+          /opt/unity/Editor/6000.4.3f1/Editor/Unity \
+          -quit \
+          -batchmode \
+          -projectPath . \
+          -buildTarget StandaloneWindows64 \
+          -buildWindows64Player "build/StandaloneWindows64/SeriousGame.exe" \
           -logFile "unity_build.log"
 
-      - name: Subir Artefacto 📦
-        uses: actions/upload-artifact@v3
+      - name: Subir Artefacto 
+        uses: actions/upload-artifact@v4 # ¡LA CLAVE! Actualizado a v4
         with:
           name: Build-Windows-Tesis
           path: build/StandaloneWindows64/
