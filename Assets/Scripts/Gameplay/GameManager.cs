@@ -20,6 +20,13 @@ public class GameManager : MonoBehaviour
     [Tooltip("Tiempo límite en segundos para cada reto (0 = sin límite).")]
     public float[] timeLimits = { 480f, 600f, 720f, 900f };  // 8, 10, 12, 15 min
 
+    [Header("Sistema de Niveles (Prefabs)")]
+    [Tooltip("Arrastra aquí los 4 prefabs de tus circuitos (Reto 1, 2, 3 y 4).")]
+    public GameObject[] circuitPrefabs;
+    
+    [Tooltip("El objeto vacío en tu Panel Vertical donde aparecerán los circuitos.")]
+    public Transform circuitSpawnPoint;
+
     // ─────────────────────────────────────────────
     //  Estado (solo lectura desde inspector)
     // ─────────────────────────────────────────────
@@ -113,6 +120,10 @@ public class GameManager : MonoBehaviour
         instructionSystem?.ResetInstructions();
         instructionSystem?.BuildInstructions();
 
+        SpawnCircuitForLevel(index); // <-- Llama al cambio de prefab antes de configurarlo
+        SetupLevel();
+        circuit?.ForceSimulate();
+
         SetupLevel();
         circuit?.ForceSimulate();
 
@@ -130,6 +141,32 @@ public class GameManager : MonoBehaviour
             case LevelType.Parallel: SetupReto2(); break;
             case LevelType.Mixed:    SetupReto3(); break;
             case LevelType.Arduino:  SetupReto4(); break;
+        }
+    }
+
+    void SpawnCircuitForLevel(int index)
+    {
+        // 1. Destruimos el circuito del nivel anterior (si existe)
+        if (circuit != null)
+        {
+            Destroy(circuit.gameObject);
+        }
+
+        // 2. Revisamos si tenemos un prefab para este nivel
+        if (index < circuitPrefabs.Length && circuitPrefabs[index] != null)
+        {
+            // 3. Instanciamos el "cartucho" en la posición y rotación exactas del spawn point
+            GameObject newCircuitObj = Instantiate(circuitPrefabs[index], circuitSpawnPoint.position, circuitSpawnPoint.rotation);
+            
+            // 4. Lo hacemos "hijo" del spawn point para que todo quede ordenado en el Panel
+            newCircuitObj.transform.SetParent(circuitSpawnPoint);
+
+            // 5. Conectamos el nuevo CircuitManager al GameManager
+            circuit = newCircuitObj.GetComponent<CircuitManager>();
+        }
+        else
+        {
+            Debug.LogWarning($"[GameManager] Falta asignar el Prefab para el nivel {index} en el Inspector.");
         }
     }
 

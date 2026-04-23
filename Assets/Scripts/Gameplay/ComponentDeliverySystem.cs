@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using UnityEngine;
+using Fusion; // 1. AÑADIDO: Necesario para los comandos de red
 
 /// <summary>
 /// Sistema de entrega asimétrica de componentes.
@@ -16,15 +17,21 @@ using UnityEngine;
 /// Si el Técnico envía el componente EQUIVOCADO → error registrado,
 /// el componente desaparece y el Técnico debe volver a diagnosticar.
 /// </summary>
-public class ComponentDeliverySystem : MonoBehaviour
+public class ComponentDeliverySystem : NetworkBehaviour // 2. CAMBIADO: De MonoBehaviour a NetworkBehaviour
 {
     // ─────────────────────────────────────────────
     //  Inspector
     // ─────────────────────────────────────────────
+    
+    private NetworkRunner _manualRunner;
+    
     [Header("Referencias")]
-    public GameManager       gameManager;
-    public PlayerInteraction explorerInteraction;   // mano del Explorador
-    public Transform         explorerRightHand;     // posición donde aparece el componente
+    public GameManager   gameManager;
+    
+    
+    // 3. CAMBIADO: Reemplazamos la mano del explorador por la bandeja fija
+    [Tooltip("El objeto vacío sobre la mesa donde aparecerán los componentes")]
+    public Transform     puntoDeEntrega; 
 
     [Header("Prefabs de componentes (arrastrar desde Project)")]
     public GameObject resistorPrefab;
@@ -61,19 +68,14 @@ public class ComponentDeliverySystem : MonoBehaviour
     //  API del Técnico — llamar desde UIButtonController
     // ─────────────────────────────────────────────
 
-    /// <summary>
-    /// El Técnico envía una resistencia con el valor que calculó.
-    /// Si el valor es incorrecto → error. Si es correcto → aparece en mano del Explorador.
-    /// </summary>
     public void SendResistor(float resistanceValue)
     {
         if (_waitingForInstall)
         {
-            Debug.Log("[Delivery] Ya hay un componente en tránsito. Espera que el Explorador lo instale.");
+            Debug.Log("[Delivery] Ya hay un componente en tránsito.");
             return;
         }
 
-        // Validar que el valor sea el correcto según el reto actual
         bool isCorrect = ValidateResistorValue(resistanceValue);
 
         if (!isCorrect)
@@ -86,33 +88,27 @@ public class ComponentDeliverySystem : MonoBehaviour
 
         _pendingType  = ComponentType.Resistor;
         _pendingValue = resistanceValue;
-        SpawnInExplorerHand(resistorPrefab, resistanceValue);
+        SpawnInDeliveryTray(resistorPrefab, resistanceValue);
     }
 
-    /// <summary>El Técnico envía un LED (para corrección de polaridad en Reto 3).</summary>
     public void SendLED(bool correctPolarity = true)
     {
         if (_waitingForInstall) return;
         _pendingType = ComponentType.LED;
-        SpawnInExplorerHand(ledPrefab, correctPolarity ? 1f : -1f);
+        SpawnInDeliveryTray(ledPrefab, correctPolarity ? 1f : -1f);
     }
 
-    /// <summary>El Técnico envía un Capacitor con polaridad correcta (Reto 3).</summary>
     public void SendCapacitor(bool correctPolarity = true)
     {
         if (_waitingForInstall) return;
         _pendingType = ComponentType.Capacitor;
-        SpawnInExplorerHand(capacitorPrefab, correctPolarity ? 1f : -1f);
+        SpawnInDeliveryTray(capacitorPrefab, correctPolarity ? 1f : -1f);
     }
 
     // ─────────────────────────────────────────────
     //  Instalación — llamar desde ComponentSlot
     // ─────────────────────────────────────────────
 
-    /// <summary>
-    /// El Explorador coloca el componente en el slot correcto del panel.
-    /// Llamar desde ComponentSlot.TryInsert() cuando el Explorador suelte el objeto.
-    /// </summary>
     public void OnExplorerInstalled(ComponentSlot slot)
     {
         if (!_waitingForInstall || _spawnedComponent == null) return;
@@ -133,7 +129,16 @@ public class ComponentDeliverySystem : MonoBehaviour
             OnDeliveryError?.Invoke();
         }
 
-        Destroy(_spawnedComponent);
+        // 4. CAMBIADO: Usamos Despawn en red en lugar de Destroy local
+        if (Runner != null && _spawnedComponent.TryGetComponent<NetworkObject>(out var netObj))
+        {
+            Runner.Despawn(netObj);
+        }
+        else
+        {
+            Destroy(_spawnedComponent); // Respaldo por si se prueba sin red
+        }
+        
         _spawnedComponent    = null;
         _waitingForInstall   = false;
         _pendingType         = ComponentType.None;
@@ -143,19 +148,42 @@ public class ComponentDeliverySystem : MonoBehaviour
     //  Internos
     // ─────────────────────────────────────────────
 
-    void SpawnInExplorerHand(GameObject prefab, float value)
+    public void InicializarManual(NetworkRunner runnerActivo)
     {
-        if (prefab == null || explorerRightHand == null)
+        _manualRunner = runnerActivo;
+        Debug.Log("[Delivery] Runner sincronizado manualmente.");
+    }
+
+    void SpawnInDeliveryTray(GameObject prefab, float value)
+    {
+        // 1. Verificación de seguridad: ¿Tenemos el motor de red listo? 🏎️
+        if (_manualRunner == null)
         {
-            Debug.LogError("[Delivery] Prefab o mano del Explorador no asignados.");
+            Debug.LogWarning("[Delivery] El sistema aún no está vinculado al NetworkRunner. Reintenta en un segundo.");
             return;
         }
 
-        _spawnedComponent = Instantiate(prefab,
-            explorerRightHand.position,
-            explorerRightHand.rotation);
+        // 2. Verificación de referencias: ¿Tenemos qué enviar y dónde ponerlo? 📦
+        if (prefab == null || puntoDeEntrega == null)
+        {
+            Debug.LogError("[Delivery] Prefab o punto de entrega no asignados en el Inspector.");
+            return;
+        }
 
-        // Configurar el valor del componente spawneado
+        // 3. Log de diagnóstico (opcional para tu tranquilidad) 🔍
+        Debug.Log($"[Check] ManualRunner: {_manualRunner != null}, Generando: {prefab.name}");
+
+        // 4. Instanciación en red usando nuestro runner manual 🌐
+        NetworkObject objRed = _manualRunner.Spawn(
+            prefab,
+            puntoDeEntrega.position,
+            puntoDeEntrega.rotation,
+            _manualRunner.LocalPlayer
+        );
+
+        _spawnedComponent = objRed.gameObject;
+
+        // 5. Configuración de la lógica del componente (Resistencia, LED o Capacitor) ⚡
         if (_spawnedComponent.TryGetComponent<Resistor>(out var r))
             r.resistance = value;
 
@@ -165,14 +193,19 @@ public class ComponentDeliverySystem : MonoBehaviour
         if (_spawnedComponent.TryGetComponent<Capacitor>(out var cap))
             cap.polarityInverted = value < 0;
 
+        // 6. Estado del sistema
         _waitingForInstall = true;
         OnComponentSent?.Invoke(_pendingType, value);
 
-        Debug.Log($"[Delivery] 📦 {_pendingType} enviado a mano del Explorador (valor: {value})");
+        Debug.Log($"[Delivery] 📦 {_pendingType} enviado con éxito (Valor/Polaridad: {value})");
     }
+
 
     void ApplyRepairToCircuit()
     {
+        // NUEVO: Verificamos que el circuito exista antes de repararlo
+        if (gameManager == null || gameManager.circuit == null) return;
+
         foreach (var comp in gameManager.circuit.components)
         {
             switch (_pendingType)
@@ -199,9 +232,13 @@ public class ComponentDeliverySystem : MonoBehaviour
 
     bool ValidateResistorValue(float value)
     {
+        // NUEVO: Verificamos que el circuito exista antes de leerlo
+        if (gameManager == null || gameManager.circuit == null) return false;
+
         foreach (var comp in gameManager.circuit.components)
             if (comp is Resistor r)
                 return r.IsValueCorrect(value);
+                
         return false;
     }
 
@@ -215,7 +252,17 @@ public class ComponentDeliverySystem : MonoBehaviour
 
     void CancelPendingDelivery()
     {
-        if (_spawnedComponent != null) Destroy(_spawnedComponent);
+        if (_spawnedComponent != null)
+        {
+            if (Runner != null && _spawnedComponent.TryGetComponent<NetworkObject>(out var netObj))
+            {
+                Runner.Despawn(netObj);
+            }
+            else
+            {
+                Destroy(_spawnedComponent);
+            }
+        }
         _spawnedComponent  = null;
         _waitingForInstall = false;
         _pendingType       = ComponentType.None;

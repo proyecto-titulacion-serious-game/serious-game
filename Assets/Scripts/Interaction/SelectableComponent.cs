@@ -32,8 +32,7 @@ public class SelectableComponent : MonoBehaviour
     // ─────────────────────────────────────────────
     //  Internos
     // ─────────────────────────────────────────────
-    private UnityEngine.XR.Interaction.Toolkit.Interactables.XRSimpleInteractable _interactable;
-    private Renderer             _renderer;
+    private UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable _interactable;    private Renderer             _renderer;
     private Color                _originalColor;
     private MaterialPropertyBlock _mpb;
     private static readonly int  _colorID = Shader.PropertyToID("_Color");
@@ -43,8 +42,7 @@ public class SelectableComponent : MonoBehaviour
     // ─────────────────────────────────────────────
     void Awake()
     {
-        _interactable = GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactables.XRSimpleInteractable>();
-        _renderer     = GetComponent<Renderer>();
+        _interactable = GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable>();        _renderer     = GetComponent<Renderer>();
         _mpb          = new MaterialPropertyBlock();
 
         if (_renderer != null)

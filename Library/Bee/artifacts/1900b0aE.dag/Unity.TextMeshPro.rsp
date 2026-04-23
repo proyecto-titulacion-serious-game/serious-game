@@ -139,9 +139,25 @@
 -define:TEXTCORE_FONT_ENGINE_1_5_OR_NEWER
 -define:TEXTCORE_TEXT_ENGINE_1_5_OR_NEWER
 -define:TEXTCORE_FONT_ENGINE_1_6_OR_NEWER
+-define:FUSION_LOGLEVEL_INFO
+-define:FUSION_WEAVER
+-define:FUSION2
+-define:FUSION_2
+-define:FUSION_2_0
+-define:FUSION_2_0_12
+-define:FUSION_2_OR_NEWER
+-define:FUSION_2_0_OR_NEWER
 -define:UNITY_XR_VISIONOS_SUPPORTED
 -define:CSHARP_7_OR_LATER
 -define:CSHARP_7_3_OR_NEWER
+-r:"Assets/Photon/Fusion/Assemblies/Fusion.Common.dll"
+-r:"Assets/Photon/Fusion/Assemblies/Fusion.Log.dll"
+-r:"Assets/Photon/Fusion/Assemblies/Fusion.Realtime.dll"
+-r:"Assets/Photon/Fusion/Assemblies/Fusion.Runtime.dll"
+-r:"Assets/Photon/Fusion/Assemblies/Fusion.Sockets.dll"
+-r:"Assets/Photon/Fusion/Plugins/NanoSockets/NanoSockets/Dynamic/NanoSockets.dll"
+-r:"Assets/Photon/PhotonLibs/WebSocket/websocket-sharp.dll"
+-r:"Assets/Photon/PhotonLibs/netstandard2.0/Photon3Unity3D.dll"
 -r:"C:/Program Files/Unity/Hub/Editor/6000.4.3f1/Editor/Data/Managed/UnityEditor.Graphs.dll"
 -r:"C:/Program Files/Unity/Hub/Editor/6000.4.3f1/Editor/Data/Managed/UnityEngine/Unity.Scripting.dll"
 -r:"C:/Program Files/Unity/Hub/Editor/6000.4.3f1/Editor/Data/Managed/UnityEngine/UnityEditor.AccessibilityModule.dll"
@@ -401,7 +417,11 @@
 -r:"C:/Program Files/Unity/Hub/Editor/6000.4.3f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Xml.XmlDocument.dll"
 -r:"C:/Program Files/Unity/Hub/Editor/6000.4.3f1/Editor/Data/NetStandard/compat/2.1.0/shims/netstandard/System.Xml.XmlSerializer.dll"
 -r:"C:/Program Files/Unity/Hub/Editor/6000.4.3f1/Editor/Data/NetStandard/ref/2.1.0/netstandard.dll"
+-r:"C:/Program Files/Unity/Hub/Editor/6000.4.3f1/Editor/Data/PlaybackEngines/AndroidPlayer/Unity.Android.Gradle.dll"
+-r:"C:/Program Files/Unity/Hub/Editor/6000.4.3f1/Editor/Data/PlaybackEngines/AndroidPlayer/Unity.Android.Types.dll"
+-r:"C:/Program Files/Unity/Hub/Editor/6000.4.3f1/Editor/Data/PlaybackEngines/AndroidPlayer/UnityEditor.Android.Extensions.dll"
 -r:"C:/Program Files/Unity/Hub/Editor/6000.4.3f1/Editor/Data/PlaybackEngines/WindowsStandaloneSupport/UnityEditor.WindowsStandalone.Extensions.dll"
+-r:"Library/PackageCache/com.unity.nuget.mono-cecil@ecb9724e46ff/Mono.Cecil.dll"
 -r:"Library/Bee/artifacts/1900b0aE.dag/Unity.InternalAPIEngineBridge.004.ref.dll"
 -r:"Library/Bee/artifacts/1900b0aE.dag/UnityEditor.UI.ref.dll"
 -r:"Library/Bee/artifacts/1900b0aE.dag/UnityEngine.UI.ref.dll"
