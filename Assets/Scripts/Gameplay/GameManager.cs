@@ -4,6 +4,12 @@ using UnityEngine;
 /// <summary>
 /// Controlador principal del juego. Gestiona los 4 retos del Serious Game VR.
 /// Usa eventos para comunicarse con UI y otros sistemas (sin acoplamiento directo).
+///
+/// CAMBIOS RESPECTO A LA VERSIÓN ANTERIOR:
+///   - SpawnCircuitForLevel() DESACTIVADO — se usa el Circuit de la escena directamente
+///   - Llamadas duplicadas a SetupLevel/ForceSimulate ELIMINADAS
+///   - NUEVO: ActivateComponentsForLevel() desactiva Capacitor/Arduino en Reto 1
+///   - NUEVO: AutoDetectComponents() se llama después de activar/desactivar componentes
 /// </summary>
 public class GameManager : MonoBehaviour
 {
@@ -11,21 +17,14 @@ public class GameManager : MonoBehaviour
     //  Inspector
     // ─────────────────────────────────────────────
     [Header("Referencias principales")]
-    public CircuitManager  circuit;
-    public Multimeter      multimeter;
+    public CircuitManager     circuit;
+    public Multimeter         multimeter;
     public PerformanceTracker performance;
     public InstructionSystem  instructionSystem;
 
     [Header("Configuración de niveles")]
     [Tooltip("Tiempo límite en segundos para cada reto (0 = sin límite).")]
-    public float[] timeLimits = { 480f, 600f, 720f, 900f };  // 8, 10, 12, 15 min
-
-    [Header("Sistema de Niveles (Prefabs)")]
-    [Tooltip("Arrastra aquí los 4 prefabs de tus circuitos (Reto 1, 2, 3 y 4).")]
-    public GameObject[] circuitPrefabs;
-    
-    [Tooltip("El objeto vacío en tu Panel Vertical donde aparecerán los circuitos.")]
-    public Transform circuitSpawnPoint;
+    public float[] timeLimits = { 480f, 600f, 720f, 900f };
 
     // ─────────────────────────────────────────────
     //  Estado (solo lectura desde inspector)
@@ -47,10 +46,10 @@ public class GameManager : MonoBehaviour
     // ─────────────────────────────────────────────
     //  Eventos
     // ─────────────────────────────────────────────
-    public static event Action<LevelType>      OnLevelLoaded;
-    public static event Action<LevelType, bool> OnLevelCompleted;   // nivel, éxito
-    public static event Action<string>         OnFaultDetected;
-    public static event Action                 OnGameCompleted;
+    public static event Action<LevelType>       OnLevelLoaded;
+    public static event Action<LevelType, bool> OnLevelCompleted;
+    public static event Action<string>          OnFaultDetected;
+    public static event Action                  OnGameCompleted;
 
     // ─────────────────────────────────────────────
     //  Constantes de configuración de retos
@@ -62,7 +61,7 @@ public class GameManager : MonoBehaviour
     private const float RETO1_TARGET_VOLTAGE     = 9f;
     private const float RETO1_TOLERANCE          = 0.5f;
 
-    private const float RETO2_BROKEN_RESISTANCE  = 9999f; // Rama abierta
+    private const float RETO2_BROKEN_RESISTANCE  = 9999f;
     private const float RETO2_NORMAL_RESISTANCE  = 50f;
 
     // ─────────────────────────────────────────────
@@ -70,7 +69,6 @@ public class GameManager : MonoBehaviour
     // ─────────────────────────────────────────────
     void Start()
     {
-        // Suscribirse al evento de circuito para verificar condiciones de éxito
         CircuitManager.OnCircuitChanged += CheckWinCondition;
         LoadLevel(0);
     }
@@ -84,13 +82,15 @@ public class GameManager : MonoBehaviour
     //  API Pública
     // ─────────────────────────────────────────────
 
+    /// <summary>Registra que se realizó una reparación y resimula el circuito.</summary>
     public void RegisterRepairAction()
     {
         _repairPerformed = true;
-        circuit?.MarkDirty();   // Resimular tras la reparación
+        circuit?.MarkDirty();
         Debug.Log("[GameManager] Reparación registrada.");
     }
 
+    /// <summary>Registra un intento incorrecto del Técnico.</summary>
     public void RegisterWrongAttempt(string reason = "")
     {
         _wrongAttempts++;
@@ -98,8 +98,8 @@ public class GameManager : MonoBehaviour
         Debug.Log($"[GameManager] Intento incorrecto #{_wrongAttempts}: {reason}");
     }
 
-    public bool HasPerformedRepair()   => _repairPerformed;
-    public int  GetWrongAttempts()     => _wrongAttempts;
+    public bool HasPerformedRepair() => _repairPerformed;
+    public int  GetWrongAttempts()   => _wrongAttempts;
 
     // ─────────────────────────────────────────────
     //  Carga de niveles
@@ -115,18 +115,25 @@ public class GameManager : MonoBehaviour
         _repairPerformed = false;
         _wrongAttempts   = 0;
 
+        // Reiniciar sistemas
         performance?.ResetTracker();
         multimeter?.ResetProbes();
         instructionSystem?.ResetInstructions();
         instructionSystem?.BuildInstructions();
 
-        SpawnCircuitForLevel(index); // <-- Llama al cambio de prefab antes de configurarlo
+        // Activar solo los componentes de este reto
+        ActivateComponentsForLevel(_currentLevel);
+
+        // Re-detectar componentes activos
+        circuit?.AutoDetectComponents();
+
+        // Configurar el reto
         SetupLevel();
+
+        // Simular el circuito
         circuit?.ForceSimulate();
 
-        SetupLevel();
-        circuit?.ForceSimulate();
-
+        // Notificar
         OnLevelLoaded?.Invoke(_currentLevel);
         Debug.Log($"[GameManager] Cargando: {_currentLevel}");
     }
@@ -144,30 +151,65 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    void SpawnCircuitForLevel(int index)
+    // ─────────────────────────────────────────────
+    //  Activación de componentes por reto
+    // ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Activa solo los componentes necesarios para el reto actual.
+    /// Desactiva los demás para evitar que interfieran con la simulación.
+    /// </summary>
+    void ActivateComponentsForLevel(LevelType level)
     {
-        // 1. Destruimos el circuito del nivel anterior (si existe)
-        if (circuit != null)
+        if (circuit == null) return;
+
+        // Primero obtener TODOS los componentes (incluidos los desactivados)
+        var allComponents = circuit.GetComponentsInChildren<ElectricalComponent>(true);
+
+        switch (level)
         {
-            Destroy(circuit.gameObject);
+            case LevelType.OhmLaw:
+                // Reto 1: solo VoltageSource + Resistor + LED
+                foreach (var comp in allComponents)
+                {
+                    if (comp is VoltageSource || comp is Resistor || comp is LED)
+                        comp.gameObject.SetActive(true);
+                    else
+                        comp.gameObject.SetActive(false);
+                }
+                break;
+
+            case LevelType.Parallel:
+                // Reto 2: VoltageSource + Resistor + LEDs
+                foreach (var comp in allComponents)
+                {
+                    if (comp is VoltageSource || comp is Resistor || comp is LED)
+                        comp.gameObject.SetActive(true);
+                    else
+                        comp.gameObject.SetActive(false);
+                }
+                break;
+
+            case LevelType.Mixed:
+                // Reto 3: VoltageSource + Resistor + LED + Capacitor
+                foreach (var comp in allComponents)
+                {
+                    if (comp is ArduinoPin)
+                        comp.gameObject.SetActive(false);
+                    else
+                        comp.gameObject.SetActive(true);
+                }
+                break;
+
+            case LevelType.Arduino:
+                // Reto 4: Todos activos
+                foreach (var comp in allComponents)
+                    comp.gameObject.SetActive(true);
+                break;
         }
 
-        // 2. Revisamos si tenemos un prefab para este nivel
-        if (index < circuitPrefabs.Length && circuitPrefabs[index] != null)
-        {
-            // 3. Instanciamos el "cartucho" en la posición y rotación exactas del spawn point
-            GameObject newCircuitObj = Instantiate(circuitPrefabs[index], circuitSpawnPoint.position, circuitSpawnPoint.rotation);
-            
-            // 4. Lo hacemos "hijo" del spawn point para que todo quede ordenado en el Panel
-            newCircuitObj.transform.SetParent(circuitSpawnPoint);
-
-            // 5. Conectamos el nuevo CircuitManager al GameManager
-            circuit = newCircuitObj.GetComponent<CircuitManager>();
-        }
-        else
-        {
-            Debug.LogWarning($"[GameManager] Falta asignar el Prefab para el nivel {index} en el Inspector.");
-        }
+        // Limpiar la lista para que AutoDetectComponents la reconstruya
+        circuit.components.Clear();
     }
 
     // ─────────────────────────────────────────────
@@ -176,6 +218,8 @@ public class GameManager : MonoBehaviour
 
     void SetupReto1()
     {
+        if (circuit == null) return;
+
         circuit.topology = CircuitTopology.Series;
 
         foreach (var comp in circuit.components)
@@ -184,7 +228,7 @@ public class GameManager : MonoBehaviour
             {
                 r.faultyResistance  = RETO1_FAULTY_RESISTANCE;
                 r.correctResistance = RETO1_CORRECT_RESISTANCE;
-                r.ApplyFault();    // Resistencia inicial INCORRECTA
+                r.ApplyFault();
             }
             if (comp is LED led)
             {
@@ -197,19 +241,24 @@ public class GameManager : MonoBehaviour
             }
         }
 
-        OnFaultDetected?.Invoke("Reto 1: La resistencia tiene valor incorrecto.\n" +
-                                 "El Técnico debe calcular el valor correcto usando Ley de Ohm.");
+        OnFaultDetected?.Invoke(
+            "Reto 1: La resistencia tiene valor incorrecto.\n" +
+            "El Técnico debe calcular el valor correcto usando Ley de Ohm.");
     }
 
     void CheckReto1()
     {
         if (!_repairPerformed) return;
-        if (multimeter?.probeA == null || multimeter?.probeB == null) return;
 
-        float measured = multimeter.measuredVoltage;
-
-        if (Mathf.Abs(measured - RETO1_TARGET_VOLTAGE) <= RETO1_TOLERANCE)
-            CompleteLevel(true);
+        // Verificar si la resistencia fue corregida
+        foreach (var comp in circuit.components)
+        {
+            if (comp is Resistor r && !r.hasFault)
+            {
+                CompleteLevel(true);
+                return;
+            }
+        }
     }
 
     // ─────────────────────────────────────────────
@@ -218,6 +267,8 @@ public class GameManager : MonoBehaviour
 
     void SetupReto2()
     {
+        if (circuit == null) return;
+
         circuit.topology = CircuitTopology.Parallel;
 
         int index = 0;
@@ -231,12 +282,13 @@ public class GameManager : MonoBehaviour
             }
             if (comp is Resistor r)
             {
-                r.Repair();  // Resistencias correctas en Reto 2
+                r.Repair();
             }
         }
 
-        OnFaultDetected?.Invoke("Reto 2: Una rama del circuito paralelo está abierta.\n" +
-                                 "El Técnico debe identificar cuál sensor no recibe corriente.");
+        OnFaultDetected?.Invoke(
+            "Reto 2: Una rama del circuito paralelo está abierta.\n" +
+            "El Técnico debe identificar cuál sensor no recibe corriente.");
     }
 
     void CheckReto2()
@@ -253,64 +305,59 @@ public class GameManager : MonoBehaviour
 
     void SetupReto3()
     {
+        if (circuit == null) return;
+
         circuit.topology = CircuitTopology.Mixed;
 
         int ledIndex = 0;
         foreach (var comp in circuit.components)
         {
-            // Falla 1: LED con polaridad invertida
             if (comp is LED led)
             {
-                led.polarityInverted = (ledIndex == 0);   // Solo el primer LED
+                led.polarityInverted = (ledIndex == 0);
                 ledIndex++;
             }
-
-            // Falla 2: Capacitor con polaridad invertida
             if (comp is Capacitor cap)
             {
                 cap.SetPolarityInverted(true);
             }
-
-            // Falla 3: Resistencia con valor incorrecto (código de colores erróneo)
             if (comp is Resistor r)
             {
-                r.faultyResistance  = 470f;   // Color de bandas equivocado
-                r.correctResistance = 220f;   // El que pide el circuito
+                r.faultyResistance  = 470f;
+                r.correctResistance = 220f;
                 r.ApplyFault();
             }
         }
 
-        // En mixto, el GameManager asigna voltajes a los nodos manualmente
         SetupMixedNodeVoltages();
 
-        OnFaultDetected?.Invoke("Reto 3: 3 fallas simultáneas.\n" +
-                                 "1) LED con polaridad invertida\n" +
-                                 "2) Capacitor con polaridad invertida\n" +
-                                 "3) Resistencia con código de colores erróneo");
+        OnFaultDetected?.Invoke(
+            "Reto 3: 3 fallas simultáneas.\n" +
+            "1) LED con polaridad invertida\n" +
+            "2) Capacitor con polaridad invertida\n" +
+            "3) Resistencia con código de colores erróneo");
     }
 
     void SetupMixedNodeVoltages()
     {
-        // Topología Reto 3: Fuente → Resistencia en serie → dos ramas paralelas (LED, Capacitor)
-        VoltageSource source = null;
+        VoltageSource source   = null;
         Resistor      resistor = null;
 
         foreach (var comp in circuit.components)
         {
-            if (comp is VoltageSource vs) source = vs;
+            if (comp is VoltageSource vs) source   = vs;
             if (comp is Resistor r)       resistor = r;
         }
 
         if (source == null || resistor == null) return;
 
         float V = source.voltage;
-        float I = V / (resistor.GetResistance() + 50f);   // 50Ω estimado de ramas
+        float I = V / (resistor.GetResistance() + 50f);
         float vAfterR = V - I * resistor.GetResistance();
 
         if (resistor.nodeA != null) resistor.nodeA.voltage = V;
         if (resistor.nodeB != null) resistor.nodeB.voltage = vAfterR;
 
-        // Las ramas paralelas comparten el mismo nodo después de la resistencia
         foreach (var comp in circuit.components)
         {
             if (comp is LED || comp is Capacitor)
@@ -344,28 +391,29 @@ public class GameManager : MonoBehaviour
 
     void SetupReto4()
     {
+        if (circuit == null) return;
+
         circuit.topology = CircuitTopology.Mixed;
 
-        // Fallas del Reto 4
         foreach (var comp in circuit.components)
         {
             if (comp is ArduinoPin pin)
             {
-                pin.ApplyFault();     // Pin incorrecto
+                pin.ApplyFault();
             }
             if (comp is Resistor r)
             {
-                r.faultyResistance  = 0f;    // Sin resistencia limitadora al buzzer
-                r.correctResistance = 330f;  // 330Ω para proteger el buzzer
+                r.faultyResistance  = 0f;
+                r.correctResistance = 330f;
                 r.ApplyFault();
             }
         }
 
-        // El cable suelto en la protoboard lo maneja ArduinoPin
-        OnFaultDetected?.Invoke("Reto 4: Sistema sensor-temperatura no activa alarma.\n" +
-                                 "1) Sensor en pin incorrecto del Arduino\n" +
-                                 "2) Buzzer sin resistencia limitadora\n" +
-                                 "3) Cable suelto en la protoboard");
+        OnFaultDetected?.Invoke(
+            "Reto 4: Sistema sensor-temperatura no activa alarma.\n" +
+            "1) Sensor en pin incorrecto del Arduino\n" +
+            "2) Buzzer sin resistencia limitadora\n" +
+            "3) Cable suelto en la protoboard");
     }
 
     void CheckReto4()
@@ -380,8 +428,8 @@ public class GameManager : MonoBehaviour
         {
             if (comp is ArduinoPin pin)
             {
-                if (pin.hasFault)           allPinsCorrect = false;
-                if (pin.hasLooseCable)      cableFixed     = false;
+                if (pin.hasFault)      allPinsCorrect = false;
+                if (pin.hasLooseCable) cableFixed     = false;
             }
             if (comp is Resistor r && r.hasFault) resistorFixed = false;
         }
@@ -428,6 +476,7 @@ public class GameManager : MonoBehaviour
     // ─────────────────────────────────────────────
     //  Helpers
     // ─────────────────────────────────────────────
+
     public bool IsVoltageCorrect()
     {
         if (multimeter == null) return false;

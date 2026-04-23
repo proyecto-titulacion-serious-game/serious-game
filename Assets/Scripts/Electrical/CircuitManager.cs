@@ -49,9 +49,40 @@ public class CircuitManager : MonoBehaviour
     // ─────────────────────────────────────────────
     //  Unity Lifecycle
     // ─────────────────────────────────────────────
+    
+    void Awake()
+    {
+        AutoDetectComponents();
+    }
+
+    public void AutoDetectComponents()
+    {
+        bool needsRefresh = components.Count == 0;
+        
+        if (!needsRefresh)
+        {
+            foreach (var c in components)
+                if (c == null) { needsRefresh = true; break; }
+        }
+        
+        if (needsRefresh)
+        {
+            components.Clear();
+            var found = GetComponentsInChildren<ElectricalComponent>();
+            
+            foreach (var c in found)
+                if (c is VoltageSource) components.Add(c);
+            foreach (var c in found)
+                if (!(c is VoltageSource)) components.Add(c);
+            
+            Debug.Log($"[CircuitManager] Auto-detectados {components.Count} componentes");
+        }
+    }
+        
     void Start()
     {
-        // Simular cada simulationInterval segundos, NO en Update()
+        //Simula cada intervalo de segundo
+        AutoDetectComponents();
         InvokeRepeating(nameof(SimulateIfDirty), 0f, simulationInterval);
     }
 
