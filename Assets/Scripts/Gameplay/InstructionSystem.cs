@@ -70,11 +70,29 @@ public class InstructionSystem : MonoBehaviour
         BuildInstructions();
     }
 
-    /// <summary>Valida el paso actual cada frame.</summary>
+    private bool _needsValidation = true;
+
+    void OnEnable()
+    {
+        CircuitManager.OnCircuitChanged += OnCircuitChanged;
+    }
+
+    void OnDisable()
+    {
+        CircuitManager.OnCircuitChanged -= OnCircuitChanged;
+    }
+
+    private void OnCircuitChanged()
+    {
+        _needsValidation = true;
+    }
+
+    /// <summary>Valida el paso actual solo cuando el circuito cambia.</summary>
     private void Update()
     {
-        if (gameManager == null) return;
+        if (gameManager == null || !_needsValidation) return;
         ValidateCurrentStep();
+        _needsValidation = false;
     }
 
     // ─────────────────────────────────────────────

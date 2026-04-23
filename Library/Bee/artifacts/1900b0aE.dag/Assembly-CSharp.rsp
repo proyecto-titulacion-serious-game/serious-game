@@ -467,6 +467,7 @@
 "Assets/Scripts/Electrical/PerformanceTracker.cs"
 "Assets/Scripts/Electrical/Resistor.cs"
 "Assets/Scripts/Electrical/VoltageSource.cs"
+"Assets/Scripts/Gameplay/ChallengeTag.cs"
 "Assets/Scripts/Gameplay/ComponentDeliverySystem.cs"
 "Assets/Scripts/Gameplay/ComponentDeliverySystemBackup.cs"
 "Assets/Scripts/Gameplay/ComponentSlot.cs"

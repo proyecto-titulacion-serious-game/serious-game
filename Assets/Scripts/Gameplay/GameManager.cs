@@ -35,6 +35,8 @@ public class GameManager : MonoBehaviour
     [SerializeField] private bool      _levelCompleted = false;
     [SerializeField] private bool      _repairPerformed = false;
     [SerializeField] private int       _wrongAttempts  = 0;
+    [SerializeField] private float     _remainingTime  = 0f;
+    [SerializeField] private bool      _timerActive    = false;
 
     // ─────────────────────────────────────────────
     //  Propiedades públicas
@@ -42,6 +44,8 @@ public class GameManager : MonoBehaviour
     public LevelType currentLevel    => _currentLevel;
     public bool      levelCompleted  => _levelCompleted;
     public float     currentTimeLimit => timeLimits[_currentIndex];
+    public float     remainingTime   => _remainingTime;
+    public bool      timerActive     => _timerActive;
 
     // ─────────────────────────────────────────────
     //  Eventos
@@ -50,6 +54,8 @@ public class GameManager : MonoBehaviour
     public static event Action<LevelType, bool> OnLevelCompleted;
     public static event Action<string>          OnFaultDetected;
     public static event Action                  OnGameCompleted;
+    public static event Action<float>           OnTimerTick;       // segundos restantes
+    public static event Action<LevelType>       OnTimerExpired;    // se acabó el tiempo
 
     // ─────────────────────────────────────────────
     //  Constantes de configuración de retos
@@ -64,6 +70,9 @@ public class GameManager : MonoBehaviour
     private const float RETO2_BROKEN_RESISTANCE  = 9999f;
     private const float RETO2_NORMAL_RESISTANCE  = 50f;
 
+    private const float RETO3_FAULTY_RESISTANCE  = 470f;
+    private const float RETO3_CORRECT_RESISTANCE = 220f;
+
     // ─────────────────────────────────────────────
     //  Unity Lifecycle
     // ─────────────────────────────────────────────
@@ -73,9 +82,32 @@ public class GameManager : MonoBehaviour
         LoadLevel(0);
     }
 
+    void Update()
+    {
+        if (!_timerActive || _levelCompleted) return;
+
+        _remainingTime -= Time.deltaTime;
+        OnTimerTick?.Invoke(_remainingTime);
+
+        if (_remainingTime <= 0f)
+        {
+            _remainingTime = 0f;
+            _timerActive   = false;
+            OnTimerExpired?.Invoke(_currentLevel);
+            CompleteLevel(false);  // false = fracasó por tiempo
+        }
+    }
+
     void OnDestroy()
     {
         CircuitManager.OnCircuitChanged -= CheckWinCondition;
+        // Limpieza defensiva de eventos estáticos
+        OnLevelLoaded    = null;
+        OnLevelCompleted = null;
+        OnFaultDetected  = null;
+        OnGameCompleted  = null;
+        OnTimerTick      = null;
+        OnTimerExpired   = null;
     }
 
     // ─────────────────────────────────────────────
@@ -114,6 +146,11 @@ public class GameManager : MonoBehaviour
         _levelCompleted  = false;
         _repairPerformed = false;
         _wrongAttempts   = 0;
+
+        // Iniciar temporizador del reto
+        float limit = (index < timeLimits.Length) ? timeLimits[index] : 0f;
+        _remainingTime = limit;
+        _timerActive   = limit > 0f;
 
         // Reiniciar sistemas
         performance?.ResetTracker();
@@ -323,8 +360,8 @@ public class GameManager : MonoBehaviour
             }
             if (comp is Resistor r)
             {
-                r.faultyResistance  = 470f;
-                r.correctResistance = 220f;
+                r.faultyResistance  = RETO3_FAULTY_RESISTANCE;
+                r.correctResistance = RETO3_CORRECT_RESISTANCE;
                 r.ApplyFault();
             }
         }

@@ -17,7 +17,6 @@ using UnityEngine;
 /// Esto preserva el gameplay asimétrico real: el Técnico puede equivocarse,
 /// el Explorador ve las consecuencias, y entre los dos deben resolverlo.
 /// </summary>
-/// 
 public class ComponentDeliverySystem : MonoBehaviour
 {
     // ─────────────────────────────────────────────
@@ -55,6 +54,14 @@ public class ComponentDeliverySystem : MonoBehaviour
     // ─────────────────────────────────────────────
     void OnEnable()  { GameManager.OnLevelLoaded += OnLevelLoaded; }
     void OnDisable() { GameManager.OnLevelLoaded -= OnLevelLoaded; }
+
+    void OnDestroy()
+    {
+        OnComponentSent      = null;
+        OnComponentInstalled = null;
+        OnRepairValidated    = null;
+        OnDeliveryError      = null;
+    }
 
     void OnLevelLoaded(LevelType _) => CancelPendingDelivery();
 
