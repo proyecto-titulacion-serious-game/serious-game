@@ -86,6 +86,12 @@ public class CircuitManager : MonoBehaviour
         InvokeRepeating(nameof(SimulateIfDirty), 0f, simulationInterval);
     }
 
+    void OnDestroy()
+    {
+        CancelInvoke();
+        OnCircuitChanged = null;
+    }
+
     // ─────────────────────────────────────────────
     //  API Pública
     // ─────────────────────────────────────────────
@@ -119,7 +125,7 @@ public class CircuitManager : MonoBehaviour
     }
 
     /// <summary>Primer componente del tipo T encontrado en la lista.</summary>
-    public T GetComponent<T>() where T : ElectricalComponent
+    public T FindCircuitComponent<T>() where T : ElectricalComponent
     {
         foreach (var c in components)
             if (c is T found) return found;

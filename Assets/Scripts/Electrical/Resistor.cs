@@ -96,9 +96,10 @@ public static class ResistorColorCode
         int band1 = digits / 10;
         int band2 = digits % 10;
 
-        string tolBand = tolerance <= 1f  ? "Plata" :
-                         tolerance <= 5f  ? "Oro"   :
-                         tolerance <= 10f ? "Plata" : "Sin banda";
+        string tolBand = tolerance <= 1f  ? "Marrón" :
+                         tolerance <= 2f  ? "Rojo"   :
+                         tolerance <= 5f  ? "Oro"    :
+                         tolerance <= 10f ? "Plata"  : "Sin banda";
 
         if (band1 >= bands.Length || band2 >= bands.Length || multiplier >= bands.Length)
             return "Fuera de rango";

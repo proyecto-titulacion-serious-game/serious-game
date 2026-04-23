@@ -13,9 +13,30 @@ public class Multimeter : MonoBehaviour
     [Header("Resultado")]
     public float measuredVoltage;
 
+    private bool _needsUpdate = true;
+
+    void OnEnable()
+    {
+        CircuitManager.OnCircuitChanged += MarkDirty;
+    }
+
+    void OnDisable()
+    {
+        CircuitManager.OnCircuitChanged -= MarkDirty;
+    }
+
     void Update()
     {
-        MeasureVoltage();
+        if (_needsUpdate)
+        {
+            MeasureVoltage();
+            _needsUpdate = false;
+        }
+    }
+
+    private void MarkDirty()
+    {
+        _needsUpdate = true;
     }
 
     void MeasureVoltage()
@@ -50,14 +71,16 @@ public class Multimeter : MonoBehaviour
     public void SetProbeA(ElectricalNode node)
     {
         probeA = node;
-        Debug.Log("🔴 Punta roja conectada a: " + node.name);
+        _needsUpdate = true;
+        Debug.Log("Punta roja conectada a: " + node.name);
     }
 
     // ⚫ Conectar punta negra
     public void SetProbeB(ElectricalNode node)
     {
         probeB = node;
-        Debug.Log("⚫ Punta negra conectada a: " + node.name);
+        _needsUpdate = true;
+        Debug.Log("Punta negra conectada a: " + node.name);
     }
 
     // 🔄 Reset (útil para gameplay)
@@ -66,6 +89,7 @@ public class Multimeter : MonoBehaviour
         probeA = null;
         probeB = null;
         measuredVoltage = 0f;
+        _needsUpdate = true;
 
         Debug.Log("🔄 Multímetro reiniciado");
     }

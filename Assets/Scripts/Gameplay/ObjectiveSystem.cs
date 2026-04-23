@@ -45,6 +45,10 @@ public class ObjectiveSystem : MonoBehaviour
         GameManager.OnLevelLoaded    -= BuildObjectivesForLevel;
         GameManager.OnLevelCompleted -= HandleLevelCompleted;
         GameManager.OnGameCompleted  -= HandleGameCompleted;
+        // Limpieza defensiva de eventos estáticos
+        OnObjectiveCompleted = null;
+        OnScoreUpdated       = null;
+        OnSessionEnded       = null;
     }
 
     // ─────────────────────────────────────────────

@@ -17,6 +17,5 @@ public class VoltageSource : ElectricalComponent
         nodeA.voltage = voltage;
         nodeB.voltage = 0;
 
-        Debug.Log("Fuente aplicada: " + voltage + "V");
     }
 }
