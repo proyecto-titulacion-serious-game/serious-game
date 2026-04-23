@@ -3,7 +3,8 @@ using UnityEngine;
 public class Multimeter : MonoBehaviour
 {
     [Header("Referencias")]
-    public CircuitManager circuit;
+    // NUEVO: Ahora referenciamos al GameManager en lugar del CircuitManager
+    public GameManager gameManager; 
 
     [Header("Probes (modo realista)")]
     public ElectricalNode probeA; // punta roja
@@ -33,8 +34,16 @@ public class Multimeter : MonoBehaviour
             return;
         }
 
-        // Medición real
-        measuredVoltage = circuit.GetVoltageBetween(probeA, probeB);
+        // NUEVO: Verificamos que el GameManager y su circuito existan antes de medir
+        if (gameManager != null && gameManager.circuit != null)
+        {
+            // Le pedimos la medición al circuito que el GameManager tiene activo en este momento
+            measuredVoltage = gameManager.circuit.GetVoltageBetween(probeA, probeB);
+        }
+        else
+        {
+            measuredVoltage = 0f;
+        }
     }
 
     // 🔴 Conectar punta roja

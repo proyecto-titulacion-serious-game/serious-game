@@ -14,10 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.XR.Interaction.Toolkit::UnityEngine.XR.Interaction.Toolkit.InteractionLayerSettings
   m_LayerNames:
   - Default
-  - 
-  - 
-  - 
-  - 
+  - Capa_Resistencia
+  - Capa_LED
+  - Capa_Capacitor
+  - Capa_ArduinoPIn
   - 
   - 
   - 

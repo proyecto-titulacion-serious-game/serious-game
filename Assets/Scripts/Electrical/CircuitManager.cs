@@ -21,6 +21,8 @@ public class CircuitManager : MonoBehaviour
     [Header("Resultados (solo lectura)")]
     [SerializeField] private float _totalCurrent;
     [SerializeField] private float _sourceVoltage;
+    [SerializeField] private float _totalPower;       // NUEVO: Potencia total en Watts
+    public bool isShortCircuited = false;             // NUEVO: Bandera de peligro
 
     [Header("Simulación")]
     [Tooltip("Segundos entre cada simulación. 0.05 = 20 veces por segundo.")]
@@ -31,6 +33,7 @@ public class CircuitManager : MonoBehaviour
     // ─────────────────────────────────────────────
     public float totalCurrent  => _totalCurrent;
     public float sourceVoltage => _sourceVoltage;
+    public float totalPower    => _totalPower;        // NUEVO: Acceso público a la potencia
 
     // ─────────────────────────────────────────────
     //  Eventos
@@ -121,18 +124,29 @@ public class CircuitManager : MonoBehaviour
         if (source == null) return;
 
         _sourceVoltage = source.voltage;
-
-        // Resistencia total = suma de todos los componentes (excepto la fuente)
         float totalR = 0f;
+
+        // Sumar resistencia total (excepto la fuente)
         foreach (var comp in components)
         {
             if (comp is VoltageSource) continue;
             totalR += comp.GetResistance();
         }
 
-        if (totalR <= 0f) { _totalCurrent = 0f; return; }
+        // 💥 DETECCIÓN DE CORTOCIRCUITO
+        if (totalR <= 0.1f) 
+        { 
+            _totalCurrent = 0f; 
+            _totalPower = 0f;
+            isShortCircuited = true;
+            Debug.LogWarning("[CircuitManager] ¡CORTOCIRCUITO! Falta resistencia en el circuito.");
+            return; 
+        }
 
-        _totalCurrent = _sourceVoltage / totalR;
+        // Si todo está bien, calculamos la física real
+        isShortCircuited = false;
+        _totalCurrent = _sourceVoltage / totalR;           // Ley de Ohm
+        _totalPower = _sourceVoltage * _totalCurrent;      // Ley de Watt
 
         // Aplicar caídas de voltaje en secuencia
         float voltageAtNode = _sourceVoltage;

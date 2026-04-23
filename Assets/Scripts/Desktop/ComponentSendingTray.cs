@@ -24,6 +24,9 @@ public class ComponentSendingTray : MonoBehaviour
     public Button     btnEnviar;
     public TMP_Text   txtFeedback;
 
+
+    private Vector3 _posicionOriginal; // Recordará de dónde sacamos la pieza
+
     [Header("Posición visual donde aparece el componente seleccionado")]
     public Transform  traySlot;
 
@@ -56,19 +59,45 @@ public class ComponentSendingTray : MonoBehaviour
     /// <summary>
     /// Coloca un componente en la bandeja (llamado por DeskComponent en PC).
     /// </summary>
-    public void PlaceComponent(DeskComponent comp)
+public void PlaceComponent(DeskComponent comp)
     {
         if (comp == null) return;
 
-        _pending = comp;
+        // 1. Si hacemos clic en la MISMA pieza que ya está en la bandeja, la cancelamos y regresa a la mesa.
+        if (_pending == comp)
+        {
+            ReturnComponent();
+            return;
+        }
 
-        // Mover el objeto 3D al slot visual de la bandeja
+        // 2. Si hacemos clic en una pieza NUEVA, pero ya había una en la bandeja, regresamos la vieja a la mesa primero.
+        if (_pending != null && _pending != comp)
+        {
+            ReturnComponent();
+        }
+
+        // 3. Guardamos la nueva pieza y recordamos sus coordenadas originales
+        _pending = comp;
+        _posicionOriginal = comp.transform.position; 
+
+        // 4. Movemos la pieza a la bandeja
         if (traySlot != null)
             comp.transform.position = traySlot.position;
 
         UpdateUI();
         Set(txtFeedback, "");
-        Debug.Log($"[Tray] En bandeja: {comp.componentType} {comp.componentValue}");
+    }
+
+    // Método nuevo para devolver la pieza a su lugar
+    public void ReturnComponent()
+    {
+        if (_pending != null)
+        {
+            _pending.transform.position = _posicionOriginal; // Vuelve a la mesa
+            _pending.Deselect();
+            _pending = null;
+            UpdateUI(); // Actualiza el panel para mostrar "Bandeja vacia"
+        }
     }
 
     // ─────────────────────────────────────────────
@@ -131,6 +160,7 @@ public class ComponentSendingTray : MonoBehaviour
         }
     }
 
+    
     // ─────────────────────────────────────────────
     //  VR — soltar componente sobre la bandeja
     // ─────────────────────────────────────────────
@@ -189,14 +219,35 @@ public class ComponentSendingTray : MonoBehaviour
         if (_pending != null)
         {
             Set(txtComponenteEnBandeja, $"{_pending.componentType}  {_pending.componentValue:F0}");
-            Set(txtDescripcion, _pending.componentDescription);
-            if (btnEnviar != null) btnEnviar.interactable = true;
+
+            // Verificamos la telemetría del circuito
+            if (gameManager != null && gameManager.circuit != null)
+            {
+                if (gameManager.circuit.isShortCircuited)
+                {
+                    // Alerta roja de peligro
+                    string alerta = $"{_pending.componentDescription}\n\n<color=red><b>¡PELIGRO: CORTOCIRCUITO!</b></color>\nLa corriente es demasiado alta.";
+                    Set(txtDescripcion, alerta);
+                }
+                else
+                {
+                    // Mostramos Amperios y Watts redondeados a 2 decimales (F2)
+                    string textoDinamico = $"{_pending.componentDescription}\n\nCorriente: {gameManager.circuit.totalCurrent:F2} A\nPotencia: {gameManager.circuit.totalPower:F2} W";
+                    Set(txtDescripcion, textoDinamico);
+                }
+            }
+            else
+            {
+                Set(txtDescripcion, _pending.componentDescription);
+            }
+
+            if (btnEnviar != null) btnEnviar.gameObject.SetActive(true);
         }
         else
         {
             Set(txtComponenteEnBandeja, "Bandeja vacia");
             Set(txtDescripcion, "Haz click en un componente de la mesa");
-            if (btnEnviar != null) btnEnviar.interactable = false;
+            if (btnEnviar != null) btnEnviar.gameObject.SetActive(false);
         }
     }
 
