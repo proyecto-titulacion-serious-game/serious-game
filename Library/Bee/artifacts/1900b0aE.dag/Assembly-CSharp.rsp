@@ -468,6 +468,8 @@
 "Assets/Scripts/Electrical/Resistor.cs"
 "Assets/Scripts/Electrical/VoltageSource.cs"
 "Assets/Scripts/Gameplay/ComponentDeliverySystem.cs"
+"Assets/Scripts/Gameplay/ComponentDeliverySystemBackup.cs"
+"Assets/Scripts/Gameplay/ComponentSlot.cs"
 "Assets/Scripts/Gameplay/DiagnosticSystem.cs"
 "Assets/Scripts/Gameplay/GameManager.cs"
 "Assets/Scripts/Gameplay/InstructionSystem.cs"
@@ -485,7 +487,6 @@
 "Assets/Scripts/Player/TechnicianController.cs"
 "Assets/Scripts/UI/MultimeterUI.cs"
 "Assets/Scripts/UI/PlayerFeedbackUI.cs"
-"Assets/Scripts/UI/TechnicianUI.cs"
 "Assets/Scripts/UI/UIButtonController.cs"
 -langversion:9.0
 /unsafe+

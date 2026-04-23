@@ -1,5 +1,5 @@
 sceneSetups:
-- path: Assets/Scenes/Explorador.unity
+- path: Assets/Scenes/IntegratedDemo.unity
   isLoaded: 1
   isActive: 1
   isSubScene: 0

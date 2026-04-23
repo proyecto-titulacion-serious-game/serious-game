@@ -116,26 +116,7 @@ public class PlayerInteraction : MonoBehaviour
     /// El Explorador suelta el componente en su slot de reemplazo.
     /// Llamar cuando el objeto entra en el trigger del slot correcto.
     /// </summary>
-    public void OnDropComponentInSlot(ComponentSlot slot)
-    {
-        if (heldComponent == null || slot == null) return;
-
-        bool success = slot.TryInsert(heldComponent, gameManager);
-
-        if (success)
-        {
-            haptics?.PlayStrong();
-            gameManager?.RegisterRepairAction();
-        }
-        else
-        {
-            haptics?.PlayError();
-            gameManager?.RegisterWrongAttempt("Componente incorrecto en slot");
-        }
-
-        heldComponent = null;
-        playerController?.FreezeMovement(false);
-    }
+    
 
     // ─────────────────────────────────────────────
     //  Reto 2 — Reconexión de cables paralelos
@@ -227,35 +208,3 @@ public class PlayerInteraction : MonoBehaviour
 /// Punto de inserción de componentes en el panel de la nave.
 /// Valida que el componente insertado sea el correcto.
 /// </summary>
-public class ComponentSlot : MonoBehaviour
-{
-    [Tooltip("Tipo de componente aceptado en este slot.")]
-    public ComponentSlotType acceptedType;
-
-    [Header("Valor correcto (para Resistor)")]
-    public float correctResistanceValue = 100f;
-
-    public bool TryInsert(ElectricalComponent component, GameManager gm)
-    {
-        switch (acceptedType)
-        {
-            case ComponentSlotType.Resistor:
-                if (component is Resistor r)
-                {
-                    r.Repair();
-                    return true;
-                }
-                break;
-
-            case ComponentSlotType.LED:
-                return component is LED;
-
-            case ComponentSlotType.Capacitor:
-                return component is Capacitor;
-        }
-
-        return false;
-    }
-}
-
-public enum ComponentSlotType { Resistor, LED, Capacitor, ArduinoPin }
