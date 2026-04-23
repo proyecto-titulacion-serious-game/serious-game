@@ -26,6 +26,12 @@ public class ConnectionManager : MonoBehaviour, INetworkRunnerCallbacks
             Debug.Log("[Red] Conectando automáticamente como Explorador...");
             StartSimulation(GameMode.Client);
         }
+        // NUEVO: Conexión automática para la escena del Técnico
+        else if (rolAutomatico == AutoConnectRole.Tecnico)
+        {
+            Debug.Log("[Red] Creando servidor automáticamente como Técnico...");
+            StartSimulation(GameMode.Host);
+        }
     }
 
     public async void StartSimulation(GameMode mode)
@@ -50,7 +56,7 @@ public class ConnectionManager : MonoBehaviour, INetworkRunnerCallbacks
         // 2. Si eres el Técnico (Host), inicializamos el sistema de entrega
         if (mode == GameMode.Host || mode == GameMode.Server)
         {
-            var deliverySystem = FindObjectOfType<ComponentDeliverySystem>();
+            var deliverySystem = FindObjectOfType<ComponentDeliverySystemBackup>();
             if (deliverySystem != null)
             {
                 deliverySystem.InicializarManual(_runner);
