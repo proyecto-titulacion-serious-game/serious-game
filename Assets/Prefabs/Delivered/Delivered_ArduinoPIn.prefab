@@ -16,7 +16,7 @@ GameObject:
   - component: {fileID: -1556425569416757358}
   - component: {fileID: 9038179353649786546}
   - component: {fileID: -1825291680623235262}
-  - component: {fileID: 2405684000829453611}
+  - component: {fileID: -1361427931362486372}
   m_Layer: 0
   m_Name: Delivered_ArduinoPIn
   m_TagString: Untagged
@@ -310,7 +310,7 @@ MonoBehaviour:
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
   m_MaxAngularVelocityDelta: 20
---- !u!114 &2405684000829453611
+--- !u!114 &-1361427931362486372
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -319,15 +319,16 @@ MonoBehaviour:
   m_GameObject: {fileID: 2582350800741640194}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a46d4ab53b188554281ccedf7afe9d5c, type: 3}
+  m_Script: {fileID: 11500000, guid: 954b132a150b9724c870dcf3fb9a0548, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Resistor
+  m_EditorClassIdentifier: Assembly-CSharp::ArduinoPin
   nodeA: {fileID: 0}
   nodeB: {fileID: 0}
   current: 0
   voltageDrop: 0
-  resistance: 100
-  correctResistance: 100
-  faultyResistance: 10
+  pinNumber: 0
+  correctPinNumber: 2
+  isDigital: 1
   hasFault: 0
-  tolerancePercent: 5
+  hasLooseCable: 0
+  signalVoltage: 0

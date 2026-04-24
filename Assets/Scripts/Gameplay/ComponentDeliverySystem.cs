@@ -177,7 +177,7 @@ public class ComponentDeliverySystem : MonoBehaviour
             ApplyIncorrectValueToCircuit();
         }
 
-        Destroy(_spawnedComponent);
+        
         ResetDeliveryState();
     }
 

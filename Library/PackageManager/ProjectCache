@@ -5,18 +5,26 @@ m_ProjectFiles:
     m_ContentTrackingEnabled: 1
     m_ModificationDate:
       serializedVersion: 2
-      ticks: 639124078097386158
-    m_Hash: 302932965
+      ticks: 639125899717252332
+    m_Hash: 164023034
   m_LockFileStatus:
     m_FilePath: C:/Users/holaq/Proyecto-TITA/Packages/packages-lock.json
     m_PathExists: 1
     m_ContentTrackingEnabled: 1
     m_ModificationDate:
       serializedVersion: 2
-      ticks: 639124078097559262
-    m_Hash: 1736101549
+      ticks: 639125899717323059
+    m_Hash: 3210899107
 m_EmbeddedPackageManifests:
-  m_ManifestsStatus: {}
+  m_ManifestsStatus:
+    C:/Users/holaq/Proyecto-TITA/Packages/com.unity.xr.interaction.toolkit/package.json:
+      m_FilePath: C:/Users/holaq/Proyecto-TITA/Packages/com.unity.xr.interaction.toolkit/package.json
+      m_PathExists: 1
+      m_ContentTrackingEnabled: 1
+      m_ModificationDate:
+        serializedVersion: 2
+        ticks: 639107894285910000
+      m_Hash: 202078250
 m_LocalPackages:
   m_LocalFileStatus: []
 m_ProjectPath: C:/Users/holaq/Proyecto-TITA/Packages
@@ -234,6 +242,107 @@ m_ResolvedPackages:
       scopePatternExpression: 
       message: 
       readMoreLink: 
+- packageId: com.unity.test-framework@1.6.0
+  testable: 0
+  isDirectDependency: 1
+  version: 1.6.0
+  source: 2
+  resolvedPath: C:\Users\holaq\Proyecto-TITA\Library\PackageCache\com.unity.test-framework@76560ee600cb
+  assetPath: Packages/com.unity.test-framework
+  name: com.unity.test-framework
+  displayName: Test Framework
+  author:
+    name: 
+    email: 
+    url: 
+  category: Unity Test Framework
+  type: 
+  description: Test framework for running Edit mode and Play mode tests in Unity.
+  errors: []
+  versions:
+    all:
+    - 1.6.0
+    compatible:
+    - 1.6.0
+    recommended: 1.6.0
+    deprecated: []
+  dependencies:
+  - name: com.unity.ext.nunit
+    version: 2.0.3
+  - name: com.unity.modules.imgui
+    version: 1.0.0
+  - name: com.unity.modules.jsonserialize
+    version: 1.0.0
+  resolvedDependencies:
+  - name: com.unity.ext.nunit
+    version: 2.0.5
+  - name: com.unity.modules.imgui
+    version: 1.0.0
+  - name: com.unity.modules.jsonserialize
+    version: 1.0.0
+  keywords:
+  - Test
+  - TestFramework
+  registry:
+    id: main
+    name: 
+    url: https://packages.unity.com
+    scopes: []
+    isDefault: 1
+    capabilities: 7
+    configSource: 0
+    compliance:
+      status: 0
+      violations: []
+  hideInEditor: 1
+  entitlements:
+    licensingModel: 0
+  isAssetStorePackage: 0
+  datePublishedTicks: 0
+  documentationUrl: 
+  hasRepository: 0
+  repository:
+    type: 
+    url: 
+    revision: 
+    path: 
+  unityLifecycle:
+    version: 1.6.0
+    nextVersion: 
+    recommendedVersion: 
+    isDeprecated: 0
+    deprecationMessage: 
+    isDiscoverable: 1
+  isDeprecated: 0
+  deprecationMessage: 
+  git:
+    hash: 
+    revision: 
+  upmReserved: 
+  signature:
+    status: 0
+    reason: 
+    attestation:
+      format: 
+      publishingChannel: 
+      entitlementKeys: []
+      ownerOrgName: 
+      ownerOrgId: 
+      publisherName: 
+    errorCode: 
+  assetStore:
+    productId: 
+  fingerprint: 76560ee600cb07c29e08760be4a5c75da65a9d9e
+  editorCompatibility:
+    compatibilityLevel: 0
+    minimumPackageVersion: 1.6.0
+    minimumUnityVersion: 6000.0.44f1
+  compliance:
+    status: 0
+    violation:
+      scopePatternExpression: 
+      message: 
+      readMoreLink: 
 - packageId: com.unity.ugui@2.0.0
   testable: 0
   isDirectDependency: 1
@@ -391,9 +500,11 @@ m_ResolvedPackages:
     - 1.7.2
     - 1.7.3
     - 1.8.0-pre.1
+    - 1.8.0
     compatible:
     - 1.7.3
     - 1.8.0-pre.1
+    - 1.8.0
     recommended: 1.7.3
     deprecated: []
   dependencies:
@@ -514,12 +625,12 @@ m_ResolvedPackages:
       scopePatternExpression: 
       message: 
       readMoreLink: 
-- packageId: com.unity.xr.interaction.toolkit@3.4.1
-  testable: 0
+- packageId: com.unity.xr.interaction.toolkit@file:C:\Users\holaq\Proyecto-TITA\Packages\com.unity.xr.interaction.toolkit
+  testable: 1
   isDirectDependency: 1
   version: 3.4.1
-  source: 1
-  resolvedPath: C:\Users\holaq\Proyecto-TITA\Library\PackageCache\com.unity.xr.interaction.toolkit@4612b35e2aac
+  source: 3
+  resolvedPath: C:\Users\holaq\Proyecto-TITA\Packages\com.unity.xr.interaction.toolkit
   assetPath: Packages/com.unity.xr.interaction.toolkit
   name: com.unity.xr.interaction.toolkit
   displayName: XR Interaction Toolkit
@@ -610,57 +721,59 @@ m_ResolvedPackages:
     - 3.4.1
     - 3.5.0-pre.1
     - 3.5.0-pre.2
+    - 3.5.0
     compatible:
     - 3.4.0
     - 3.4.1
     - 3.5.0-pre.1
     - 3.5.0-pre.2
+    - 3.5.0
     recommended: 3.4.1
     deprecated: []
   dependencies:
-  - name: com.unity.ugui
-    version: 1.0.0
-  - name: com.unity.modules.xr
-    version: 1.0.0
   - name: com.unity.inputsystem
     version: 1.8.1
   - name: com.unity.mathematics
     version: 1.2.6
+  - name: com.unity.ugui
+    version: 1.0.0
+  - name: com.unity.xr.core-utils
+    version: 2.4.0
   - name: com.unity.modules.audio
     version: 1.0.0
   - name: com.unity.modules.imgui
     version: 1.0.0
-  - name: com.unity.xr.core-utils
-    version: 2.4.0
   - name: com.unity.modules.physics
-    version: 1.0.0
-  resolvedDependencies:
-  - name: com.unity.ugui
-    version: 2.0.0
-  - name: com.unity.modules.ui
-    version: 1.0.0
-  - name: com.unity.modules.imgui
     version: 1.0.0
   - name: com.unity.modules.xr
     version: 1.0.0
-  - name: com.unity.modules.physics
-    version: 1.0.0
-  - name: com.unity.modules.jsonserialize
-    version: 1.0.0
-  - name: com.unity.modules.subsystems
-    version: 1.0.0
+  resolvedDependencies:
   - name: com.unity.inputsystem
     version: 1.19.0
   - name: com.unity.modules.uielements
     version: 1.0.0
+  - name: com.unity.modules.ui
+    version: 1.0.0
+  - name: com.unity.modules.imgui
+    version: 1.0.0
+  - name: com.unity.modules.jsonserialize
+    version: 1.0.0
   - name: com.unity.modules.hierarchycore
+    version: 1.0.0
+  - name: com.unity.modules.physics
     version: 1.0.0
   - name: com.unity.mathematics
     version: 1.3.3
-  - name: com.unity.modules.audio
-    version: 1.0.0
+  - name: com.unity.ugui
+    version: 2.0.0
   - name: com.unity.xr.core-utils
     version: 2.5.3
+  - name: com.unity.modules.xr
+    version: 1.0.0
+  - name: com.unity.modules.subsystems
+    version: 1.0.0
+  - name: com.unity.modules.audio
+    version: 1.0.0
   keywords:
   - XR
   - VR
@@ -679,9 +792,9 @@ m_ResolvedPackages:
       violations: []
   hideInEditor: 1
   entitlements:
-    licensingModel: 1
+    licensingModel: 0
   isAssetStorePackage: 0
-  datePublishedTicks: 639107894285910000
+  datePublishedTicks: 0
   documentationUrl: https://docs.unity3d.com/Packages/com.unity.xr.interaction.toolkit@3.4/manual/index.html
   hasRepository: 1
   repository:
@@ -714,11 +827,11 @@ m_ResolvedPackages:
     using fast-enter play mode. [UUM-135026](https://issuetracker.unity3d.com/product/unity/issues/guid/UUM-135026)
     (Backport from 3.5.0-pre.2)"}'
   signature:
-    status: 1
-    reason: Signature is ok
+    status: 0
+    reason: 
     attestation:
-      format: archive
-      publishingChannel: unity
+      format: 
+      publishingChannel: 
       entitlementKeys: []
       ownerOrgName: 
       ownerOrgId: 
@@ -4698,6 +4811,97 @@ m_ResolvedPackages:
     compatibilityLevel: 0
     minimumPackageVersion: 4.5.2
     minimumUnityVersion: 2021.3
+  compliance:
+    status: 0
+    violation:
+      scopePatternExpression: 
+      message: 
+      readMoreLink: 
+- packageId: com.unity.ext.nunit@2.0.5
+  testable: 0
+  isDirectDependency: 0
+  version: 2.0.5
+  source: 2
+  resolvedPath: C:\Users\holaq\Proyecto-TITA\Library\PackageCache\com.unity.ext.nunit@d8c07649098d
+  assetPath: Packages/com.unity.ext.nunit
+  name: com.unity.ext.nunit
+  displayName: Custom NUnit
+  author:
+    name: 
+    email: 
+    url: 
+  category: Libraries
+  type: 
+  description: A custom version of NUnit used by Unity Test Framework. Based on NUnit
+    version 3.5 and works with all platforms, il2cpp and Mono AOT.
+  errors: []
+  versions:
+    all:
+    - 2.0.5
+    compatible:
+    - 2.0.5
+    recommended: 2.0.5
+    deprecated: []
+  dependencies: []
+  resolvedDependencies: []
+  keywords:
+  - nunit
+  - unittest
+  - test
+  registry:
+    id: main
+    name: 
+    url: https://packages.unity.com
+    scopes: []
+    isDefault: 1
+    capabilities: 7
+    configSource: 0
+    compliance:
+      status: 0
+      violations: []
+  hideInEditor: 1
+  entitlements:
+    licensingModel: 0
+  isAssetStorePackage: 0
+  datePublishedTicks: 0
+  documentationUrl: https://docs.unity3d.com/Packages/com.unity.ext.nunit@2.0/manual/index.html
+  hasRepository: 0
+  repository:
+    type: 
+    url: 
+    revision: 
+    path: 
+  unityLifecycle:
+    version: 2.0.5
+    nextVersion: 
+    recommendedVersion: 
+    isDeprecated: 0
+    deprecationMessage: 
+    isDiscoverable: 0
+  isDeprecated: 0
+  deprecationMessage: 
+  git:
+    hash: 
+    revision: 
+  upmReserved: 
+  signature:
+    status: 0
+    reason: 
+    attestation:
+      format: 
+      publishingChannel: 
+      entitlementKeys: []
+      ownerOrgName: 
+      ownerOrgId: 
+      publisherName: 
+    errorCode: 
+  assetStore:
+    productId: 
+  fingerprint: d8c07649098d3936da4c8ab500960c1776b44592
+  editorCompatibility:
+    compatibilityLevel: 0
+    minimumPackageVersion: 2.0.5
+    minimumUnityVersion: 2019.4
   compliance:
     status: 0
     violation:

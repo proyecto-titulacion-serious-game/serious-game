@@ -27,7 +27,7 @@ MonoBehaviour:
     collapsed: 0
   - groupType: UnityEngine.CapsuleCollider, UnityEngine.PhysicsModule, Version=0.0.0.0,
       Culture=neutral, PublicKeyToken=null
-    collapsed: 1
+    collapsed: 0
   - groupType: UnityEngine.ConfigurableJoint, UnityEngine.PhysicsModule, Version=0.0.0.0,
       Culture=neutral, PublicKeyToken=null
     collapsed: 0
@@ -69,5 +69,5 @@ MonoBehaviour:
     collapsed: 0
   m_LastPivotModeTypeString: UnityEditor.CenterPivotMode, UnityEditor.CoreModule,
     Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
-  m_LastPivotRotationTypeString: UnityEditor.LocalPivotRotation, UnityEditor.CoreModule,
+  m_LastPivotRotationTypeString: UnityEditor.GridPivotRotation, UnityEditor.CoreModule,
     Version=0.0.0.0, Culture=neutral, PublicKeyToken=null

@@ -6,7 +6,8 @@
   "inputs": [
     "C:\\Users\\holaq\\Proyecto-TITA\\Packages\\manifest.json",
     "C:\\Users\\holaq\\Proyecto-TITA\\Packages\\packages-lock.json",
-    "C:\\Program Files\\Unity\\Hub\\Editor\\6000.4.3f1\\Editor\\Data\\Resources\\PackageManager\\BuiltInPackages\\BuiltInPackagesCombined.sha1"
+    "C:\\Program Files\\Unity\\Hub\\Editor\\6000.4.3f1\\Editor\\Data\\Resources\\PackageManager\\BuiltInPackages\\BuiltInPackagesCombined.sha1",
+    "C:\\Users\\holaq\\Proyecto-TITA\\Packages\\com.unity.xr.interaction.toolkit\\package.json"
   ],
   "outputs": {
     "com.unity.multiplayer.center@1.0.1": {
@@ -29,6 +30,16 @@
       "source": "registry",
       "testable": false
     },
+    "com.unity.test-framework@1.6.0": {
+      "name": "com.unity.test-framework",
+      "displayName": "Test Framework",
+      "resolvedPath": "C:\\Users\\holaq\\Proyecto-TITA\\Library\\PackageCache\\com.unity.test-framework@76560ee600cb",
+      "fingerprint": "76560ee600cb07c29e08760be4a5c75da65a9d9e",
+      "editorCompatibility": "6000.0.44f1",
+      "version": "1.6.0",
+      "source": "builtin",
+      "testable": false
+    },
     "com.unity.ugui@2.0.0": {
       "name": "com.unity.ugui",
       "displayName": "uGUI",
@@ -49,15 +60,15 @@
       "source": "registry",
       "testable": false
     },
-    "com.unity.xr.interaction.toolkit@3.4.1": {
+    "com.unity.xr.interaction.toolkit@file:C:\\Users\\holaq\\Proyecto-TITA\\Packages\\com.unity.xr.interaction.toolkit": {
       "name": "com.unity.xr.interaction.toolkit",
       "displayName": "XR Interaction Toolkit",
-      "resolvedPath": "C:\\Users\\holaq\\Proyecto-TITA\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@4612b35e2aac",
+      "resolvedPath": "C:\\Users\\holaq\\Proyecto-TITA\\Packages\\com.unity.xr.interaction.toolkit",
       "fingerprint": "4612b35e2aaceecac9e0bab687921365bcd41d8a",
       "editorCompatibility": "2022.3.0a1",
       "version": "3.4.1",
-      "source": "registry",
-      "testable": false
+      "source": "embedded",
+      "testable": true
     },
     "com.unity.modules.accessibility@1.0.0": {
       "name": "com.unity.modules.accessibility",
@@ -385,6 +396,16 @@
       "editorCompatibility": "2021.3.0a1",
       "version": "4.5.2",
       "source": "registry",
+      "testable": false
+    },
+    "com.unity.ext.nunit@2.0.5": {
+      "name": "com.unity.ext.nunit",
+      "displayName": "Custom NUnit",
+      "resolvedPath": "C:\\Users\\holaq\\Proyecto-TITA\\Library\\PackageCache\\com.unity.ext.nunit@d8c07649098d",
+      "fingerprint": "d8c07649098d3936da4c8ab500960c1776b44592",
+      "editorCompatibility": "2019.4.0a1",
+      "version": "2.0.5",
+      "source": "builtin",
       "testable": false
     },
     "com.unity.xr.legacyinputhelpers@3.0.1": {
