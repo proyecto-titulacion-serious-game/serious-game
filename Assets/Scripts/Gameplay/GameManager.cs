@@ -5,11 +5,12 @@ using UnityEngine;
 /// Controlador principal del juego. Gestiona los 4 retos del Serious Game VR.
 /// Usa eventos para comunicarse con UI y otros sistemas (sin acoplamiento directo).
 ///
-/// CAMBIOS RESPECTO A LA VERSIÓN ANTERIOR:
-///   - SpawnCircuitForLevel() DESACTIVADO — se usa el Circuit de la escena directamente
-///   - Llamadas duplicadas a SetupLevel/ForceSimulate ELIMINADAS
-///   - NUEVO: ActivateComponentsForLevel() desactiva Capacitor/Arduino en Reto 1
-///   - NUEVO: AutoDetectComponents() se llama después de activar/desactivar componentes
+/// Niveles:
+///  1) Ohm's Law: Circuito serie con resistencia defectuosa.
+///  2) Parallel: Circuito paralelo con una rama abierta.
+///  3) Mixed: Circuito mixto con LED y capacitor con polaridad invertida + resistencia errónea.
+///  4) Arduino: Sensor conectado al pin incorrecto + buzzer sin resistencia + cable suelto.
+/// 
 /// </summary>
 public class GameManager : MonoBehaviour
 {
@@ -21,6 +22,9 @@ public class GameManager : MonoBehaviour
     public Multimeter         multimeter;
     public PerformanceTracker performance;
     public InstructionSystem  instructionSystem;
+
+    public GameObject reto1Zone; 
+    public GameObject reto2Zone;  
 
     [Header("Configuración de niveles")]
     [Tooltip("Tiempo límite en segundos para cada reto (0 = sin límite).")]
@@ -137,6 +141,7 @@ public class GameManager : MonoBehaviour
     //  Carga de niveles
     // ─────────────────────────────────────────────
 
+    
     void LoadLevel(int index)
     {
         if (index >= 4) { CompleteGame(); return; }
@@ -198,15 +203,35 @@ public class GameManager : MonoBehaviour
     /// </summary>
     void ActivateComponentsForLevel(LevelType level)
     {
-        if (circuit == null) return;
+        // Activar/desactivar ZONAS físicas
+        if (reto1Zone != null) reto1Zone.SetActive(level == LevelType.OhmLaw);
+        if (reto2Zone != null) reto2Zone.SetActive(level == LevelType.Parallel);
 
-        // Primero obtener TODOS los componentes (incluidos los desactivados)
+        // NUEVO: Actualizar la referencia circuit al CircuitManager de la zona activa
+        switch (level)
+        {
+            case LevelType.OhmLaw:
+                if (reto1Zone != null)
+                    circuit = reto1Zone.GetComponentInChildren<CircuitManager>();
+                break;
+            case LevelType.Parallel:
+                if (reto2Zone != null)
+                    circuit = reto2Zone.GetComponentInChildren<CircuitManager>();
+                break;
+        }
+
+        if (circuit == null)
+        {
+            Debug.LogError("[GameManager] No se encontró CircuitManager en la zona activa.");
+            return;
+        }
+
+        // Activar/desactivar COMPONENTES del circuito
         var allComponents = circuit.GetComponentsInChildren<ElectricalComponent>(true);
 
         switch (level)
         {
             case LevelType.OhmLaw:
-                // Reto 1: solo VoltageSource + Resistor + LED
                 foreach (var comp in allComponents)
                 {
                     if (comp is VoltageSource || comp is Resistor || comp is LED)
@@ -217,7 +242,6 @@ public class GameManager : MonoBehaviour
                 break;
 
             case LevelType.Parallel:
-                // Reto 2: VoltageSource + Resistor + LEDs
                 foreach (var comp in allComponents)
                 {
                     if (comp is VoltageSource || comp is Resistor || comp is LED)
@@ -228,7 +252,6 @@ public class GameManager : MonoBehaviour
                 break;
 
             case LevelType.Mixed:
-                // Reto 3: VoltageSource + Resistor + LED + Capacitor
                 foreach (var comp in allComponents)
                 {
                     if (comp is ArduinoPin)
@@ -239,14 +262,14 @@ public class GameManager : MonoBehaviour
                 break;
 
             case LevelType.Arduino:
-                // Reto 4: Todos activos
                 foreach (var comp in allComponents)
                     comp.gameObject.SetActive(true);
                 break;
         }
 
-        // Limpiar la lista para que AutoDetectComponents la reconstruya
         circuit.components.Clear();
+        
+        Debug.Log($"[GameManager] Zona activa: {level}, Circuit: {circuit.gameObject.name}");
     }
 
     // ─────────────────────────────────────────────

@@ -477,6 +477,7 @@
 "Assets/Scripts/Gameplay/GameManager.cs"
 "Assets/Scripts/Gameplay/InstructionSystem.cs"
 "Assets/Scripts/Gameplay/LevelType.cs"
+"Assets/Scripts/Gameplay/NewEmptyCSharpScript.cs"
 "Assets/Scripts/Gameplay/ObjectiveSystem.cs"
 "Assets/Scripts/Gameplay/TechnicianActions.cs"
 "Assets/Scripts/Gameplay/TechnicianManual.cs"
