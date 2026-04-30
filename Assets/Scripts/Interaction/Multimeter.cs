@@ -1,96 +1,298 @@
 using UnityEngine;
+using UnityEngine.XR.Interaction.Toolkit;
+using UnityEngine.XR.Interaction.Toolkit.Interactables;
+using TMPro;
 
+/// <summary>
+/// Multímetro digital VR para el Explorador.
+///
+/// FLUJO:
+///   1. Explorador agarra el multímetro (XRGrabInteractable).
+///   2. Apunta el controlador DERECHO al nodo a medir → gatillo → punta roja asignada.
+///   3. Apunta el controlador IZQUIERDO al nodo de referencia → gatillo → punta negra.
+///   4. El display muestra voltaje y corriente en tiempo real.
+///   5. El Técnico lee los mismos valores en TechnicianUIController
+///      mediante las propiedades measuredVoltage / measuredCurrent.
+///
+/// JERARQUÍA EN UNITY:
+///   Multimeter_VR                   ← este script + XRGrabInteractable + Rigidbody
+///   ├─ Body                         ← Cube (0.06 × 0.12 × 0.02), color gris oscuro
+///   ├─ Indicator_Red                ← Sphere (0.008), color rojo — se ilumina al asignar
+///   ├─ Indicator_Black              ← Sphere (0.008), color negro — se ilumina al asignar
+///   └─ Screen_Canvas                ← Canvas WorldSpace, Scale 0.001
+///       ├─ TMP_Voltage              ← "9.00 V"
+///       ├─ TMP_Current              ← "15.3 mA"
+///       ├─ TMP_Status               ← "MIDIENDO" / "SIN CONTACTO"
+///       └─ TMP_Mode                 ← "DC VOLTAGE"
+///
+/// NO necesita MultimeterProbe.cs ni CircuitNode.cs.
+/// Trabaja directamente con ElectricalNode asignado por NodeInteractable.
+/// </summary>
+[RequireComponent(typeof(XRGrabInteractable))]
 public class Multimeter : MonoBehaviour
 {
-    [Header("Referencias")]
-    // NUEVO: Ahora referenciamos al GameManager en lugar del CircuitManager
-    public GameManager gameManager; 
+    // ─────────────────────────────────────────────
+    //  Inspector
+    // ─────────────────────────────────────────────
 
-    [Header("Probes (modo realista)")]
-    public ElectricalNode probeA; // punta roja
-    public ElectricalNode probeB; // punta negra
+    [Header("Display")]
+    public TMP_Text txtVoltage;
+    public TMP_Text txtCurrent;
+    public TMP_Text txtStatus;
+    public TMP_Text txtMode;
 
-    [Header("Resultado")]
-    public float measuredVoltage;
+    [Header("Indicadores visuales de punta asignada")]
+    public Renderer indicatorRed;    // se ilumina verde cuando la punta roja está asignada
+    public Renderer indicatorBlack;  // igual para punta negra
 
-    private bool _needsUpdate = true;
+    [Header("Modo de medición")]
+    public MultimeterMode mode = MultimeterMode.DCVoltage;
 
-    void OnEnable()
+    [Header("Feedback háptico al asignar nodo")]
+    [Range(0f, 1f)] public float hapticIntensity = 0.3f;
+    public float hapticDuration = 0.08f;
+
+    // ─────────────────────────────────────────────
+    //  Estado (solo lectura desde inspector)
+    // ─────────────────────────────────────────────
+
+    [Header("Lectura actual (solo lectura)")]
+    [SerializeField] private float _measuredVoltage;
+    [SerializeField] private float _measuredCurrent;
+    [SerializeField] private bool  _isReading;
+
+    // Propiedades públicas que lee TechnicianUIController
+    public float measuredVoltage => _measuredVoltage;
+    public float measuredCurrent => _measuredCurrent;
+    public bool  isReading       => _isReading;
+
+    // ─────────────────────────────────────────────
+    //  Nodos asignados por NodeInteractable
+    // ─────────────────────────────────────────────
+    private ElectricalNode _nodeRed;
+    private ElectricalNode _nodeBlack;
+
+    // ─────────────────────────────────────────────
+    //  XR
+    // ─────────────────────────────────────────────
+    private XRGrabInteractable _grab;
+    private UnityEngine.XR.Interaction.Toolkit.Interactors.IXRSelectInteractor _currentInteractor;
+
+    // ─────────────────────────────────────────────
+    //  Unity Lifecycle
+    // ─────────────────────────────────────────────
+
+    void Awake()
     {
-        CircuitManager.OnCircuitChanged += MarkDirty;
-    }
-
-    void OnDisable()
-    {
-        CircuitManager.OnCircuitChanged -= MarkDirty;
+        _grab = GetComponent<XRGrabInteractable>();
+        _grab.selectEntered.AddListener(OnGrabbed);
+        _grab.selectExited.AddListener(OnReleased);
     }
 
     void Update()
     {
-        if (_needsUpdate)
-        {
-            MeasureVoltage();
-            _needsUpdate = false;
-        }
+        TakeReading();
+        UpdateDisplay();
     }
 
-    private void MarkDirty()
+    // ─────────────────────────────────────────────
+    //  API pública — llamada por NodeInteractable
+    // ─────────────────────────────────────────────
+
+    /// <summary>Asigna el nodo a la punta roja (mano derecha).</summary>
+    public void SetRedNode(ElectricalNode node)
     {
-        _needsUpdate = true;
+        _nodeRed = node;
+        SetIndicator(indicatorRed, node != null);
+        SendHaptic();
+        Debug.Log($"[Multimeter] Punta roja → {node?.gameObject.name} ({node?.voltage:F2}V)");
     }
 
-    void MeasureVoltage()
+    /// <summary>Asigna el nodo a la punta negra (mano izquierda).</summary>
+    public void SetBlackNode(ElectricalNode node)
     {
-        // Si no están conectadas ambas puntas
-        if (probeA == null || probeB == null)
-        {
-            measuredVoltage = 0f;
-            return;
-        }
-
-        // Evitar medir el mismo nodo
-        if (probeA == probeB)
-        {
-            measuredVoltage = 0f;
-            return;
-        }
-
-        // NUEVO: Verificamos que el GameManager y su circuito existan antes de medir
-        if (gameManager != null && gameManager.circuit != null)
-        {
-            // Le pedimos la medición al circuito que el GameManager tiene activo en este momento
-            measuredVoltage = gameManager.circuit.GetVoltageBetween(probeA, probeB);
-        }
-        else
-        {
-            measuredVoltage = 0f;
-        }
+        _nodeBlack = node;
+        SetIndicator(indicatorBlack, node != null);
+        SendHaptic();
+        Debug.Log($"[Multimeter] Punta negra → {node?.gameObject.name} ({node?.voltage:F2}V)");
     }
 
-    // 🔴 Conectar punta roja
-    public void SetProbeA(ElectricalNode node)
-    {
-        probeA = node;
-        _needsUpdate = true;
-        Debug.Log("Punta roja conectada a: " + node.name);
-    }
+    /// <summary>Reinicia ambas puntas (llamado por GameManager al cargar nivel).</summary>
+    
+/// <summary>Alias de probeA → _nodeRed (compatibilidad con código existente).</summary>
+    public ElectricalNode probeA => _nodeRed;
+ 
+    /// <summary>Alias de probeB → _nodeBlack (compatibilidad con código existente).</summary>
+    public ElectricalNode probeB => _nodeBlack;
+ 
+    /// <summary>Alias de SetProbeA → SetRedNode (usado por PlayerInteraction).</summary>
+    public void SetProbeA(ElectricalNode node) => SetRedNode(node);
+ 
+    /// <summary>Alias de SetProbeB → SetBlackNode (usado por PlayerInteraction).</summary>
+    public void SetProbeB(ElectricalNode node) => SetBlackNode(node);
 
-    // ⚫ Conectar punta negra
-    public void SetProbeB(ElectricalNode node)
-    {
-        probeB = node;
-        _needsUpdate = true;
-        Debug.Log("Punta negra conectada a: " + node.name);
-    }
-
-    // 🔄 Reset (útil para gameplay)
     public void ResetProbes()
     {
-        probeA = null;
-        probeB = null;
-        measuredVoltage = 0f;
-        _needsUpdate = true;
-
-        Debug.Log("🔄 Multímetro reiniciado");
+        _nodeRed   = null;
+        _nodeBlack = null;
+        _measuredVoltage = 0f;
+        _measuredCurrent = 0f;
+        _isReading = false;
+        SetIndicator(indicatorRed,   false);
+        SetIndicator(indicatorBlack, false);
+        UpdateDisplay();
     }
+
+    /// <summary>Cambia el modo de medición.</summary>
+    public void SetMode(MultimeterMode newMode)
+    {
+        mode = newMode;
+        ResetProbes();
+    }
+
+    // ─────────────────────────────────────────────
+    //  Lectura eléctrica
+    // ─────────────────────────────────────────────
+
+    void TakeReading()
+    {
+        if (_nodeRed == null || _nodeBlack == null)
+        {
+            _isReading       = false;
+            _measuredVoltage = 0f;
+            _measuredCurrent = 0f;
+            return;
+        }
+ 
+        _isReading = true;
+ 
+        float vDiff = _nodeRed.voltage - _nodeBlack.voltage;
+        float i     = _nodeRed.current;   // ← funciona tras el Parche 1
+ 
+        switch (mode)
+        {
+            case MultimeterMode.DCVoltage:
+                _measuredVoltage = vDiff;
+                _measuredCurrent = i;
+                break;
+            case MultimeterMode.DCCurrent:
+                _measuredCurrent = i;
+                _measuredVoltage = vDiff;
+                break;
+            case MultimeterMode.Resistance:
+                _measuredCurrent = i;
+                _measuredVoltage = Mathf.Abs(i) > 0.0001f ? vDiff / i : 0f;
+                break;
+        }
+    }
+
+    // ─────────────────────────────────────────────
+    //  Display
+    // ─────────────────────────────────────────────
+
+    void UpdateDisplay()
+    {
+        if (!_isReading)
+        {
+            bool redAssigned   = _nodeRed   != null;
+            bool blackAssigned = _nodeBlack != null;
+
+            Set(txtVoltage, "—.— V");
+            Set(txtCurrent, "—.— mA");
+            Set(txtStatus,  redAssigned && !blackAssigned ? "FALTA PUNTA NEGRA"
+                          : !redAssigned && blackAssigned ? "FALTA PUNTA ROJA"
+                          : "SIN CONTACTO");
+            Set(txtMode, ModeLabel());
+            return;
+        }
+
+        switch (mode)
+        {
+            case MultimeterMode.DCVoltage:
+            case MultimeterMode.DCCurrent:
+                Set(txtVoltage, FormatVoltage(_measuredVoltage));
+                Set(txtCurrent, FormatCurrent(_measuredCurrent));
+                break;
+
+            case MultimeterMode.Resistance:
+                float ohms = Mathf.Abs(_measuredCurrent) > 0.0001f
+                           ? _measuredVoltage / _measuredCurrent
+                           : 0f;
+                Set(txtVoltage, FormatResistance(ohms));
+                Set(txtCurrent, FormatCurrent(_measuredCurrent));
+                break;
+        }
+
+        Set(txtStatus, "MIDIENDO");
+        Set(txtMode,   ModeLabel());
+    }
+
+    // ─────────────────────────────────────────────
+    //  XR — grab
+    // ─────────────────────────────────────────────
+
+    void OnGrabbed(SelectEnterEventArgs args)  => _currentInteractor = args.interactorObject;
+    void OnReleased(SelectExitEventArgs args)  => _currentInteractor = null;
+
+    void SendHaptic()
+    {
+        if (_currentInteractor == null) return;
+        (_currentInteractor as UnityEngine.XR.Interaction.Toolkit.Interactors.XRBaseInputInteractor)
+            ?.SendHapticImpulse(hapticIntensity, hapticDuration);
+    }
+
+    // ─────────────────────────────────────────────
+    //  Visual — indicadores
+    // ─────────────────────────────────────────────
+
+    static readonly Color _colorAssigned = new Color(0.2f, 0.85f, 0.3f); // verde
+    static readonly Color _colorIdle     = new Color(0.4f, 0.4f,  0.4f); // gris
+
+    void SetIndicator(Renderer r, bool assigned)
+    {
+        if (r == null) return;
+        var mpb = new MaterialPropertyBlock();
+        mpb.SetColor("_BaseColor", assigned ? _colorAssigned : _colorIdle);
+        r.SetPropertyBlock(mpb);
+    }
+
+    // ─────────────────────────────────────────────
+    //  Formateo
+    // ─────────────────────────────────────────────
+
+    static string FormatVoltage(float v)
+    {
+        return Mathf.Abs(v) >= 1f
+             ? $"{v:F2} V"
+             : $"{v * 1000f:F1} mV";
+    }
+
+    static string FormatCurrent(float i)
+    {
+        float mA = i * 1000f;
+        return Mathf.Abs(mA) >= 1f
+             ? $"{mA:F1} mA"
+             : $"{i * 1_000_000f:F0} µA";
+    }
+
+    static string FormatResistance(float r)
+    {
+        return r >= 1000f
+             ? $"{r / 1000f:F2} kΩ"
+             : $"{r:F0} Ω";
+    }
+
+    string ModeLabel() => mode switch
+    {
+        MultimeterMode.DCVoltage  => "DC VOLTAGE",
+        MultimeterMode.DCCurrent  => "DC CURRENT",
+        MultimeterMode.Resistance => "RESISTANCE",
+        _                         => "DC VOLTAGE"
+    };
+
+    static void Set(TMP_Text t, string s) { if (t) t.text = s; }
 }
+
+// ──────────────────────────────────────────────────────────────────────────────
+
+public enum MultimeterMode { DCVoltage, DCCurrent, Resistance }

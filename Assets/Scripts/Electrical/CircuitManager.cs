@@ -190,12 +190,20 @@ public class CircuitManager : MonoBehaviour
         foreach (var comp in components)
         {
             if (comp is VoltageSource) continue;
-
-            if (comp.nodeA != null) comp.nodeA.voltage = voltageAtNode;
+ 
+            if (comp.nodeA != null)
+            {
+                comp.nodeA.voltage = voltageAtNode;
+                comp.nodeA.current = _totalCurrent;   
+            }
             float drop = _totalCurrent * comp.GetResistance();
             voltageAtNode -= drop;
-            if (comp.nodeB != null) comp.nodeB.voltage = voltageAtNode;
-
+            if (comp.nodeB != null)
+            {
+                comp.nodeB.voltage = voltageAtNode;
+                comp.nodeB.current = _totalCurrent;  
+            }
+ 
             comp.Calculate();
         }
     }
@@ -216,11 +224,14 @@ public class CircuitManager : MonoBehaviour
         foreach (var comp in components)
         {
             if (comp is VoltageSource) continue;
-
+ 
             if (comp.nodeA != null) comp.nodeA.voltage = _sourceVoltage;
             if (comp.nodeB != null) comp.nodeB.voltage = 0f;
-
+ 
             comp.Calculate();
+ 
+            if (comp.nodeA != null) comp.nodeA.current = comp.current;  
+            if (comp.nodeB != null) comp.nodeB.current = comp.current;   
             _totalCurrent += comp.current;
         }
     }

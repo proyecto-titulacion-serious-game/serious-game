@@ -289,7 +289,6 @@ GameObject:
   - component: {fileID: 1797714618475380533}
   - component: {fileID: 8425787952304476221}
   - component: {fileID: 3980233701245012339}
-  - component: {fileID: 764084911715120251}
   - component: {fileID: 2298748669885017570}
   - component: {fileID: 3942928104251097784}
   m_Layer: 0
@@ -406,24 +405,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ElectricalNode
   voltage: 0
   connectedComponents: []
---- !u!114 &764084911715120251
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3571337692263252969}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f0da82644e37be1488f53b11ce254ddf, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NodeInteractable
-  nodeTarget: {fileID: 3980233701245012339}
-  probeType: 0
-  playerInteraction: {fileID: 0}
-  nodeRenderer: {fileID: 1797714618475380533}
-  hoverColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
-  selectedColor: {r: 0, g: 1, b: 1, a: 1}
 --- !u!114 &2298748669885017570
 MonoBehaviour:
   m_ObjectHideFlags: 0

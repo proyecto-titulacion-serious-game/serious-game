@@ -2,13 +2,19 @@ using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
 
 /// <summary>
-/// Reemplaza OnMouseDown() con XRSimpleInteractable para VR.
-/// Colocar en cada nodo eléctrico de la escena.
+/// Nodo eléctrico seleccionable por VR. El Explorador apunta con el
+/// controlador y presiona el gatillo para colocar la punta del multímetro.
 ///
-/// SETUP:
-///   1. Agregar XRSimpleInteractable a este GameObject
-///   2. Asignar el ElectricalNode en nodeTarget
-///   3. Asignar playerInteraction desde el inspector o FindObjectOfType
+/// CAMBIO respecto a la versión anterior:
+///   - Ya no llama a PlayerInteraction.PlaceRedProbe / PlaceBlackProbe
+///   - Llama directamente a Multimeter.SetRedNode / SetBlackNode
+///   - Mano derecha → punta roja  |  Mano izquierda → punta negra
+///
+/// SETUP (sin cambios respecto a lo que ya tienes):
+///   1. XRSimpleInteractable en este GameObject
+///   2. Collider (isTrigger = FALSE) para el ray-cast
+///   3. Asignar nodeTarget (ElectricalNode con voltage y current)
+///   4. Asignar multimeter desde el inspector o auto-find
 /// </summary>
 [RequireComponent(typeof(UnityEngine.XR.Interaction.Toolkit.Interactables.XRSimpleInteractable))]
 [RequireComponent(typeof(Collider))]
@@ -20,11 +26,11 @@ public class NodeInteractable : MonoBehaviour
     [Header("Nodo eléctrico de este punto")]
     public ElectricalNode nodeTarget;
 
-    [Header("Tipo de punta")]
+    [Header("Punta asignada (Auto = derecha=roja, izquierda=negra)")]
     public ProbeType probeType = ProbeType.Auto;
 
     [Header("Referencias")]
-    public PlayerInteraction playerInteraction;
+    public Multimeter multimeter;   // ← reemplaza playerInteraction
 
     [Header("Feedback visual")]
     public Renderer nodeRenderer;
@@ -37,7 +43,7 @@ public class NodeInteractable : MonoBehaviour
     private UnityEngine.XR.Interaction.Toolkit.Interactables.XRSimpleInteractable _interactable;
     private Color _originalColor;
     private MaterialPropertyBlock _mpb;
-    private static readonly int _colorID = Shader.PropertyToID("_Color");
+    private static readonly int _colorID = Shader.PropertyToID("_BaseColor");
 
     // ─────────────────────────────────────────────
     //  Unity Lifecycle
@@ -47,14 +53,15 @@ public class NodeInteractable : MonoBehaviour
         _interactable = GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactables.XRSimpleInteractable>();
         _mpb          = new MaterialPropertyBlock();
 
-        if (nodeRenderer != null)
-        {
-            nodeRenderer.GetPropertyBlock(_mpb);
-            _originalColor = nodeRenderer.material.color;
-        }
+        if (nodeRenderer == null)
+            nodeRenderer = GetComponent<Renderer>();
 
-        if (playerInteraction == null)
-            playerInteraction = FindObjectOfType<PlayerInteraction>();
+        if (nodeRenderer != null)
+            _originalColor = nodeRenderer.sharedMaterial.color;
+
+        // Auto-buscar el multímetro si no se asignó en inspector
+        if (multimeter == null)
+            multimeter = FindObjectOfType<Multimeter>();
     }
 
     void OnEnable()
@@ -75,47 +82,40 @@ public class NodeInteractable : MonoBehaviour
     //  Eventos XR
     // ─────────────────────────────────────────────
 
-    void OnHoverEnter(HoverEnterEventArgs args)
-    {
-        SetColor(hoverColor);
-    }
+    void OnHoverEnter(HoverEnterEventArgs args) => SetColor(hoverColor);
 
-    void OnHoverExit(HoverExitEventArgs args)
-    {
-        SetColor(_originalColor);
-    }
+    void OnHoverExit(HoverExitEventArgs args) => SetColor(_originalColor);
 
     void OnSelectEnter(SelectEnterEventArgs args)
     {
-        if (playerInteraction == null || nodeTarget == null) return;
+        if (multimeter == null || nodeTarget == null) return;
 
         SetColor(selectedColor);
 
-        // Determinar automáticamente qué punta usar según el interactor
+        // Derecha → punta roja | Izquierda → punta negra
         bool isRightHand = args.interactorObject.transform.CompareTag("RightHand");
 
-        ProbeType resolvedType = probeType == ProbeType.Auto
+        ProbeType resolved = probeType == ProbeType.Auto
             ? (isRightHand ? ProbeType.Red : ProbeType.Black)
             : probeType;
 
-        switch (resolvedType)
+        // ← CAMBIO: ahora le avisa al Multimeter, no a PlayerInteraction
+        switch (resolved)
         {
             case ProbeType.Red:
-                playerInteraction.PlaceRedProbe(nodeTarget);
+                multimeter.SetRedNode(nodeTarget);
                 break;
             case ProbeType.Black:
-                playerInteraction.PlaceBlackProbe(nodeTarget);
+                multimeter.SetBlackNode(nodeTarget);
                 break;
         }
 
-        // Restaurar color después de un momento
         Invoke(nameof(ResetColor), 0.5f);
     }
 
     // ─────────────────────────────────────────────
     //  Helpers
     // ─────────────────────────────────────────────
-
     void SetColor(Color c)
     {
         if (nodeRenderer == null) return;
