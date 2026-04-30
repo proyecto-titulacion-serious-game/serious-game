@@ -51,7 +51,7 @@ public class DeskComponent : MonoBehaviour
 
         // Buscar bandeja automáticamente si no está asignada
         if (tray == null)
-            tray = FindObjectOfType<ComponentSendingTray>();
+            tray = FindFirstObjectByType<ComponentSendingTray>();
     }
 
     // ─────────────────────────────────────────────
@@ -89,7 +89,7 @@ public class DeskComponent : MonoBehaviour
     public void SelectThisComponent()
     {
         // Deseleccionar todos los demás
-        foreach (var comp in FindObjectsOfType<DeskComponent>())
+        foreach (var comp in FindObjectsByType<DeskComponent>())
             comp.Deselect();
 
         _isSelected = true;

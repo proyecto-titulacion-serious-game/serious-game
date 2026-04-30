@@ -5,16 +5,16 @@ m_ProjectFiles:
     m_ContentTrackingEnabled: 1
     m_ModificationDate:
       serializedVersion: 2
-      ticks: 639125899717252332
-    m_Hash: 164023034
+      ticks: 639131734760472572
+    m_Hash: 2643823017
   m_LockFileStatus:
     m_FilePath: C:/Users/holaq/Proyecto-TITA/Packages/packages-lock.json
     m_PathExists: 1
     m_ContentTrackingEnabled: 1
     m_ModificationDate:
       serializedVersion: 2
-      ticks: 639125899717323059
-    m_Hash: 3210899107
+      ticks: 639131734760528786
+    m_Hash: 3441992051
 m_EmbeddedPackageManifests:
   m_ManifestsStatus:
     C:/Users/holaq/Proyecto-TITA/Packages/com.unity.xr.interaction.toolkit/package.json:
@@ -542,9 +542,7 @@ m_ResolvedPackages:
   - name: com.unity.xr.core-utils
     version: 2.5.3
   - name: com.unity.xr.management
-    version: 4.5.2
-  - name: com.unity.modules.vr
-    version: 1.0.0
+    version: 4.5.3
   - name: com.unity.xr.legacyinputhelpers
     version: 3.0.1
   keywords:
@@ -843,6 +841,353 @@ m_ResolvedPackages:
   editorCompatibility:
     compatibilityLevel: 0
     minimumPackageVersion: 3.4.0
+    minimumUnityVersion: 2022.3
+  compliance:
+    status: 0
+    violation:
+      scopePatternExpression: 
+      message: 
+      readMoreLink: 
+- packageId: com.unity.xr.mock-hmd@1.5.0-exp.3
+  testable: 0
+  isDirectDependency: 1
+  version: 1.5.0-exp.3
+  source: 1
+  resolvedPath: C:\Users\holaq\Proyecto-TITA\Library\PackageCache\com.unity.xr.mock-hmd@1ea35c8fc657
+  assetPath: Packages/com.unity.xr.mock-hmd
+  name: com.unity.xr.mock-hmd
+  displayName: Mock HMD XR Plugin
+  author:
+    name: 
+    email: 
+    url: 
+  category: 
+  type: 
+  description: Provides rendering and input support for XR Mock HMD.
+  errors: []
+  versions:
+    all:
+    - 1.0.0-preview.1
+    - 1.0.0-preview.2
+    - 1.0.1-preview.3
+    - 1.0.1-preview.4
+    - 1.0.1-preview.5
+    - 1.0.1-preview.6
+    - 1.0.1-preview.7
+    - 1.1.0-preview.1
+    - 1.1.1-preview.1
+    - 1.1.2-preview.1
+    - 1.1.3-preview.1
+    - 1.2.0-preview.1
+    - 1.3.0-preview.1
+    - 1.3.1-preview.1
+    - 1.4.0-preview.2
+    - 1.5.0-exp.1
+    - 1.5.0-exp.2
+    - 1.5.0-exp.3
+    compatible:
+    - 1.0.0-preview.1
+    - 1.0.0-preview.2
+    - 1.0.1-preview.3
+    - 1.0.1-preview.4
+    - 1.0.1-preview.5
+    - 1.0.1-preview.6
+    - 1.0.1-preview.7
+    - 1.1.0-preview.1
+    - 1.1.1-preview.1
+    - 1.1.2-preview.1
+    - 1.1.3-preview.1
+    - 1.2.0-preview.1
+    - 1.3.0-preview.1
+    - 1.3.1-preview.1
+    - 1.4.0-preview.2
+    - 1.5.0-exp.1
+    - 1.5.0-exp.2
+    - 1.5.0-exp.3
+    recommended: 
+    deprecated: []
+  dependencies:
+  - name: com.unity.xr.management
+    version: 4.5.3
+  resolvedDependencies:
+  - name: com.unity.xr.management
+    version: 4.5.3
+  - name: com.unity.modules.xr
+    version: 1.0.0
+  - name: com.unity.modules.physics
+    version: 1.0.0
+  - name: com.unity.modules.jsonserialize
+    version: 1.0.0
+  - name: com.unity.modules.subsystems
+    version: 1.0.0
+  - name: com.unity.xr.core-utils
+    version: 2.5.3
+  - name: com.unity.xr.legacyinputhelpers
+    version: 3.0.1
+  keywords:
+  - mock-hmd
+  - xr
+  - reality
+  - xreditorsubsystem
+  registry:
+    id: main
+    name: 
+    url: https://packages.unity.com
+    scopes: []
+    isDefault: 1
+    capabilities: 7
+    configSource: 0
+    compliance:
+      status: 0
+      violations: []
+  hideInEditor: 1
+  entitlements:
+    licensingModel: 1
+  isAssetStorePackage: 0
+  datePublishedTicks: 639096318101880000
+  documentationUrl: https://docs.unity3d.com/Packages/com.unity.xr.mock-hmd@1.5/manual/index.html
+  hasRepository: 1
+  repository:
+    type: git
+    url: https://github.cds.internal.unity3d.com/unity/xr.sdk.mock-hmd.git
+    revision: 57f3c763d885acb6bbd38b9e78d8846fe1b5782d
+    path: 
+  unityLifecycle:
+    version: 
+    nextVersion: 
+    recommendedVersion: 
+    isDeprecated: 0
+    deprecationMessage: 
+    isDiscoverable: 0
+  isDeprecated: 0
+  deprecationMessage: 
+  git:
+    hash: 
+    revision: 
+  upmReserved: '{"changelog":"### Fixed\n\n- Fixed an issue to not show error when
+    using **Render Texture Viewer** window after exiting Play Mode. ([XRMOCKB-29](https://issuetracker.unity3d.com/product/unity/issues/guid/XRMOCKB-29))\n\n###
+    Changed\n\n - Updated the display name of the package to `Mock HMD XR Plugin`.\n
+    - Updated the display name of the Display Subsystem to `Mock HMD Display`.\n
+    - Updated the display name of the Input Subsystem to `Mock HMD Head Tracking`.\n
+    - Update the name of the loader and the XR Plugin Management settings menu to
+    `Mock HMD` for consistency."}'
+  signature:
+    status: 1
+    reason: Signature is ok
+    attestation:
+      format: archive
+      publishingChannel: unity
+      entitlementKeys: []
+      ownerOrgName: 
+      ownerOrgId: 
+      publisherName: 
+    errorCode: 
+  assetStore:
+    productId: 
+  fingerprint: 1ea35c8fc6572ff8f1fcc6f44748cd985e6b987f
+  editorCompatibility:
+    compatibilityLevel: 0
+    minimumPackageVersion: 1.0.0-preview.1
+    minimumUnityVersion: 2022.3
+  compliance:
+    status: 0
+    violation:
+      scopePatternExpression: 
+      message: 
+      readMoreLink: 
+- packageId: com.unity.xr.openxr@1.16.1
+  testable: 0
+  isDirectDependency: 1
+  version: 1.16.1
+  source: 1
+  resolvedPath: C:\Users\holaq\Proyecto-TITA\Library\PackageCache\com.unity.xr.openxr@ef0033a586bf
+  assetPath: Packages/com.unity.xr.openxr
+  name: com.unity.xr.openxr
+  displayName: OpenXR Plugin
+  author:
+    name: 
+    email: 
+    url: 
+  category: 
+  type: 
+  description: OpenXR is an open, royalty-free standard developed by Khronos that
+    aims to simplify AR/VR development by allowing developers to target a wide range
+    of AR/VR devices. Use this plug-in to enable OpenXR in XR Plug-in Management.
+  errors: []
+  versions:
+    all:
+    - 0.1.1-preview.1
+    - 0.1.2-preview.2
+    - 1.0.0-pre.1
+    - 1.0.2
+    - 1.0.3
+    - 1.1.1
+    - 1.2.0
+    - 1.2.2
+    - 1.2.3
+    - 1.2.8
+    - 1.3.0
+    - 1.3.1
+    - 1.4.0
+    - 1.4.1
+    - 1.4.2
+    - 1.5.0-exp.1
+    - 1.5.0
+    - 1.5.1
+    - 1.5.3
+    - 1.6.0
+    - 1.7.0
+    - 1.8.0
+    - 1.8.1
+    - 1.8.2
+    - 1.9.1
+    - 1.10.0
+    - 1.11.0-exp.1
+    - 1.11.0
+    - 1.11.1-exp.1
+    - 1.12.0-exp.1
+    - 1.12.0
+    - 1.12.1
+    - 1.13.0
+    - 1.13.1
+    - 1.13.2
+    - 1.14.0
+    - 1.14.1
+    - 1.14.2
+    - 1.14.3
+    - 1.15.0-pre.1
+    - 1.15.0-pre.2
+    - 1.15.0
+    - 1.15.1
+    - 1.16.0-pre.1
+    - 1.16.0-pre.2
+    - 1.16.0
+    - 1.16.1
+    - 1.17.0-pre.1
+    - 1.17.0-pre.2
+    - 1.17.0
+    compatible:
+    - 1.16.1
+    - 1.17.0-pre.1
+    - 1.17.0-pre.2
+    - 1.17.0
+    recommended: 1.16.1
+    deprecated: []
+  dependencies:
+  - name: com.unity.inputsystem
+    version: 1.6.3
+  - name: com.unity.xr.core-utils
+    version: 2.3.0
+  - name: com.unity.xr.management
+    version: 4.4.0
+  - name: com.unity.modules.androidjni
+    version: 1.0.0
+  - name: com.unity.xr.legacyinputhelpers
+    version: 2.1.2
+  resolvedDependencies:
+  - name: com.unity.inputsystem
+    version: 1.19.0
+  - name: com.unity.modules.uielements
+    version: 1.0.0
+  - name: com.unity.modules.ui
+    version: 1.0.0
+  - name: com.unity.modules.imgui
+    version: 1.0.0
+  - name: com.unity.modules.jsonserialize
+    version: 1.0.0
+  - name: com.unity.modules.hierarchycore
+    version: 1.0.0
+  - name: com.unity.modules.physics
+    version: 1.0.0
+  - name: com.unity.xr.core-utils
+    version: 2.5.3
+  - name: com.unity.modules.xr
+    version: 1.0.0
+  - name: com.unity.modules.subsystems
+    version: 1.0.0
+  - name: com.unity.xr.management
+    version: 4.5.3
+  - name: com.unity.xr.legacyinputhelpers
+    version: 3.0.1
+  - name: com.unity.modules.androidjni
+    version: 1.0.0
+  keywords:
+  - openxr
+  - xr
+  - reality
+  - xreditorsubsystem
+  registry:
+    id: main
+    name: 
+    url: https://packages.unity.com
+    scopes: []
+    isDefault: 1
+    capabilities: 7
+    configSource: 0
+    compliance:
+      status: 0
+      violations: []
+  hideInEditor: 1
+  entitlements:
+    licensingModel: 1
+  isAssetStorePackage: 0
+  datePublishedTicks: 639009873933310000
+  documentationUrl: https://docs.unity3d.com/Packages/com.unity.xr.openxr@1.16/manual/index.html
+  hasRepository: 1
+  repository:
+    type: git
+    url: https://github.cds.internal.unity3d.com/unity/xr.sdk.openxr.git
+    revision: c7a9defb4d388418b78bd9f86b5ecc62397d6288
+    path: 
+  unityLifecycle:
+    version: 1.16.1
+    nextVersion: 
+    recommendedVersion: 
+    isDeprecated: 0
+    deprecationMessage: 
+    isDiscoverable: 1
+  isDeprecated: 0
+  deprecationMessage: 
+  git:
+    hash: 
+    revision: 
+  upmReserved: '{"changelog":"### Changed\n\n* Changed wording of validation rule
+    that checks for symmetric projection when using the Multiview Render Regions
+    Optimizations Mode.\n* Changed OpenXR loader version to 1.1.53.\n* Changed the
+    visibility mask to not create an occlusion mesh when using a 2022.3 editor to
+    reduce memory footprint.\n\n### Removed\n\n* Removed an unit test `PluginVersion`
+    which was used internally to validate package version.\n\n### Fixed\n\n * Fixed
+    the OpenXR test \"DuplicateSettingAssetTest\" to communicate with asset database
+    when swapping asset files.\n * Fixed an issue in OpenXR Runtime Debugger window
+    to show correctly sized buttons. ([OXRB-682](https://issuetracker.unity3d.com/issues/folder-button-in-openxr-runtime-debugger-window-is-oversized))\n
+    * Fixed a dependency issue by including AndroidJNI as a dependency. ([OXRB-696](https://jira.unity3d.com/browse/OXRB-696))\n
+    * Fixed a crash when using eye tracked foveated rendering and sleeping/waking
+    device by making sure primary swapchain reference was reset before applying foveation
+    profile.\n * Fixed unreliable writing of `xr-meta-enabled` to boot.config by
+    ensuring it is always set based on the actual feature state.\n * Fixed Bluetooth
+    permissions being removed when building apps using the Meta Quest Feature. The
+    permissions are now kept when required by Unity APIs or a plugin''s manifest.
+    For more information on Android permissions in Unity, refer to [Android App Manifest](https://docs.unity3d.com/6000.2/Documentation/Manual/android-manifest.html).\n
+    * Fixed issue where project settings window would fail to render if an OpenXR
+    Feature was removed while the editor was running. ([OXRB-715](https://jira.unity3d.com/browse/OXRB-715))\n
+    * Fixed an error in Project Validation related to EntityId''s in Unity 6000.4+."}'
+  signature:
+    status: 1
+    reason: Signature is ok
+    attestation:
+      format: archive
+      publishingChannel: unity
+      entitlementKeys: []
+      ownerOrgName: 
+      ownerOrgId: 
+      publisherName: 
+    errorCode: 
+  assetStore:
+    productId: 
+  fingerprint: ef0033a586bf33cb236bfe77cb661fe1b2882748
+  editorCompatibility:
+    compatibilityLevel: 0
+    minimumPackageVersion: 1.16.1
     minimumUnityVersion: 2022.3
   compliance:
     status: 0
@@ -4375,117 +4720,6 @@ m_ResolvedPackages:
       scopePatternExpression: 
       message: 
       readMoreLink: 
-- packageId: com.unity.mathematics@1.3.3
-  testable: 0
-  isDirectDependency: 0
-  version: 1.3.3
-  source: 1
-  resolvedPath: C:\Users\holaq\Proyecto-TITA\Library\PackageCache\com.unity.mathematics@19a9377c4ffa
-  assetPath: Packages/com.unity.mathematics
-  name: com.unity.mathematics
-  displayName: Mathematics
-  author:
-    name: 
-    email: 
-    url: 
-  category: 
-  type: 
-  description: Unity's C# SIMD math library providing vector types and math functions
-    with a shader like syntax.
-  errors: []
-  versions:
-    all:
-    - 0.0.12-preview.2
-    - 0.0.12-preview.5
-    - 0.0.12-preview.8
-    - 0.0.12-preview.10
-    - 0.0.12-preview.11
-    - 0.0.12-preview.13
-    - 0.0.12-preview.17
-    - 0.0.12-preview.19
-    - 0.0.12-preview.20
-    - 1.0.0-preview.1
-    - 1.0.1
-    - 1.1.0-preview.1
-    - 1.1.0
-    - 1.2.1
-    - 1.2.4
-    - 1.2.5
-    - 1.2.6
-    - 1.3.1
-    - 1.3.2
-    - 1.3.3
-    compatible:
-    - 1.3.3
-    recommended: 1.3.3
-    deprecated: []
-  dependencies: []
-  resolvedDependencies: []
-  keywords:
-  - unity
-  registry:
-    id: main
-    name: 
-    url: https://packages.unity.com
-    scopes: []
-    isDefault: 1
-    capabilities: 7
-    configSource: 0
-    compliance:
-      status: 0
-      violations: []
-  hideInEditor: 1
-  entitlements:
-    licensingModel: 1
-  isAssetStorePackage: 0
-  datePublishedTicks: 638950052122000000
-  documentationUrl: https://docs.unity3d.com/Packages/com.unity.mathematics@1.3/manual/index.html
-  hasRepository: 1
-  repository:
-    type: git
-    url: https://github.com/Unity-Technologies/Unity.Mathematics.git
-    revision: 1695a8503482a3131be78cc26308a93f82c05b04
-    path: 
-  unityLifecycle:
-    version: 1.3.3
-    nextVersion: 
-    recommendedVersion: 
-    isDeprecated: 0
-    deprecationMessage: 
-    isDiscoverable: 1
-  isDeprecated: 0
-  deprecationMessage: 
-  git:
-    hash: 
-    revision: 
-  upmReserved: '{"changelog":"### Fixed\n* Fixed `math.hash` crash when using IL2CPP
-    builds on Arm 32 bit devices.\n* Fixed obsolete method usage warnings for `MatrixDrawer.CanCacheInspectorGUI`
-    and `PrimitiveVectorDrawer.CanCacheInspectorGUI` in UNITY_2023_2_OR_NEWER.\n*
-    Updated minimum editor version to 2021.3"}'
-  signature:
-    status: 1
-    reason: Signature is ok
-    attestation:
-      format: archive
-      publishingChannel: unity
-      entitlementKeys: []
-      ownerOrgName: 
-      ownerOrgId: 
-      publisherName: 
-    errorCode: 
-  assetStore:
-    productId: 
-  fingerprint: 19a9377c4ffa59370edad3e6a34e4445529badde
-  editorCompatibility:
-    compatibilityLevel: 0
-    minimumPackageVersion: 1.3.3
-    minimumUnityVersion: 2021.3
-  compliance:
-    status: 0
-    violation:
-      scopePatternExpression: 
-      message: 
-      readMoreLink: 
 - packageId: com.unity.xr.core-utils@2.5.3
   testable: 0
   isDirectDependency: 0
@@ -4629,285 +4863,6 @@ m_ResolvedPackages:
       scopePatternExpression: 
       message: 
       readMoreLink: 
-- packageId: com.unity.xr.management@4.5.2
-  testable: 0
-  isDirectDependency: 0
-  version: 4.5.2
-  source: 1
-  resolvedPath: C:\Users\holaq\Proyecto-TITA\Library\PackageCache\com.unity.xr.management@f589c7ba49ff
-  assetPath: Packages/com.unity.xr.management
-  name: com.unity.xr.management
-  displayName: XR Plugin Management
-  author:
-    name: 
-    email: 
-    url: 
-  category: 
-  type: 
-  description: Package that provides simple management of XR plug-ins. Manages and
-    offers help with loading, initialization, settings, and build support for XR
-    plug-ins.
-  errors: []
-  versions:
-    all:
-    - 0.1.0-preview.8
-    - 0.1.0-preview.12
-    - 1.0.0-preview.2
-    - 2.0.0-preview.3
-    - 2.0.0-preview.6
-    - 2.0.0-preview.9
-    - 2.0.0-preview.10
-    - 2.0.0-preview.13
-    - 2.0.0-preview.21
-    - 2.0.0-preview.22
-    - 2.0.0-preview.24
-    - 2.0.0-preview.25
-    - 2.0.0-preview.26
-    - 3.0.1
-    - 3.0.2-preview.1
-    - 3.0.2-preview.2
-    - 3.0.3
-    - 3.0.4-preview.1
-    - 3.0.4-preview.3
-    - 3.0.4
-    - 3.0.5-preview.1
-    - 3.0.5
-    - 3.0.6-preview.2
-    - 3.0.6
-    - 3.1.0-preview.2
-    - 3.2.4
-    - 3.2.6
-    - 3.2.7
-    - 3.2.9
-    - 3.2.10
-    - 3.2.11-preview.1
-    - 3.2.12
-    - 3.2.13
-    - 3.2.15
-    - 3.2.16
-    - 3.2.17
-    - 4.0.0-exp.2
-    - 4.0.0-pre.2
-    - 4.0.0-pre.3
-    - 4.0.1
-    - 4.0.3
-    - 4.0.5
-    - 4.0.6
-    - 4.0.7
-    - 4.1.0-pre.1
-    - 4.1.0-pre.2
-    - 4.1.0
-    - 4.2.0
-    - 4.2.1
-    - 4.3.1
-    - 4.3.3
-    - 4.4.0
-    - 4.4.1
-    - 4.5.0
-    - 4.5.1
-    - 4.5.2
-    - 4.5.3
-    - 4.5.4
-    - 4.6.0
-    compatible:
-    - 4.5.2
-    - 4.5.3
-    - 4.5.4
-    - 4.6.0
-    recommended: 4.5.4
-    deprecated: []
-  dependencies:
-  - name: com.unity.modules.vr
-    version: 1.0.0
-  - name: com.unity.modules.xr
-    version: 1.0.0
-  - name: com.unity.xr.core-utils
-    version: 2.2.1
-  - name: com.unity.modules.subsystems
-    version: 1.0.0
-  - name: com.unity.xr.legacyinputhelpers
-    version: 2.1.11
-  resolvedDependencies:
-  - name: com.unity.modules.vr
-    version: 1.0.0
-  - name: com.unity.modules.jsonserialize
-    version: 1.0.0
-  - name: com.unity.modules.physics
-    version: 1.0.0
-  - name: com.unity.modules.xr
-    version: 1.0.0
-  - name: com.unity.modules.subsystems
-    version: 1.0.0
-  - name: com.unity.xr.core-utils
-    version: 2.5.3
-  - name: com.unity.xr.legacyinputhelpers
-    version: 3.0.1
-  keywords:
-  - xr
-  - sdk
-  - ar
-  - vr
-  - management
-  - build
-  - plugin
-  registry:
-    id: main
-    name: 
-    url: https://packages.unity.com
-    scopes: []
-    isDefault: 1
-    capabilities: 7
-    configSource: 0
-    compliance:
-      status: 0
-      violations: []
-  hideInEditor: 1
-  entitlements:
-    licensingModel: 1
-  isAssetStorePackage: 0
-  datePublishedTicks: 638941654847140000
-  documentationUrl: https://docs.unity3d.com/Packages/com.unity.xr.management@4.5/manual/index.html
-  hasRepository: 1
-  repository:
-    type: git
-    url: https://github.cds.internal.unity3d.com/unity/xr.sdk.management.git
-    revision: 64bbf2a286703019c5b76ed574b439e2d843b7d8
-    path: 
-  unityLifecycle:
-    version: 4.5.2
-    nextVersion: 
-    recommendedVersion: 
-    isDeprecated: 0
-    deprecationMessage: 
-    isDiscoverable: 1
-  isDeprecated: 0
-  deprecationMessage: 
-  git:
-    hash: 
-    revision: 
-  upmReserved: '{"changelog":"### Changed\n- Updated the minimum supported Unity
-    version to 2022.3 LTS.\n\n### Fixed\n- Fixed issue where the documentation link
-    for configurations was incorrectly pointing to docs for the newest version of
-    Unity.\n- Fixed the display name of Google ARCore (previously ARCore).\n- Fixed
-    the display name of Apple ARKit (previously ARKit).\n\n### Removed\n- Removed
-    scripts which processes the deprecated XR packages. This also fixes an intermittent
-    issue where Domain Reload hangs due to XR Plug-in Management tries to automatically
-    uninstall legacy XR Packages."}'
-  signature:
-    status: 1
-    reason: Signature is ok
-    attestation:
-      format: archive
-      publishingChannel: unity
-      entitlementKeys: []
-      ownerOrgName: 
-      ownerOrgId: 
-      publisherName: 
-    errorCode: 
-  assetStore:
-    productId: 
-  fingerprint: f589c7ba49ff63cadb66fd77cdfb09f538674e1a
-  editorCompatibility:
-    compatibilityLevel: 0
-    minimumPackageVersion: 4.5.2
-    minimumUnityVersion: 2021.3
-  compliance:
-    status: 0
-    violation:
-      scopePatternExpression: 
-      message: 
-      readMoreLink: 
-- packageId: com.unity.ext.nunit@2.0.5
-  testable: 0
-  isDirectDependency: 0
-  version: 2.0.5
-  source: 2
-  resolvedPath: C:\Users\holaq\Proyecto-TITA\Library\PackageCache\com.unity.ext.nunit@d8c07649098d
-  assetPath: Packages/com.unity.ext.nunit
-  name: com.unity.ext.nunit
-  displayName: Custom NUnit
-  author:
-    name: 
-    email: 
-    url: 
-  category: Libraries
-  type: 
-  description: A custom version of NUnit used by Unity Test Framework. Based on NUnit
-    version 3.5 and works with all platforms, il2cpp and Mono AOT.
-  errors: []
-  versions:
-    all:
-    - 2.0.5
-    compatible:
-    - 2.0.5
-    recommended: 2.0.5
-    deprecated: []
-  dependencies: []
-  resolvedDependencies: []
-  keywords:
-  - nunit
-  - unittest
-  - test
-  registry:
-    id: main
-    name: 
-    url: https://packages.unity.com
-    scopes: []
-    isDefault: 1
-    capabilities: 7
-    configSource: 0
-    compliance:
-      status: 0
-      violations: []
-  hideInEditor: 1
-  entitlements:
-    licensingModel: 0
-  isAssetStorePackage: 0
-  datePublishedTicks: 0
-  documentationUrl: https://docs.unity3d.com/Packages/com.unity.ext.nunit@2.0/manual/index.html
-  hasRepository: 0
-  repository:
-    type: 
-    url: 
-    revision: 
-    path: 
-  unityLifecycle:
-    version: 2.0.5
-    nextVersion: 
-    recommendedVersion: 
-    isDeprecated: 0
-    deprecationMessage: 
-    isDiscoverable: 0
-  isDeprecated: 0
-  deprecationMessage: 
-  git:
-    hash: 
-    revision: 
-  upmReserved: 
-  signature:
-    status: 0
-    reason: 
-    attestation:
-      format: 
-      publishingChannel: 
-      entitlementKeys: []
-      ownerOrgName: 
-      ownerOrgId: 
-      publisherName: 
-    errorCode: 
-  assetStore:
-    productId: 
-  fingerprint: d8c07649098d3936da4c8ab500960c1776b44592
-  editorCompatibility:
-    compatibilityLevel: 0
-    minimumPackageVersion: 2.0.5
-    minimumUnityVersion: 2019.4
-  compliance:
-    status: 0
-    violation:
-      scopePatternExpression: 
-      message: 
-      readMoreLink: 
 - packageId: com.unity.xr.legacyinputhelpers@3.0.1
   testable: 0
   isDirectDependency: 0
@@ -5039,6 +4994,386 @@ m_ResolvedPackages:
     compatibilityLevel: 0
     minimumPackageVersion: 3.0.1
     minimumUnityVersion: 2022.3
+  compliance:
+    status: 0
+    violation:
+      scopePatternExpression: 
+      message: 
+      readMoreLink: 
+- packageId: com.unity.xr.management@4.5.3
+  testable: 0
+  isDirectDependency: 0
+  version: 4.5.3
+  source: 1
+  resolvedPath: C:\Users\holaq\Proyecto-TITA\Library\PackageCache\com.unity.xr.management@574ebfb1e976
+  assetPath: Packages/com.unity.xr.management
+  name: com.unity.xr.management
+  displayName: XR Plugin Management
+  author:
+    name: 
+    email: 
+    url: 
+  category: 
+  type: 
+  description: Package that provides simple management of XR plug-ins. Manages and
+    offers help with loading, initialization, settings, and build support for XR
+    plug-ins.
+  errors: []
+  versions:
+    all:
+    - 0.1.0-preview.8
+    - 0.1.0-preview.12
+    - 1.0.0-preview.2
+    - 2.0.0-preview.3
+    - 2.0.0-preview.6
+    - 2.0.0-preview.9
+    - 2.0.0-preview.10
+    - 2.0.0-preview.13
+    - 2.0.0-preview.21
+    - 2.0.0-preview.22
+    - 2.0.0-preview.24
+    - 2.0.0-preview.25
+    - 2.0.0-preview.26
+    - 3.0.1
+    - 3.0.2-preview.1
+    - 3.0.2-preview.2
+    - 3.0.3
+    - 3.0.4-preview.1
+    - 3.0.4-preview.3
+    - 3.0.4
+    - 3.0.5-preview.1
+    - 3.0.5
+    - 3.0.6-preview.2
+    - 3.0.6
+    - 3.1.0-preview.2
+    - 3.2.4
+    - 3.2.6
+    - 3.2.7
+    - 3.2.9
+    - 3.2.10
+    - 3.2.11-preview.1
+    - 3.2.12
+    - 3.2.13
+    - 3.2.15
+    - 3.2.16
+    - 3.2.17
+    - 4.0.0-exp.2
+    - 4.0.0-pre.2
+    - 4.0.0-pre.3
+    - 4.0.1
+    - 4.0.3
+    - 4.0.5
+    - 4.0.6
+    - 4.0.7
+    - 4.1.0-pre.1
+    - 4.1.0-pre.2
+    - 4.1.0
+    - 4.2.0
+    - 4.2.1
+    - 4.3.1
+    - 4.3.3
+    - 4.4.0
+    - 4.4.1
+    - 4.5.0
+    - 4.5.1
+    - 4.5.2
+    - 4.5.3
+    - 4.5.4
+    - 4.6.0
+    compatible:
+    - 4.5.2
+    - 4.5.3
+    - 4.5.4
+    - 4.6.0
+    recommended: 4.5.4
+    deprecated: []
+  dependencies:
+  - name: com.unity.modules.xr
+    version: 1.0.0
+  - name: com.unity.xr.core-utils
+    version: 2.2.1
+  - name: com.unity.modules.subsystems
+    version: 1.0.0
+  - name: com.unity.xr.legacyinputhelpers
+    version: 2.1.11
+  resolvedDependencies:
+  - name: com.unity.modules.xr
+    version: 1.0.0
+  - name: com.unity.modules.physics
+    version: 1.0.0
+  - name: com.unity.modules.jsonserialize
+    version: 1.0.0
+  - name: com.unity.modules.subsystems
+    version: 1.0.0
+  - name: com.unity.xr.core-utils
+    version: 2.5.3
+  - name: com.unity.xr.legacyinputhelpers
+    version: 3.0.1
+  keywords:
+  - xr
+  - sdk
+  - ar
+  - vr
+  - management
+  - build
+  - plugin
+  registry:
+    id: main
+    name: 
+    url: https://packages.unity.com
+    scopes: []
+    isDefault: 1
+    capabilities: 7
+    configSource: 0
+    compliance:
+      status: 0
+      violations: []
+  hideInEditor: 1
+  entitlements:
+    licensingModel: 1
+  isAssetStorePackage: 0
+  datePublishedTicks: 638966524607090000
+  documentationUrl: https://docs.unity3d.com/Packages/com.unity.xr.management@4.5/manual/index.html
+  hasRepository: 1
+  repository:
+    type: git
+    url: https://github.cds.internal.unity3d.com/unity/xr.sdk.management.git
+    revision: 7e83f6aed4d1f20c110f85e1f12fde33a11b134b
+    path: 
+  unityLifecycle:
+    version: 4.5.2
+    nextVersion: 
+    recommendedVersion: 
+    isDeprecated: 0
+    deprecationMessage: 
+    isDiscoverable: 1
+  isDeprecated: 0
+  deprecationMessage: 
+  git:
+    hash: 
+    revision: 
+  upmReserved: '{"changelog":"### Changed\n\n- Updated the minimum supported Unity
+    version to 2022.3 LTS.\n\n### Removed\n\n- Removed `com.unity.modules.vr` dependency."}'
+  signature:
+    status: 1
+    reason: Signature is ok
+    attestation:
+      format: archive
+      publishingChannel: unity
+      entitlementKeys: []
+      ownerOrgName: 
+      ownerOrgId: 
+      publisherName: 
+    errorCode: 
+  assetStore:
+    productId: 
+  fingerprint: 574ebfb1e9766bb5f6bdb255c6abfb195b43f4cb
+  editorCompatibility:
+    compatibilityLevel: 0
+    minimumPackageVersion: 4.5.2
+    minimumUnityVersion: 2022.3
+  compliance:
+    status: 0
+    violation:
+      scopePatternExpression: 
+      message: 
+      readMoreLink: 
+- packageId: com.unity.mathematics@1.3.3
+  testable: 0
+  isDirectDependency: 0
+  version: 1.3.3
+  source: 1
+  resolvedPath: C:\Users\holaq\Proyecto-TITA\Library\PackageCache\com.unity.mathematics@19a9377c4ffa
+  assetPath: Packages/com.unity.mathematics
+  name: com.unity.mathematics
+  displayName: Mathematics
+  author:
+    name: 
+    email: 
+    url: 
+  category: 
+  type: 
+  description: Unity's C# SIMD math library providing vector types and math functions
+    with a shader like syntax.
+  errors: []
+  versions:
+    all:
+    - 0.0.12-preview.2
+    - 0.0.12-preview.5
+    - 0.0.12-preview.8
+    - 0.0.12-preview.10
+    - 0.0.12-preview.11
+    - 0.0.12-preview.13
+    - 0.0.12-preview.17
+    - 0.0.12-preview.19
+    - 0.0.12-preview.20
+    - 1.0.0-preview.1
+    - 1.0.1
+    - 1.1.0-preview.1
+    - 1.1.0
+    - 1.2.1
+    - 1.2.4
+    - 1.2.5
+    - 1.2.6
+    - 1.3.1
+    - 1.3.2
+    - 1.3.3
+    compatible:
+    - 1.3.3
+    recommended: 1.3.3
+    deprecated: []
+  dependencies: []
+  resolvedDependencies: []
+  keywords:
+  - unity
+  registry:
+    id: main
+    name: 
+    url: https://packages.unity.com
+    scopes: []
+    isDefault: 1
+    capabilities: 7
+    configSource: 0
+    compliance:
+      status: 0
+      violations: []
+  hideInEditor: 1
+  entitlements:
+    licensingModel: 1
+  isAssetStorePackage: 0
+  datePublishedTicks: 638950052122000000
+  documentationUrl: https://docs.unity3d.com/Packages/com.unity.mathematics@1.3/manual/index.html
+  hasRepository: 1
+  repository:
+    type: git
+    url: https://github.com/Unity-Technologies/Unity.Mathematics.git
+    revision: 1695a8503482a3131be78cc26308a93f82c05b04
+    path: 
+  unityLifecycle:
+    version: 1.3.3
+    nextVersion: 
+    recommendedVersion: 
+    isDeprecated: 0
+    deprecationMessage: 
+    isDiscoverable: 1
+  isDeprecated: 0
+  deprecationMessage: 
+  git:
+    hash: 
+    revision: 
+  upmReserved: '{"changelog":"### Fixed\n* Fixed `math.hash` crash when using IL2CPP
+    builds on Arm 32 bit devices.\n* Fixed obsolete method usage warnings for `MatrixDrawer.CanCacheInspectorGUI`
+    and `PrimitiveVectorDrawer.CanCacheInspectorGUI` in UNITY_2023_2_OR_NEWER.\n*
+    Updated minimum editor version to 2021.3"}'
+  signature:
+    status: 1
+    reason: Signature is ok
+    attestation:
+      format: archive
+      publishingChannel: unity
+      entitlementKeys: []
+      ownerOrgName: 
+      ownerOrgId: 
+      publisherName: 
+    errorCode: 
+  assetStore:
+    productId: 
+  fingerprint: 19a9377c4ffa59370edad3e6a34e4445529badde
+  editorCompatibility:
+    compatibilityLevel: 0
+    minimumPackageVersion: 1.3.3
+    minimumUnityVersion: 2021.3
+  compliance:
+    status: 0
+    violation:
+      scopePatternExpression: 
+      message: 
+      readMoreLink: 
+- packageId: com.unity.ext.nunit@2.0.5
+  testable: 0
+  isDirectDependency: 0
+  version: 2.0.5
+  source: 2
+  resolvedPath: C:\Users\holaq\Proyecto-TITA\Library\PackageCache\com.unity.ext.nunit@d8c07649098d
+  assetPath: Packages/com.unity.ext.nunit
+  name: com.unity.ext.nunit
+  displayName: Custom NUnit
+  author:
+    name: 
+    email: 
+    url: 
+  category: Libraries
+  type: 
+  description: A custom version of NUnit used by Unity Test Framework. Based on NUnit
+    version 3.5 and works with all platforms, il2cpp and Mono AOT.
+  errors: []
+  versions:
+    all:
+    - 2.0.5
+    compatible:
+    - 2.0.5
+    recommended: 2.0.5
+    deprecated: []
+  dependencies: []
+  resolvedDependencies: []
+  keywords:
+  - nunit
+  - unittest
+  - test
+  registry:
+    id: main
+    name: 
+    url: https://packages.unity.com
+    scopes: []
+    isDefault: 1
+    capabilities: 7
+    configSource: 0
+    compliance:
+      status: 0
+      violations: []
+  hideInEditor: 1
+  entitlements:
+    licensingModel: 0
+  isAssetStorePackage: 0
+  datePublishedTicks: 0
+  documentationUrl: https://docs.unity3d.com/Packages/com.unity.ext.nunit@2.0/manual/index.html
+  hasRepository: 0
+  repository:
+    type: 
+    url: 
+    revision: 
+    path: 
+  unityLifecycle:
+    version: 2.0.5
+    nextVersion: 
+    recommendedVersion: 
+    isDeprecated: 0
+    deprecationMessage: 
+    isDiscoverable: 0
+  isDeprecated: 0
+  deprecationMessage: 
+  git:
+    hash: 
+    revision: 
+  upmReserved: 
+  signature:
+    status: 0
+    reason: 
+    attestation:
+      format: 
+      publishingChannel: 
+      entitlementKeys: []
+      ownerOrgName: 
+      ownerOrgId: 
+      publisherName: 
+    errorCode: 
+  assetStore:
+    productId: 
+  fingerprint: d8c07649098d3936da4c8ab500960c1776b44592
+  editorCompatibility:
+    compatibilityLevel: 0
+    minimumPackageVersion: 2.0.5
+    minimumUnityVersion: 2019.4
   compliance:
     status: 0
     violation:

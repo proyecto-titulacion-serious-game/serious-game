@@ -70,6 +70,26 @@
       "source": "embedded",
       "testable": true
     },
+    "com.unity.xr.mock-hmd@1.5.0-exp.3": {
+      "name": "com.unity.xr.mock-hmd",
+      "displayName": "Mock HMD XR Plugin",
+      "resolvedPath": "C:\\Users\\holaq\\Proyecto-TITA\\Library\\PackageCache\\com.unity.xr.mock-hmd@1ea35c8fc657",
+      "fingerprint": "1ea35c8fc6572ff8f1fcc6f44748cd985e6b987f",
+      "editorCompatibility": "2022.3.0a1",
+      "version": "1.5.0-exp.3",
+      "source": "registry",
+      "testable": false
+    },
+    "com.unity.xr.openxr@1.16.1": {
+      "name": "com.unity.xr.openxr",
+      "displayName": "OpenXR Plugin",
+      "resolvedPath": "C:\\Users\\holaq\\Proyecto-TITA\\Library\\PackageCache\\com.unity.xr.openxr@ef0033a586bf",
+      "fingerprint": "ef0033a586bf33cb236bfe77cb661fe1b2882748",
+      "editorCompatibility": "2022.3.0a1",
+      "version": "1.16.1",
+      "source": "registry",
+      "testable": false
+    },
     "com.unity.modules.accessibility@1.0.0": {
       "name": "com.unity.modules.accessibility",
       "displayName": "Accessibility",
@@ -368,16 +388,6 @@
       "source": "registry",
       "testable": false
     },
-    "com.unity.mathematics@1.3.3": {
-      "name": "com.unity.mathematics",
-      "displayName": "Mathematics",
-      "resolvedPath": "C:\\Users\\holaq\\Proyecto-TITA\\Library\\PackageCache\\com.unity.mathematics@19a9377c4ffa",
-      "fingerprint": "19a9377c4ffa59370edad3e6a34e4445529badde",
-      "editorCompatibility": "2021.3.0a1",
-      "version": "1.3.3",
-      "source": "registry",
-      "testable": false
-    },
     "com.unity.xr.core-utils@2.5.3": {
       "name": "com.unity.xr.core-utils",
       "displayName": "XR Core Utilities",
@@ -388,13 +398,33 @@
       "source": "registry",
       "testable": false
     },
-    "com.unity.xr.management@4.5.2": {
+    "com.unity.xr.legacyinputhelpers@3.0.1": {
+      "name": "com.unity.xr.legacyinputhelpers",
+      "displayName": "XR Legacy Input Helpers",
+      "resolvedPath": "C:\\Users\\holaq\\Proyecto-TITA\\Library\\PackageCache\\com.unity.xr.legacyinputhelpers@3f62d634f63b",
+      "fingerprint": "3f62d634f63be463f9e1f7b0deea814a27526da4",
+      "editorCompatibility": "2022.3.0a1",
+      "version": "3.0.1",
+      "source": "registry",
+      "testable": false
+    },
+    "com.unity.xr.management@4.5.3": {
       "name": "com.unity.xr.management",
       "displayName": "XR Plugin Management",
-      "resolvedPath": "C:\\Users\\holaq\\Proyecto-TITA\\Library\\PackageCache\\com.unity.xr.management@f589c7ba49ff",
-      "fingerprint": "f589c7ba49ff63cadb66fd77cdfb09f538674e1a",
+      "resolvedPath": "C:\\Users\\holaq\\Proyecto-TITA\\Library\\PackageCache\\com.unity.xr.management@574ebfb1e976",
+      "fingerprint": "574ebfb1e9766bb5f6bdb255c6abfb195b43f4cb",
+      "editorCompatibility": "2022.3.0a1",
+      "version": "4.5.3",
+      "source": "registry",
+      "testable": false
+    },
+    "com.unity.mathematics@1.3.3": {
+      "name": "com.unity.mathematics",
+      "displayName": "Mathematics",
+      "resolvedPath": "C:\\Users\\holaq\\Proyecto-TITA\\Library\\PackageCache\\com.unity.mathematics@19a9377c4ffa",
+      "fingerprint": "19a9377c4ffa59370edad3e6a34e4445529badde",
       "editorCompatibility": "2021.3.0a1",
-      "version": "4.5.2",
+      "version": "1.3.3",
       "source": "registry",
       "testable": false
     },
@@ -406,16 +436,6 @@
       "editorCompatibility": "2019.4.0a1",
       "version": "2.0.5",
       "source": "builtin",
-      "testable": false
-    },
-    "com.unity.xr.legacyinputhelpers@3.0.1": {
-      "name": "com.unity.xr.legacyinputhelpers",
-      "displayName": "XR Legacy Input Helpers",
-      "resolvedPath": "C:\\Users\\holaq\\Proyecto-TITA\\Library\\PackageCache\\com.unity.xr.legacyinputhelpers@3f62d634f63b",
-      "fingerprint": "3f62d634f63be463f9e1f7b0deea814a27526da4",
-      "editorCompatibility": "2022.3.0a1",
-      "version": "3.0.1",
-      "source": "registry",
       "testable": false
     }
   }

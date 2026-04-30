@@ -60,9 +60,9 @@ public class ComponentSendingTray : MonoBehaviour
             btnEnviar.onClick.AddListener(Enviar);
 
         if (technicianActions == null)
-            technicianActions = FindObjectOfType<TechnicianActions>();
+            technicianActions = FindFirstObjectByType<TechnicianActions>();
         if (gameManager == null)
-            gameManager = FindObjectOfType<GameManager>();
+            gameManager = FindFirstObjectByType<GameManager>();
 
         UpdateUI();
     }

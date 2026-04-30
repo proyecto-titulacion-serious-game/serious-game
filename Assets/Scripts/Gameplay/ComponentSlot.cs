@@ -1,31 +1,14 @@
 using UnityEngine;
 
-/// <summary>
-/// Tipo de componente que acepta un slot.
-/// Debe coincidir con el ComponentType enviado por el Técnico.
-/// </summary>
-public enum ComponentSlotType
-{
-    Resistor,
-    LED,
-    Capacitor,
-    ArduinoPin
-}
+public enum ComponentSlotType { Resistor, LED, Capacitor, ArduinoPin }
 
 /// <summary>
 /// Slot físico donde el Explorador instala un componente recibido del Técnico.
-///
-/// SETUP en Unity:
-///   1. Crear Empty Object (o Cube pequeño) en Zona_Circuito del Explorador
-///   2. Renombrar: Slot_Resistor, Slot_LED, Slot_Capacitor, Slot_Arduino
-///   3. Agregar BoxCollider → isTrigger = TRUE
-///   4. Agregar este script → configurar acceptedType
-///
-/// FLUJO:
-///   1. Explorador lleva componente al slot con mano VR
-///   2. OnTriggerEnter detecta el componente
-///   3. Valida el tipo → avisa al DeliverySystem
-///   4. DeliverySystem aplica la reparación al Circuit
+/// CORRECCIONES respecto a la versión anterior:
+///   1. delivery.OnExplorerInstalled() solo se llama cuando el tipo COINCIDE.
+///   2. Se llama gameManager.RegisterRepairAction() al instalar correctamente,
+///      lo que dispara CheckReto1() / CheckReto2() automáticamente.
+///   3. Si el tipo NO coincide, se llama RegisterWrongAttempt() para el log.
 /// </summary>
 [RequireComponent(typeof(Collider))]
 public class ComponentSlot : MonoBehaviour
@@ -33,13 +16,12 @@ public class ComponentSlot : MonoBehaviour
     // ─────────────────────────────────────────────
     //  Inspector
     // ─────────────────────────────────────────────
-
     [Header("Tipo aceptado")]
-    [Tooltip("Qué tipo de componente acepta este slot.")]
     public ComponentSlotType acceptedType = ComponentSlotType.Resistor;
 
     [Header("Referencias")]
     public ComponentDeliverySystem delivery;
+    public GameManager             gameManager;   // ← NUEVO: para RegisterRepairAction
 
     [Header("Feedback visual")]
     public Renderer slotRenderer;
@@ -49,7 +31,6 @@ public class ComponentSlot : MonoBehaviour
     public Color colorWrong   = new Color(0.9f, 0.2f, 0.2f);
 
     [Header("Anclaje al instalar")]
-    [Tooltip("Transform donde se posiciona visualmente el componente al ser instalado.")]
     public Transform installAnchor;
 
     [Header("Estado (solo lectura)")]
@@ -60,7 +41,7 @@ public class ComponentSlot : MonoBehaviour
     //  Internos
     // ─────────────────────────────────────────────
     private MaterialPropertyBlock _mpb;
-    private static readonly int   _colorID = Shader.PropertyToID("_Color");
+    private static readonly int   _colorID = Shader.PropertyToID("_BaseColor");
 
     // ─────────────────────────────────────────────
     //  Unity Lifecycle
@@ -70,49 +51,53 @@ public class ComponentSlot : MonoBehaviour
         _mpb = new MaterialPropertyBlock();
         if (slotRenderer == null) slotRenderer = GetComponent<Renderer>();
         if (delivery     == null) delivery     = FindObjectOfType<ComponentDeliverySystem>();
+        if (gameManager  == null) gameManager  = FindObjectOfType<GameManager>();
 
-        // Asegurar que el collider sea trigger
         var col = GetComponent<Collider>();
-        if (col != null && !col.isTrigger)
-        {
-            col.isTrigger = true;
-            Debug.Log($"[Slot {name}] Collider configurado como Trigger automáticamente.");
-        }
+        if (col != null && !col.isTrigger) col.isTrigger = true;
 
         SetColor(colorNormal);
     }
 
     // ─────────────────────────────────────────────
-    //  Trigger — detecta componentes
+    //  Trigger
     // ─────────────────────────────────────────────
-
-    /// <summary>Al entrar un componente en el slot: validar e instalar.</summary>
     void OnTriggerEnter(Collider other)
     {
         if (_hasComponent) return;
 
-        ComponentType incomingType = DetectComponentType(other.gameObject);
-        if (incomingType == ComponentType.None) return;
+        ComponentType incoming = DetectComponentType(other.gameObject);
+        if (incoming == ComponentType.None) return;
 
-        bool typeMatches = MatchesSlotType(incomingType, acceptedType);
+        bool matches = MatchesSlotType(incoming, acceptedType);
 
-        if (typeMatches)
+        if (matches)
         {
             InstallComponent(other.gameObject);
             SetColor(colorCorrect);
-            Debug.Log($"[Slot {name}] ✓ {incomingType} instalado correctamente.");
+
+            // ── CORRECCIÓN 1: delivery solo cuando es correcto ──
+            delivery?.OnExplorerInstalled(this);
+
+            // ── CORRECCIÓN 2: avisar al GameManager para que corra CheckReto ──
+            gameManager?.RegisterRepairAction();
+
+            Debug.Log($"[Slot {name}] Instalado: {incoming}");
         }
         else
         {
             SetColor(colorWrong);
-            Debug.Log($"[Slot {name}] ✗ {incomingType} no encaja aquí. Este slot es para {acceptedType}.");
-        }
 
-        // Notificar al DeliverySystem
-        delivery?.OnExplorerInstalled(this);
+            // ── CORRECCIÓN 3: registrar intento incorrecto ──
+            gameManager?.RegisterWrongAttempt($"Componente incorrecto: {incoming} en slot de {acceptedType}");
+
+            // Restaurar color tras un momento
+            Invoke(nameof(ResetColor), 1.2f);
+
+            Debug.Log($"[Slot {name}] Tipo incorrecto: {incoming} (esperaba {acceptedType})");
+        }
     }
 
-    /// <summary>Feedback de hover mientras el componente está sobre el slot.</summary>
     void OnTriggerStay(Collider other)
     {
         if (_hasComponent) return;
@@ -120,7 +105,6 @@ public class ComponentSlot : MonoBehaviour
         SetColor(colorHover);
     }
 
-    /// <summary>Restaura color al salir sin instalar.</summary>
     void OnTriggerExit(Collider other)
     {
         if (_hasComponent) return;
@@ -130,8 +114,6 @@ public class ComponentSlot : MonoBehaviour
     // ─────────────────────────────────────────────
     //  Instalación visual
     // ─────────────────────────────────────────────
-
-    /// <summary>Ancla el componente al slot y desactiva su física.</summary>
     void InstallComponent(GameObject comp)
     {
         _hasComponent = true;
@@ -149,7 +131,6 @@ public class ComponentSlot : MonoBehaviour
         }
     }
 
-    /// <summary>Libera el componente (si el Explorador decide quitarlo).</summary>
     public void ReleaseComponent()
     {
         if (_installed != null && _installed.TryGetComponent<Rigidbody>(out var rb))
@@ -165,23 +146,20 @@ public class ComponentSlot : MonoBehaviour
     // ─────────────────────────────────────────────
     //  Detección de tipo
     // ─────────────────────────────────────────────
-
     ComponentType DetectComponentType(GameObject obj)
     {
-        // Prioridad: scripts del circuito sobre DeskComponent
         if (obj.GetComponent<Resistor>()   != null) return ComponentType.Resistor;
         if (obj.GetComponent<LED>()        != null) return ComponentType.LED;
         if (obj.GetComponent<Capacitor>()  != null) return ComponentType.Capacitor;
         if (obj.GetComponent<ArduinoPin>() != null) return ComponentType.ArduinoPin;
 
-        // Fallback: DeskComponent (los componentes de la mesa del Técnico)
         if (obj.TryGetComponent<DeskComponent>(out var desk))
             return desk.componentType;
 
         return ComponentType.None;
     }
 
-    bool MatchesSlotType(ComponentType compType, ComponentSlotType slotType) => (compType, slotType) switch
+    bool MatchesSlotType(ComponentType c, ComponentSlotType s) => (c, s) switch
     {
         (ComponentType.Resistor,   ComponentSlotType.Resistor)   => true,
         (ComponentType.LED,        ComponentSlotType.LED)        => true,
@@ -201,9 +179,8 @@ public class ComponentSlot : MonoBehaviour
         slotRenderer.SetPropertyBlock(_mpb);
     }
 
-    // ─────────────────────────────────────────────
-    //  Debug visual en Scene
-    // ─────────────────────────────────────────────
+    void ResetColor() => SetColor(colorNormal);
+
     void OnDrawGizmos()
     {
         Gizmos.color = acceptedType switch
@@ -212,13 +189,10 @@ public class ComponentSlot : MonoBehaviour
             ComponentSlotType.LED        => Color.green,
             ComponentSlotType.Capacitor  => Color.blue,
             ComponentSlotType.ArduinoPin => Color.magenta,
-            _                             => Color.white
+            _                            => Color.white
         };
-
         var col = GetComponent<Collider>();
         if (col is BoxCollider box)
             Gizmos.DrawWireCube(transform.position + box.center, box.size);
-        else if (col is SphereCollider sph)
-            Gizmos.DrawWireSphere(transform.position + sph.center, sph.radius * transform.lossyScale.x);
     }
 }

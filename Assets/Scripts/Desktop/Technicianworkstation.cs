@@ -58,10 +58,10 @@ public class TechnicianWorkstation : MonoBehaviour
     void Start()
     {
         // Buscar referencias automáticamente si no están asignadas
-        if (gameManager       == null) gameManager       = FindObjectOfType<GameManager>();
-        if (circuit           == null) circuit           = FindObjectOfType<CircuitManager>();
-        if (manual            == null) manual            = FindObjectOfType<TechnicianManual>();
-        if (technicianActions == null) technicianActions = FindObjectOfType<TechnicianActions>();
+        if (gameManager       == null) gameManager       = FindFirstObjectByType<GameManager>();
+        if (circuit           == null) circuit           = FindFirstObjectByType<CircuitManager>();
+        if (manual            == null) manual            = FindFirstObjectByType<TechnicianManual>();
+        if (technicianActions == null) technicianActions = FindFirstObjectByType<TechnicianActions>();
 
         GameManager.OnLevelLoaded += OnLevelLoaded;
     }

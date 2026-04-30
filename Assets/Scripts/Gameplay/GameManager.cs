@@ -25,6 +25,8 @@ public class GameManager : MonoBehaviour
 
     public GameObject reto1Zone; 
     public GameObject reto2Zone;  
+    public GameObject reto3Zone;  
+    public GameObject reto4Zone;   
 
     [Header("Configuración de niveles")]
     [Tooltip("Tiempo límite en segundos para cada reto (0 = sin límite).")]
@@ -105,13 +107,8 @@ public class GameManager : MonoBehaviour
     void OnDestroy()
     {
         CircuitManager.OnCircuitChanged -= CheckWinCondition;
-        // Limpieza defensiva de eventos estáticos
-        OnLevelLoaded    = null;
-        OnLevelCompleted = null;
-        OnFaultDetected  = null;
-        OnGameCompleted  = null;
-        OnTimerTick      = null;
-        OnTimerExpired   = null;
+        // No nulamos los eventos estáticos — otros objetos siguen suscritos
+        // y necesitan seguir recibiendo eventos si GameManager se recrea.
     }
 
     // ─────────────────────────────────────────────
@@ -204,8 +201,10 @@ public class GameManager : MonoBehaviour
     void ActivateComponentsForLevel(LevelType level)
     {
         // Activar/desactivar ZONAS físicas
-        if (reto1Zone != null) reto1Zone.SetActive(level == LevelType.OhmLaw);
+       if (reto1Zone != null) reto1Zone.SetActive(level == LevelType.OhmLaw);
         if (reto2Zone != null) reto2Zone.SetActive(level == LevelType.Parallel);
+        if (reto3Zone != null) reto3Zone.SetActive(level == LevelType.Mixed);    
+        if (reto4Zone != null) reto4Zone.SetActive(level == LevelType.Arduino);
 
         // NUEVO: Actualizar la referencia circuit al CircuitManager de la zona activa
         switch (level)
@@ -217,6 +216,14 @@ public class GameManager : MonoBehaviour
             case LevelType.Parallel:
                 if (reto2Zone != null)
                     circuit = reto2Zone.GetComponentInChildren<CircuitManager>();
+                break;
+            case LevelType.Mixed:     // ← NUEVO
+                if (reto3Zone != null)
+                    circuit = reto3Zone.GetComponentInChildren<CircuitManager>();
+                break;
+            case LevelType.Arduino:   // ← NUEVO
+                if (reto4Zone != null)
+                    circuit = reto4Zone.GetComponentInChildren<CircuitManager>();
                 break;
         }
 
@@ -309,14 +316,30 @@ public class GameManager : MonoBehaviour
     void CheckReto1()
     {
         if (!_repairPerformed) return;
-
-        // Verificar si la resistencia fue corregida
+ 
         foreach (var comp in circuit.components)
         {
-            if (comp is Resistor r && !r.hasFault)
+            if (comp is Resistor r)
             {
-                CompleteLevel(true);
-                return;
+                // Verificar que la resistencia fue reparada Y tiene el valor correcto
+                bool valorCorrecto = Mathf.Abs(r.resistance - RETO1_CORRECT_RESISTANCE)
+                                     <= RETO1_TOLERANCE;
+ 
+                if (!r.hasFault && valorCorrecto)
+                {
+                    CompleteLevel(true);
+                    return;
+                }
+                else if (!r.hasFault && !valorCorrecto)
+                {
+                    // Instaló algo pero no es el valor correcto → error educativo
+                    RegisterWrongAttempt($"Resistencia incorrecta: {r.resistance:F0}Ω (correcto: {RETO1_CORRECT_RESISTANCE}Ω)");
+                    OnFaultDetected?.Invoke(
+                        $"Valor incorrecto: {r.resistance:F0} Ω\n" +
+                        $"Recalcula usando V = I × R\n" +
+                        $"R = (Vfuente - VLED) / I = ?");
+                }
+                return; // Solo hay un resistor en Reto 1
             }
         }
     }
@@ -379,7 +402,7 @@ public class GameManager : MonoBehaviour
             }
             if (comp is Capacitor cap)
             {
-                cap.SetPolarityInverted(true);
+                cap.polarityInverted = true;   // ← era: cap.SetPolarityInverted(true)
             }
             if (comp is Resistor r)
             {
@@ -452,14 +475,15 @@ public class GameManager : MonoBehaviour
     void SetupReto4()
     {
         if (circuit == null) return;
-
+ 
         circuit.topology = CircuitTopology.Mixed;
-
+ 
         foreach (var comp in circuit.components)
         {
             if (comp is ArduinoPin pin)
             {
                 pin.ApplyFault();
+                pin.hasLooseCable = true;   // ← NUEVO: activar explícitamente
             }
             if (comp is Resistor r)
             {
@@ -468,13 +492,14 @@ public class GameManager : MonoBehaviour
                 r.ApplyFault();
             }
         }
-
+ 
         OnFaultDetected?.Invoke(
             "Reto 4: Sistema sensor-temperatura no activa alarma.\n" +
             "1) Sensor en pin incorrecto del Arduino\n" +
             "2) Buzzer sin resistencia limitadora\n" +
             "3) Cable suelto en la protoboard");
     }
+ 
 
     void CheckReto4()
     {
