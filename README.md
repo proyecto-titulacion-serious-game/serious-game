@@ -41,4 +41,4 @@ Simulador asimétrico en Realidad Virtual para la enseñanza de circuitos eléct
 ---
 > [!IMPORTANT]
 > Este archivo se auto-genera en cada Push. Sincronizado con el código fuente y el estado del proyecto.
-> **Última actualización:** 26/04/2026 19:29:04 (Quito, EC)
+> **Última actualización:** 30/04/2026 16:49:37 (Quito, EC)
