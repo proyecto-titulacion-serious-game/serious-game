@@ -344,21 +344,21 @@ public class VRValidator : EditorWindow
         var openXR = OpenXRSettings.GetSettingsForBuildTargetGroup(BuildTargetGroup.Android);
         if (openXR == null) return;
 
-        bool isMultiView = openXR.renderMode == OpenXRSettings.RenderMode.MultiView;
+        bool isSinglePass = openXR.renderMode == OpenXRSettings.RenderMode.SinglePassInstanced;
 
-        if (isMultiView)
+        if (isSinglePass)
         {
-            Add(Severity.OK, "OpenXR Render Mode: MultiView (Single Pass Instanced)");
+            Add(Severity.OK, "OpenXR Render Mode: SinglePassInstanced (Multi View)");
         }
         else
         {
             Add(Severity.Warning,
                 "OpenXR Render Mode: Multi-Pass (mas lento)",
-                "MultiView renderiza ambos ojos en un solo pass. " +
-                "Multi-Pass duplica el costo de GPU. Recomendado: MultiView.",
+                "SinglePassInstanced renderiza ambos ojos en un solo pass. " +
+                "Multi-Pass duplica el costo de GPU. Recomendado: SinglePassInstanced.",
                 () =>
                 {
-                    openXR.renderMode = OpenXRSettings.RenderMode.MultiView;
+                    openXR.renderMode = OpenXRSettings.RenderMode.SinglePassInstanced;
                     EditorUtility.SetDirty(openXR);
                 });
         }
