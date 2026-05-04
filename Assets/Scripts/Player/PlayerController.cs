@@ -52,6 +52,11 @@ public class PlayerController : MonoBehaviour
     private bool    _isGrounded;
     private bool    _frozen;
 
+    // KAT VR
+    private float   _yawCorrection;   // diferencia yaw cuerpo<->visor al calibrar
+    private Vector3 _lastKatPosition; // para sincronizar XR Origin en LateUpdate
+    private bool    _usedSimpleMove;  // SimpleMove aplica gravedad; evita doble aplicacion
+
     // ─────────────────────────────────────────────
     //  Unity Lifecycle
     // ─────────────────────────────────────────────
@@ -68,6 +73,7 @@ public class PlayerController : MonoBehaviour
     void Update()
     {
         _isGrounded = _cc.isGrounded;
+        _usedSimpleMove = false;
 
         if (!_frozen)
         {
@@ -75,7 +81,19 @@ public class PlayerController : MonoBehaviour
             else          HandleJoystickLocomotion();
         }
 
-        ApplyGravity();
+        // SimpleMove (KAT) ya aplica gravedad internamente; solo aplicar en modo joystick o frozen
+        if (!_usedSimpleMove)
+            ApplyGravity();
+    }
+
+    void LateUpdate()
+    {
+        // Mueve el XR Origin para que el visor siga al CharacterController en modo KAT
+        if (!useKatVR || xrRig == null) return;
+        Vector3 offset = transform.position - _lastKatPosition;
+        offset.y = 0f;
+        xrRig.position += offset;
+        _lastKatPosition = transform.position;
     }
 
     // ─────────────────────────────────────────────
@@ -101,6 +119,9 @@ public class PlayerController : MonoBehaviour
         }
 
         Debug.Log($"[PlayerController] KAT VR conectado: {data.deviceName}");
+
+        // Calibracion inicial: sincroniza orientacion cuerpo<->visor
+        CalibrateOrientation(data);
     }
 
     void HandleKatVRLocomotion()
@@ -114,12 +135,34 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        // moveSpeed contiene direccion + magnitud en espacio mundo.
-        // Se proyecta sobre el plano horizontal para evitar deriva vertical.
-        Vector3 move = Vector3.ProjectOnPlane(data.moveSpeed, Vector3.up)
-                       * katSpeedMultiplier
-                       * Time.deltaTime;
-        _cc.Move(move);
+        // Calibracion: el boton del sensor sincroniza cuerpo<->visor (estandar del SDK)
+        if (data.deviceDatas[0].btnPressed)
+        {
+            CalibrateOrientation(data);
+            return;
+        }
+
+        // Rotacion corporal con correccion de yaw para alinear cuerpo y visor
+        Quaternion bodyRot = data.bodyRotationRaw
+                           * Quaternion.Inverse(Quaternion.Euler(0f, _yawCorrection, 0f));
+
+        // SimpleMove espera velocidad en m/s (sin Time.deltaTime) y aplica gravedad automaticamente
+        _cc.SimpleMove(bodyRot * data.moveSpeed * katSpeedMultiplier);
+        _usedSimpleMove = true;
+    }
+
+    void CalibrateOrientation(KATNativeSDK.TreadMillData data)
+    {
+        if (headCamera == null) return;
+
+        _yawCorrection = data.bodyRotationRaw.eulerAngles.y - headCamera.transform.eulerAngles.y;
+
+        // Alinea la posicion del CharacterController con el visor al calibrar
+        Vector3 pos  = transform.position;
+        pos.x        = headCamera.transform.position.x;
+        pos.z        = headCamera.transform.position.z;
+        transform.position = pos;
+        _lastKatPosition   = transform.position;
     }
 
     // ─────────────────────────────────────────────
