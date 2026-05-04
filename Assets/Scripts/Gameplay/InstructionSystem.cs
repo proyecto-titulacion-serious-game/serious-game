@@ -242,19 +242,42 @@ public class InstructionSystem : MonoBehaviour
     /// <summary>Valida los 4 pasos del Reto 3 — Circuito Mixto y Polaridad.</summary>
     private void ValidateMixed()
     {
+        if (gameManager?.circuit == null) return;
+
         switch (currentStep)
         {
-            // Paso 0 → Explorador reporta humo en el capacitor
+            // Paso 0 → Técnico detecta el capacitor humeante.
+            // Auto-avanza en el primer tick: el capacitor ya está invertido al inicio.
             case 0:
-                if (multimeter?.probeA != null) NextStep();
+                foreach (var comp in gameManager.circuit.components)
+                    if (comp is Capacitor cap && cap.polarityInverted)
+                    { NextStep(); return; }
                 break;
 
-            // Pasos 1-3 → validados desde GameManager al corregir fallas
+            // Paso 1 → Explorador voltea el capacitor (prioridad: humo = riesgo crítico)
             case 1:
+                foreach (var comp in gameManager.circuit.components)
+                    if (comp is Capacitor cap && !cap.polarityInverted)
+                    { NextStep(); return; }
+                break;
+
+            // Paso 2 → Explorador voltea el LED invertido
             case 2:
+                bool ledCorregido = true;
+                foreach (var comp in gameManager.circuit.components)
+                    if (comp is LED led && led.polarityInverted)
+                    { ledCorregido = false; break; }
+                if (ledCorregido) NextStep();
+                break;
+
+            // Paso 3 → Técnico envió 220Ω y Explorador instaló la resistencia
             case 3:
-                if (gameManager.HasPerformedRepair())
-                    NextStep();
+                bool resCorregida = true;
+                foreach (var comp in gameManager.circuit.components)
+                    if (comp is Resistor r && r.hasFault)
+                    { resCorregida = false; break; }
+                if (resCorregida && gameManager.circuit.components.Count > 0)
+                    hasAppliedFix = true;
                 break;
         }
     }
