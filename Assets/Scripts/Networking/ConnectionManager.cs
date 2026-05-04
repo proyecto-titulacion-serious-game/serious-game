@@ -47,10 +47,10 @@ public class ConnectionManager : MonoBehaviour, INetworkRunnerCallbacks
         // 1. Iniciar la conexión a la misma sala siempre
         await _runner.StartGame(new StartGameArgs()
         {
-            GameMode = mode,
+            GameMode    = mode,
             SessionName = "LaboratorioUbicua",
-            Scene = SceneRef.FromIndex(SceneManager.GetActiveScene().buildIndex),
-            SceneManager = gameObject.AddComponent<NetworkSceneManagerDefault>()
+            // Scene = SceneRef.None → cada jugador se queda en su propia escena.
+            // Fusion sincroniza objetos de red pero NO carga/descarga escenas.
         });
 
         // 2. Si eres el Técnico (Host), inicializamos el sistema de entrega

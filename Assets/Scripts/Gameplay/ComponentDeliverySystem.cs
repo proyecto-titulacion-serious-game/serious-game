@@ -386,6 +386,18 @@ public class ComponentDeliverySystem : MonoBehaviour
         CancelPendingDelivery();
         Debug.Log("[Delivery] Envío cancelado por el Técnico.");
     }
+
+    /// <summary>
+    /// Llamado por ExplorerComponentReceiver cuando llega un componente desde la red.
+    /// Prepara el estado local sin spawnear (el objeto ya fue instanciado por el Receiver).
+    /// </summary>
+    public void PrepareForInstall(ComponentType tipo, float valor)
+    {
+        _pendingType       = tipo;
+        _pendingValue      = valor;
+        _waitingForInstall = true;
+        _spawnedComponent  = null;   // gestionado por el Receiver
+    }
 }
 
 public enum ComponentType

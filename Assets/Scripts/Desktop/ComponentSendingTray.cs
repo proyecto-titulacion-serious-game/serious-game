@@ -152,11 +152,13 @@ public class ComponentSendingTray : MonoBehaviour
             case ComponentType.LED:
                 if (delivery != null) { delivery.SendLED(true); exito = true; }
                 else { exito = FixLEDPolarity(); }
+                if (exito) GameSession.Instance?.EnviarComponente(ComponentType.LED, 1f);
                 break;
 
             case ComponentType.Capacitor:
                 if (delivery != null) { delivery.SendCapacitor(true); exito = true; }
                 else { exito = FixCapacitorPolarity(); }
+                if (exito) GameSession.Instance?.EnviarComponente(ComponentType.Capacitor, 1f);
                 break;
 
             case ComponentType.ArduinoPin:
@@ -220,6 +222,7 @@ public class ComponentSendingTray : MonoBehaviour
         if (delivery != null)
         {
             delivery.SendResistor(valorEscrito);
+            GameSession.Instance?.EnviarComponente(ComponentType.Resistor, valorEscrito);
             Set(txtFeedback, $"Resistencia de {valorEscrito:F0} ohm enviada.");
             return true;
         }
@@ -262,6 +265,7 @@ public class ComponentSendingTray : MonoBehaviour
         if (delivery != null)
         {
             delivery.SendArduinoPin(pinEscrito);
+            GameSession.Instance?.EnviarComponente(ComponentType.ArduinoPin, pinEscrito);
             Set(txtFeedback, $"Pin D{pinEscrito} enviado.");
             return true;
         }
