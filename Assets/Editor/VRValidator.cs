@@ -259,12 +259,8 @@ public class VRValidator : EditorWindow
         var openXR = OpenXRSettings.GetSettingsForBuildTargetGroup(BuildTargetGroup.Android);
         if (openXR == null)
         {
-<<<<<<< HEAD
-            Add(Severity.Error, "OpenXRSettings nulo para Android", "Verifica la instalacion del paquete com.unity.xr.openxr.", null);
-=======
             Add(Severity.Error, "OpenXRSettings nulo para Android",
                 "Verifica la instalacion del paquete com.unity.xr.openxr.", null);
->>>>>>> c98a18dc42477e047d11e2dc687adef7e8def047
             return;
         }
 
@@ -348,37 +344,21 @@ public class VRValidator : EditorWindow
         var openXR = OpenXRSettings.GetSettingsForBuildTargetGroup(BuildTargetGroup.Android);
         if (openXR == null) return;
 
-<<<<<<< HEAD
         bool isMultiView = openXR.renderMode == OpenXRSettings.RenderMode.MultiView;
 
         if (isMultiView)
         {
             Add(Severity.OK, "OpenXR Render Mode: MultiView (Single Pass Instanced)");
-=======
-        bool isSinglePass = openXR.renderMode == OpenXRSettings.RenderMode.SinglePassInstanced;
-
-        if (isSinglePass)
-        {
-            Add(Severity.OK, "OpenXR Render Mode: SinglePassInstanced (Multi View)");
->>>>>>> c98a18dc42477e047d11e2dc687adef7e8def047
         }
         else
         {
             Add(Severity.Warning,
                 "OpenXR Render Mode: Multi-Pass (mas lento)",
-<<<<<<< HEAD
                 "MultiView renderiza ambos ojos en un solo pass. " +
                 "Multi-Pass duplica el costo de GPU. Recomendado: MultiView.",
                 () =>
                 {
                     openXR.renderMode = OpenXRSettings.RenderMode.MultiView;
-=======
-                "SinglePassInstanced renderiza ambos ojos en un solo pass. " +
-                "Multi-Pass duplica el costo de GPU. Recomendado: SinglePassInstanced.",
-                () =>
-                {
-                    openXR.renderMode = OpenXRSettings.RenderMode.SinglePassInstanced;
->>>>>>> c98a18dc42477e047d11e2dc687adef7e8def047
                     EditorUtility.SetDirty(openXR);
                 });
         }
@@ -407,11 +387,7 @@ public class VRValidator : EditorWindow
     // 7. Scripting Backend IL2CPP
     void CheckScriptingBackend()
     {
-<<<<<<< HEAD
-        var backend = PlayerSettings.GetScriptingBackend(BuildTargetGroup.Android);
-=======
         var backend = PlayerSettings.GetScriptingBackend(NamedBuildTarget.Android);
->>>>>>> c98a18dc42477e047d11e2dc687adef7e8def047
         if (backend == ScriptingImplementation.IL2CPP)
         {
             Add(Severity.OK, "Scripting Backend: IL2CPP (requerido por Meta)");
@@ -424,11 +400,7 @@ public class VRValidator : EditorWindow
                 () =>
                 {
                     PlayerSettings.SetScriptingBackend(
-<<<<<<< HEAD
-                        BuildTargetGroup.Android,
-=======
                         NamedBuildTarget.Android,
->>>>>>> c98a18dc42477e047d11e2dc687adef7e8def047
                         ScriptingImplementation.IL2CPP);
                 });
         }
@@ -476,29 +448,14 @@ public class VRValidator : EditorWindow
         }
         else
         {
-<<<<<<< HEAD
-            Add(Severity.OK,
-                $"Build Settings: {scenes.Length} escenas registradas");
-=======
             Add(Severity.Warning,
                 $"Build Settings: {scenes.Length} escenas registradas",
                 "Verifica que todas las escenas sean necesarias para el build.");
->>>>>>> c98a18dc42477e047d11e2dc687adef7e8def047
         }
     }
 
     // ─────────────────────────────────────────────
-<<<<<<< HEAD
     //  Helpers
-    // ─────────────────────────────────────────────
-
-    void Add(Severity s, string label, string detail = null, Action autoFix = null)
-    {
-        _results.Add(new CheckResult
-        {
-            severity = s,
-=======
-    //  Helper
     // ─────────────────────────────────────────────
 
     void Add(Severity severity, string label, string detail = null, Action autoFix = null)
@@ -506,7 +463,6 @@ public class VRValidator : EditorWindow
         _results.Add(new CheckResult
         {
             severity = severity,
->>>>>>> c98a18dc42477e047d11e2dc687adef7e8def047
             label    = label,
             detail   = detail,
             autoFix  = autoFix
