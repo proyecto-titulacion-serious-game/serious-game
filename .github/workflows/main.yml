@@ -1,4 +1,4 @@
-name: Tesis VR CI/CD 🚀
+name: Tesis VR CI/CD 
 
 on:
   push:
@@ -20,7 +20,7 @@ jobs:
 
       - name: Build Unity (Windows)
         run: |
-          /home/mauros/Unity/Hub/Editor/6000.4.3f1/Editor/Unity \
+          /home/mauros/Unity/Hub/Editor/6000.4.5f1/Editor/Unity \
             -batchmode \
             -nographics \
             -silent-crashes \
