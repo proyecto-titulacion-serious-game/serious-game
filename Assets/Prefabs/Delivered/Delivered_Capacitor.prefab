@@ -11,11 +11,10 @@ GameObject:
   - component: {fileID: 2779372409255666318}
   - component: {fileID: 3574487031489241826}
   - component: {fileID: 8254451416614592473}
-  - component: {fileID: 4608245909489962259}
-  - component: {fileID: 2830453875639893867}
-  - component: {fileID: -7213577380005113172}
+  - component: {fileID: 8550408145384315498}
   - component: {fileID: 1841353741775469505}
   - component: {fileID: -7280908229769392943}
+  - component: {fileID: 7865972828085865877}
   - component: {fileID: 9156128500834204386}
   m_Layer: 0
   m_Name: Delivered_Capacitor
@@ -32,9 +31,9 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 123309205590929796}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.58, y: 0.085, z: 2.8}
-  m_LocalScale: {x: 0.04, y: 0.12, z: 0.04}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 0.03, y: 0.06, z: 0.03}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -72,7 +71,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: f0fcae4255da3254eb0e808ddbbc121e, type: 2}
+  - {fileID: 2100000, guid: f70e9120a938aa34f8aba5020fee279d, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -96,27 +95,8 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &4608245909489962259
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 123309205590929796}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b28b4c4af06a2fa4fb49fb170959d8ad, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DeskComponent
-  componentType: 3
-  componentValue: 10
-  componentDescription: "100 \u03A9"
-  tray: {fileID: 0}
-  colorNormal: {r: 0, g: 0.627451, b: 1, a: 0}
-  colorHover: {r: 0.9, g: 0.8, b: 0.2, a: 1}
-  colorSelected: {r: 0.2, g: 0.8, b: 0.4, a: 1}
---- !u!136 &2830453875639893867
-CapsuleCollider:
+--- !u!65 &8550408145384315498
+BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -133,29 +113,9 @@ CapsuleCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.5000001
-  m_Height: 2
-  m_Direction: 1
+  serializedVersion: 3
+  m_Size: {x: 1.2, y: 1, z: 1.2}
   m_Center: {x: 0.000000059604645, y: 0, z: -0.00000008940697}
---- !u!114 &-7213577380005113172
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 123309205590929796}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
-  SortKey: 1967439143
-  ObjectInterest: 1
-  Flags: 262145
-  NestedObjects: []
-  NetworkedBehaviours: []
-  ForceRemoteRenderTimeframe: 0
 --- !u!54 &1841353741775469505
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -178,8 +138,8 @@ Rigidbody:
     m_Bits: 0
   m_ImplicitCom: 1
   m_ImplicitTensor: 1
-  m_UseGravity: 1
-  m_IsKinematic: 0
+  m_UseGravity: 0
+  m_IsKinematic: 1
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
@@ -265,7 +225,7 @@ MonoBehaviour:
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
   m_AttachEaseInTime: 0.15
-  m_MovementType: 2
+  m_MovementType: 1
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
   m_VelocityScale: 1
@@ -312,6 +272,21 @@ MonoBehaviour:
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
   m_MaxAngularVelocityDelta: 20
+--- !u!114 &7865972828085865877
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 123309205590929796}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0f9f69b1743094045a98998002055f0a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GrabbableComponent
+  haptics: {fileID: 0}
+  selectable: {fileID: 0}
+  playerInteraction: {fileID: 0}
 --- !u!114 &9156128500834204386
 MonoBehaviour:
   m_ObjectHideFlags: 0

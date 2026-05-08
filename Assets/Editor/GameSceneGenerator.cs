@@ -109,6 +109,7 @@ public static class GameSceneGenerator
 
         CreateZoneLabel(zone, "RETO 1\nLey de Ohm\nResistencia serie",
                         new Color(1f, 0.85f, 0.2f));
+        CreateDiagramPanel(zone, cm);
         return zone;
     }
 
@@ -158,6 +159,7 @@ public static class GameSceneGenerator
 
         CreateZoneLabel(zone, "RETO 2\nCircuito Paralelo\nRama abierta",
                         new Color(0.3f, 0.9f, 1f));
+        CreateDiagramPanel(zone, cm);
         return zone;
     }
 
@@ -214,6 +216,7 @@ public static class GameSceneGenerator
 
         CreateZoneLabel(zone, "RETO 3\nCircuito Mixto\n3 fallas simultáneas",
                         new Color(1f, 0.5f, 0.2f));
+        CreateDiagramPanel(zone, cm);
         return zone;
     }
 
@@ -307,6 +310,14 @@ public static class GameSceneGenerator
         tag.reto2_Parallel   = reto2;
         tag.reto3_Mixed      = reto3;
         tag.reto4_Arduino    = reto4;
+
+        // Escalado por proximidad: arranca pequeño, crece cuando el Explorador se acerca
+        var scaler                   = go.AddComponent<ZoneProximityScaler>();
+        scaler.factorMinimo          = 0.25f;
+        scaler.factorMaximo          = 1.0f;
+        scaler.distanciaActivacion   = 4.0f;
+        scaler.distanciaCompleta     = 1.5f;
+        scaler.velocidad             = 5f;
 
         return go;
     }
@@ -403,6 +414,26 @@ public static class GameSceneGenerator
         var txtRT           = txtGO.GetComponent<RectTransform>();
         txtRT.sizeDelta     = new Vector2(205f, 88f);
         txtRT.anchoredPosition = Vector2.zero;
+    }
+
+    static void CreateDiagramPanel(GameObject zone, CircuitManager cm)
+    {
+        var go = new GameObject("CircuitDiagramPanel");
+        go.transform.SetParent(zone.transform, false);
+        go.transform.localPosition = new Vector3(0f, 1.8f, 0f);
+        go.transform.localScale    = Vector3.one * 0.003f;
+
+        var canvas        = go.AddComponent<Canvas>();
+        canvas.renderMode = RenderMode.WorldSpace;
+        go.AddComponent<UnityEngine.UI.CanvasScaler>();
+        go.AddComponent<UnityEngine.UI.GraphicRaycaster>();
+
+        var rt       = go.GetComponent<RectTransform>();
+        rt.sizeDelta = new Vector2(380f, 220f);
+
+        // CircuitDiagramPanel se construye en Start(); asignamos el circuito ya.
+        var panel    = go.AddComponent<CircuitDiagramPanel>();
+        panel.circuit = cm;
     }
 
     static Material CreateMat(string matName, Color color)

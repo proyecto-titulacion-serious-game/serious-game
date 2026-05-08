@@ -11,11 +11,10 @@ GameObject:
   - component: {fileID: 598371823177286003}
   - component: {fileID: 3278743725756394246}
   - component: {fileID: 7902550392954107177}
-  - component: {fileID: 5875274198835471341}
   - component: {fileID: 7925123575717285644}
-  - component: {fileID: -1556425569416757358}
   - component: {fileID: 9038179353649786546}
   - component: {fileID: -1825291680623235262}
+  - component: {fileID: 3137482122732634900}
   - component: {fileID: -1361427931362486372}
   m_Layer: 0
   m_Name: Delivered_ArduinoPIn
@@ -32,9 +31,9 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2582350800741640194}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.7, y: 0.2, z: 2.8}
-  m_LocalScale: {x: 0.08, y: 0.040000003, z: 0.06}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 0.015, y: 0.07, z: 0.015}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -46,7 +45,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2582350800741640194}
-  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+  m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!23 &7902550392954107177
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -72,7 +71,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 7ea6ee7656844814bbe8e6ffb413ef7c, type: 2}
+  - {fileID: 2100000, guid: 2feb2e964748ca04181f7bd1d0a6867e, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -96,25 +95,6 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &5875274198835471341
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2582350800741640194}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b28b4c4af06a2fa4fb49fb170959d8ad, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DeskComponent
-  componentType: 4
-  componentValue: 100
-  componentDescription: "100 \u03A9"
-  tray: {fileID: 0}
-  colorNormal: {r: 0.3137255, g: 0.78431374, b: 0.3137255, a: 1}
-  colorHover: {r: 0.9, g: 0.8, b: 0.2, a: 1}
-  colorSelected: {r: 0.2, g: 0.8, b: 0.4, a: 1}
 --- !u!65 &7925123575717285644
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -134,26 +114,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &-1556425569416757358
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2582350800741640194}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
-  SortKey: 189153857
-  ObjectInterest: 1
-  Flags: 262145
-  NestedObjects: []
-  NetworkedBehaviours: []
-  ForceRemoteRenderTimeframe: 0
+  m_Size: {x: 2.5, y: 1, z: 2.5}
+  m_Center: {x: 0.000000059604645, y: 0, z: -0.00000008940697}
 --- !u!54 &9038179353649786546
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -176,8 +138,8 @@ Rigidbody:
     m_Bits: 0
   m_ImplicitCom: 1
   m_ImplicitTensor: 1
-  m_UseGravity: 1
-  m_IsKinematic: 0
+  m_UseGravity: 0
+  m_IsKinematic: 1
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
@@ -263,7 +225,7 @@ MonoBehaviour:
   m_SnapToColliderVolume: 1
   m_ReinitializeDynamicAttachEverySingleGrab: 1
   m_AttachEaseInTime: 0.15
-  m_MovementType: 2
+  m_MovementType: 1
   m_PredictedVisualsTransform: {fileID: 0}
   m_VelocityDamping: 1
   m_VelocityScale: 1
@@ -310,6 +272,21 @@ MonoBehaviour:
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
   m_MaxAngularVelocityDelta: 20
+--- !u!114 &3137482122732634900
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2582350800741640194}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0f9f69b1743094045a98998002055f0a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GrabbableComponent
+  haptics: {fileID: 0}
+  selectable: {fileID: 0}
+  playerInteraction: {fileID: 0}
 --- !u!114 &-1361427931362486372
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -326,7 +303,7 @@ MonoBehaviour:
   nodeB: {fileID: 0}
   current: 0
   voltageDrop: 0
-  pinNumber: 0
+  pinNumber: 4
   correctPinNumber: 2
   isDigital: 1
   hasFault: 0

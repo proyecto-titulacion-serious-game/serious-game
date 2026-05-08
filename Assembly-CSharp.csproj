@@ -59,6 +59,7 @@
     <Compile Include="Assets\Scripts\Desktop\DeskComponent.cs" />
     <Compile Include="Assets\Scripts\Gameplay\ComponentDeliverySystem.cs" />
     <Compile Include="Assets\UnityTechnologies\StarterAssets\ThirdPersonController\Scripts\BasicRigidBodyPush.cs" />
+    <Compile Include="Assets\Scripts\Gameplay\ZoneProximityScaler.cs" />
     <Compile Include="Assets\UnityTechnologies\StarterAssets\Mobile\Scripts\VirtualInputs\UIVirtualJoystick.cs" />
     <Compile Include="Assets\Scripts\Electrical\CircuitManager.cs" />
     <Compile Include="Assets\KAT\SDK\KATNativeSDK.cs" />
@@ -74,6 +75,7 @@
     <Compile Include="Assets\KAT\SDK\Legacy\3DTDemos\DemoTerrainManager.cs" />
     <Compile Include="Assets\KAT\SDK\Legacy\KATLegacySDK.cs" />
     <Compile Include="Assets\Scripts\Player\HapticFeedback.cs" />
+    <Compile Include="Assets\Scripts\UI\CircuitDiagramPanel.cs" />
     <Compile Include="Assets\Scripts\Electrical\ElectricalComponent.cs" />
     <Compile Include="Assets\UnityTechnologies\StarterAssets\ThirdPersonController\Scripts\ThirdPersonController.cs" />
     <Compile Include="Assets\Scripts\Electrical\LED.cs" />

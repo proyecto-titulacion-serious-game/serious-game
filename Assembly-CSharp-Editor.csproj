@@ -53,8 +53,10 @@
     <Compile Include="Assets\Editor\TechnicianPrefabGenerator.cs" />
     <Compile Include="Assets\Editor\GameManagerPrefabGenerator.cs" />
     <Compile Include="Assets\Editor\IntegratedDemoSetup.cs" />
+    <Compile Include="Assets\Editor\TechnicianWorkstationGenerator.cs" />
     <Compile Include="Assets\Editor\GameUIPrefabGenerator.cs" />
     <Compile Include="Assets\Editor\VRValidator.cs" />
+    <Compile Include="Assets\Editor\DeliveredComponentsGenerator.cs" />
     <Compile Include="Assets\Editor\ExplorerPrefabGenerator.cs" />
     <Compile Include="Assets\Editor\GameSceneGenerator.cs" />
   </ItemGroup>
