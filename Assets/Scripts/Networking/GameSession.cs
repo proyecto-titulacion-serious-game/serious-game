@@ -58,22 +58,22 @@ public class GameSession : NetworkBehaviour
     //  API del Técnico → Explorador
     // ─────────────────────────────────────────────
 
-    /// <summary>
-    /// El Técnico llama esto para enviar un componente al Explorador.
-    /// Cualquier escena puede llamarlo; Fusion lo replica.
-    /// </summary>
+    /// <summary>Solo el Técnico (Host/StateAuthority) puede enviar componentes.</summary>
     public void EnviarComponente(ComponentType tipo, float valor)
     {
+        if (!Object.HasStateAuthority) return;
         RPC_EnviarComponente((int)tipo, valor);
     }
 
-    [Rpc(RpcSources.All, RpcTargets.All)]
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_EnviarComponente(int tipo, float valor)
     {
-        HayComponentePendiente      = true;
-        TipoComponentePendiente     = tipo;
-        ValorComponentePendiente    = valor;
-
+        if (Object.HasStateAuthority)
+        {
+            HayComponentePendiente   = true;
+            TipoComponentePendiente  = tipo;
+            ValorComponentePendiente = valor;
+        }
         OnComponenteRecibido?.Invoke((ComponentType)tipo, valor);
         Debug.Log($"[GameSession] Componente enviado: {(ComponentType)tipo} = {valor}");
     }
@@ -93,7 +93,8 @@ public class GameSession : NetworkBehaviour
     [Rpc(RpcSources.All, RpcTargets.All)]
     private void RPC_ComponenteInstalado(NetworkBool exito)
     {
-        HayComponentePendiente = false;
+        if (Object.HasStateAuthority)
+            HayComponentePendiente = false;
         OnComponenteInstalado?.Invoke(exito);
         Debug.Log($"[GameSession] Instalación: {(exito ? "correcta" : "incorrecta")}");
     }
@@ -111,8 +112,11 @@ public class GameSession : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_CambiarReto(int reto)
     {
-        RetoActual = reto;
-        HayComponentePendiente = false;
+        if (Object.HasStateAuthority)
+        {
+            RetoActual             = reto;
+            HayComponentePendiente = false;
+        }
         OnRetoChanged?.Invoke(reto);
         Debug.Log($"[GameSession] Nuevo reto: {reto}");
     }

@@ -68,8 +68,15 @@ public class ExplorerComponentReceiver : MonoBehaviour
             return;
         }
 
-        _componenteActual = Instantiate(prefab, puntoDeEntrega.position, puntoDeEntrega.rotation);
+        _componenteActual = Instantiate(prefab, puntoDeEntrega.position, puntoDeEntrega.rotation, puntoDeEntrega);
         ConfigurarComponente(_componenteActual, tipo, valor);
+
+        // Mantenerlo kinematic mientras está en la bandeja — XRGrabInteractable lo activa al agarrar
+        if (_componenteActual.TryGetComponent<Rigidbody>(out var rb))
+        {
+            rb.isKinematic = true;
+            rb.useGravity  = false;
+        }
 
         // Informar al DeliverySystem local para que pueda validar la instalación
         delivery?.PrepareForInstall(tipo, valor);

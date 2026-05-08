@@ -120,13 +120,15 @@ public class TechnicianActions : MonoBehaviour
         foreach (var comp in circuit.components)
         {
             if (comp is LED led && !led.isOn)
-            {
                 led.resistance = normalLedResistance;
-            }
         }
 
         circuit?.MarkDirty();
         gameManager?.RegisterRepairAction();
+
+        // Sincronizar con el Explorador: enviar el LED de reemplazo con normalLedResistance
+        // como valor. ComponentDeliverySystem lo aplica al circuito del Explorador al instalarlo.
+        GameSession.Instance?.EnviarComponente(ComponentType.LED, normalLedResistance);
 
         Debug.Log("[TechnicianActions] Circuito paralelo reparado.");
     }

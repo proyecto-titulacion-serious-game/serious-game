@@ -49,9 +49,9 @@ public class SelectableComponent : MonoBehaviour
             _originalColor = _renderer.material.color;
 
         if (technicianActions == null)
-            technicianActions = FindObjectOfType<TechnicianActions>();
+            technicianActions = FindFirstObjectByType<TechnicianActions>();
         if (playerInteraction == null)
-            playerInteraction = FindObjectOfType<PlayerInteraction>();
+            playerInteraction = FindFirstObjectByType<PlayerInteraction>();
     }
 
     void OnEnable()

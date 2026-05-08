@@ -1,9 +1,16 @@
 using UnityEngine;
+using UnityEngine.XR.Interaction.Toolkit;
+using UnityEngine.XR.Interaction.Toolkit.Interactables;
 
 /// <summary>
 /// Componente físico sobre la mesa del Técnico.
-/// PC: hover brillo + click para seleccionar y colocar en la bandeja.
-/// VR: XRGrabInteractable para agarrar y soltar en la bandeja.
+/// PC:  hover (mouse) + click → selecciona y coloca en la bandeja.
+/// VR:  rayo del controlador → hover + gatillo → mismo resultado.
+///
+/// SETUP VR (opcional — sin esto funciona solo en PC):
+///   Añadir XRSimpleInteractable al GameObject.
+///   No hace falta Rigidbody ni cambiar nada más; este script detecta
+///   el interactable automáticamente en Awake y conecta los eventos.
 /// </summary>
 [RequireComponent(typeof(Renderer))]
 [RequireComponent(typeof(Collider))]
@@ -13,15 +20,10 @@ public class DeskComponent : MonoBehaviour
     //  Inspector
     // ─────────────────────────────────────────────
 
-    /// <summary>Tipo de componente que representa este objeto 3D.</summary>
     [Header("Configuración")]
-    public ComponentType componentType = ComponentType.Resistor;
-
-    /// <summary>Valor del componente (ohms para resistencias, µF para capacitores).</summary>
-    public float componentValue = 100f;
-
-    /// <summary>Descripción para la bandeja. Ej: "100Ω | Marrón-Negro-Marrón-Oro"</summary>
-    public string componentDescription = "100 Ω";
+    public ComponentType componentType    = ComponentType.Resistor;
+    public float         componentValue  = 100f;
+    public string        componentDescription = "100 Ω";
 
     [Header("Referencias")]
     public ComponentSendingTray tray;
@@ -34,10 +36,11 @@ public class DeskComponent : MonoBehaviour
     // ─────────────────────────────────────────────
     //  Estado interno
     // ─────────────────────────────────────────────
-    private Renderer             _renderer;
+    private Renderer              _renderer;
     private MaterialPropertyBlock _mpb;
-    private static readonly int  _colorID = Shader.PropertyToID("_Color");
-    private bool _isSelected = false;
+    private static readonly int   _colorID = Shader.PropertyToID("_Color");
+    private bool                  _isSelected;
+    private XRBaseInteractable    _xrInteractable;   // null si no hay XRI en la escena
 
     // ─────────────────────────────────────────────
     //  Unity Lifecycle
@@ -49,59 +52,61 @@ public class DeskComponent : MonoBehaviour
         _mpb      = new MaterialPropertyBlock();
         SetColor(colorNormal);
 
-        // Buscar bandeja automáticamente si no está asignada
         if (tray == null)
             tray = FindFirstObjectByType<ComponentSendingTray>();
+
+        // XRI es opcional: solo se activa si el GameObject tiene XRSimpleInteractable
+        _xrInteractable = GetComponent<XRBaseInteractable>();
+    }
+
+    void OnEnable()
+    {
+        if (_xrInteractable == null) return;
+        _xrInteractable.hoverEntered.AddListener(OnXRHoverEnter);
+        _xrInteractable.hoverExited.AddListener(OnXRHoverExit);
+        _xrInteractable.selectEntered.AddListener(OnXRSelect);
+    }
+
+    void OnDisable()
+    {
+        if (_xrInteractable == null) return;
+        _xrInteractable.hoverEntered.RemoveListener(OnXRHoverEnter);
+        _xrInteractable.hoverExited.RemoveListener(OnXRHoverExit);
+        _xrInteractable.selectEntered.RemoveListener(OnXRSelect);
     }
 
     // ─────────────────────────────────────────────
     //  PC — Mouse Interaction
     // ─────────────────────────────────────────────
 
-    /// <summary>Brillo al pasar el mouse (PC).</summary>
-    void OnMouseEnter()
-    {
-        if (!_isSelected) SetColor(colorHover);
-    }
+    void OnMouseEnter() { if (!_isSelected) SetColor(colorHover);   }
+    void OnMouseExit()  { if (!_isSelected) SetColor(colorNormal);  }
+    void OnMouseDown()  { SelectThisComponent(); }
 
-    /// <summary>Restaura color al salir el mouse (PC).</summary>
-    void OnMouseExit()
-    {
-        if (!_isSelected) SetColor(colorNormal);
-    }
+    // ─────────────────────────────────────────────
+    //  VR — XRI Interaction
+    // ─────────────────────────────────────────────
 
-    /// <summary>
-    /// Click del mouse — selecciona el componente y lo coloca en la bandeja (PC).
-    /// </summary>
-    void OnMouseDown()
-    {
-        SelectThisComponent();
-    }
+    void OnXRHoverEnter(HoverEnterEventArgs args) { if (!_isSelected) SetColor(colorHover);  }
+    void OnXRHoverExit (HoverExitEventArgs  args) { if (!_isSelected) SetColor(colorNormal); }
+    void OnXRSelect    (SelectEnterEventArgs args) { SelectThisComponent(); }
 
     // ─────────────────────────────────────────────
     //  Lógica de selección
     // ─────────────────────────────────────────────
 
-    /// <summary>
-    /// Selecciona este componente: lo coloca en la bandeja de envío.
-    /// Desselecciona cualquier componente previamente seleccionado.
-    /// </summary>
     public void SelectThisComponent()
     {
-        // Deseleccionar todos los demás
-        foreach (var comp in FindObjectsByType<DeskComponent>())
+        foreach (var comp in FindObjectsByType<DeskComponent>(FindObjectsSortMode.None))
             comp.Deselect();
 
         _isSelected = true;
         SetColor(colorSelected);
-
-        // Colocar en la bandeja
         tray?.PlaceComponent(this);
 
         Debug.Log($"[DeskComponent] Seleccionado: {componentType} {componentValue}");
     }
 
-    /// <summary>Deselecciona este componente y restaura su color.</summary>
     public void Deselect()
     {
         _isSelected = false;

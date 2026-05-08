@@ -56,7 +56,7 @@ public class ConnectionManager : MonoBehaviour, INetworkRunnerCallbacks
         // 2. Si eres el Técnico (Host), inicializamos el sistema de entrega
         if (mode == GameMode.Host || mode == GameMode.Server)
         {
-            var deliverySystem = FindObjectOfType<ComponentDeliverySystemBackup>();
+            var deliverySystem = FindFirstObjectByType<ComponentDeliverySystemBackup>();
             if (deliverySystem != null)
             {
                 deliverySystem.InicializarManual(_runner);

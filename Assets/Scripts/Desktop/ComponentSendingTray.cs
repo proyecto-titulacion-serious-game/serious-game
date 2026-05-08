@@ -1,6 +1,7 @@
 using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
+using Toggle = UnityEngine.UI.Toggle;
 
 /// <summary>
 /// Bandeja de envío sobre la mesa del Técnico.
@@ -41,6 +42,12 @@ public class ComponentSendingTray : MonoBehaviour
     [Tooltip("Texto que indica qué debe escribir el Técnico. Cambia según el tipo de componente.")]
     public TMP_Text txtInputLabel;
 
+    [Header("Toggle de polaridad (LED y Capacitor)")]
+    [Tooltip("ON = polaridad correcta / OFF = polaridad invertida. " +
+             "Permite al Técnico enviar intencionalmente la polaridad incorrecta.")]
+    public Toggle   togglePolaridad;
+    public TMP_Text txtToggleLabel;
+
     [Header("Posición visual donde aparece el componente seleccionado")]
     public Transform traySlot;
 
@@ -63,6 +70,9 @@ public class ComponentSendingTray : MonoBehaviour
             technicianActions = FindFirstObjectByType<TechnicianActions>();
         if (gameManager == null)
             gameManager = FindFirstObjectByType<GameManager>();
+
+        if (togglePolaridad != null)
+            togglePolaridad.onValueChanged.AddListener(OnPolaridadToggleChanged);
 
         UpdateUI();
     }
@@ -150,16 +160,26 @@ public class ComponentSendingTray : MonoBehaviour
                 break;
 
             case ComponentType.LED:
-                if (delivery != null) { delivery.SendLED(true); exito = true; }
-                else { exito = FixLEDPolarity(); }
-                if (exito) GameSession.Instance?.EnviarComponente(ComponentType.LED, 1f);
+            {
+                bool correcta = togglePolaridad == null || togglePolaridad.isOn;
+                float valorLED = correcta ? 1f : -1f;
+                if (delivery != null) { delivery.SendLED(correcta); exito = true; }
+                else if (correcta)    { exito = FixLEDPolarity(); }
+                else                  { exito = true; }   // envío con polarity incorrecta en modo demo
+                if (exito) GameSession.Instance?.EnviarComponente(ComponentType.LED, valorLED);
                 break;
+            }
 
             case ComponentType.Capacitor:
-                if (delivery != null) { delivery.SendCapacitor(true); exito = true; }
-                else { exito = FixCapacitorPolarity(); }
-                if (exito) GameSession.Instance?.EnviarComponente(ComponentType.Capacitor, 1f);
+            {
+                bool correcta = togglePolaridad == null || togglePolaridad.isOn;
+                float valorCap = correcta ? 1f : -1f;
+                if (delivery != null) { delivery.SendCapacitor(correcta); exito = true; }
+                else if (correcta)    { exito = FixCapacitorPolarity(); }
+                else                  { exito = true; }
+                if (exito) GameSession.Instance?.EnviarComponente(ComponentType.Capacitor, valorCap);
                 break;
+            }
 
             case ComponentType.ArduinoPin:
                 exito = EnviarArduinoPinConValorEscrito();
@@ -277,6 +297,12 @@ public class ComponentSendingTray : MonoBehaviour
     //  VR — soltar componente sobre la bandeja
     // ─────────────────────────────────────────────
 
+    void OnPolaridadToggleChanged(bool isOn)
+    {
+        if (txtToggleLabel != null)
+            txtToggleLabel.text = isOn ? "Polaridad: CORRECTA" : "Polaridad: INVERTIDA";
+    }
+
     void OnTriggerEnter(Collider other)
     {
         var comp = other.GetComponent<DeskComponent>();
@@ -357,24 +383,20 @@ public class ComponentSendingTray : MonoBehaviour
                 Set(txtDescripcion, _pending.componentDescription);
             }
 
-            // Mostrar InputField solo para componentes que necesitan valor escrito
+            // InputField — solo para Resistor y ArduinoPin
             bool necesitaInput = _pending.componentType == ComponentType.Resistor
                               || _pending.componentType == ComponentType.ArduinoPin;
 
             if (inputValor != null)
             {
                 inputValor.gameObject.SetActive(necesitaInput);
-
                 if (necesitaInput)
                 {
-                    // Cambiar placeholder según el tipo
                     var placeholder = inputValor.placeholder as TMP_Text;
                     if (placeholder != null)
-                    {
                         placeholder.text = _pending.componentType == ComponentType.Resistor
                             ? "Escribe ohmios..."
                             : "Numero de pin...";
-                    }
                 }
             }
 
@@ -386,6 +408,23 @@ public class ComponentSendingTray : MonoBehaviour
                     : "Numero de pin:";
             }
 
+            // Toggle de polaridad — solo para LED y Capacitor
+            bool necesitaToggle = _pending.componentType == ComponentType.LED
+                               || _pending.componentType == ComponentType.Capacitor;
+
+            if (togglePolaridad != null)
+            {
+                togglePolaridad.gameObject.SetActive(necesitaToggle);
+                if (necesitaToggle)
+                    togglePolaridad.isOn = true;   // resetear a correcta al poner componente nuevo
+            }
+
+            if (txtToggleLabel != null)
+            {
+                txtToggleLabel.gameObject.SetActive(necesitaToggle);
+                txtToggleLabel.text = "Polaridad: CORRECTA";
+            }
+
             if (btnEnviar != null) btnEnviar.gameObject.SetActive(true);
         }
         else
@@ -393,9 +432,11 @@ public class ComponentSendingTray : MonoBehaviour
             // Bandeja vacía
             Set(txtComponenteEnBandeja, "Bandeja vacia");
             Set(txtDescripcion, "Haz click en un componente de la mesa");
-            if (inputValor    != null) inputValor.gameObject.SetActive(false);
-            if (txtInputLabel != null) txtInputLabel.gameObject.SetActive(false);
-            if (btnEnviar     != null) btnEnviar.gameObject.SetActive(false);
+            if (inputValor      != null) inputValor.gameObject.SetActive(false);
+            if (txtInputLabel   != null) txtInputLabel.gameObject.SetActive(false);
+            if (togglePolaridad != null) togglePolaridad.gameObject.SetActive(false);
+            if (txtToggleLabel  != null) txtToggleLabel.gameObject.SetActive(false);
+            if (btnEnviar       != null) btnEnviar.gameObject.SetActive(false);
         }
     }
 

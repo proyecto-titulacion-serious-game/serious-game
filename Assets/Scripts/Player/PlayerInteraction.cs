@@ -97,8 +97,7 @@ public class PlayerInteraction : MonoBehaviour
     // ─────────────────────────────────────────────
 
     /// <summary>
-    /// El Explorador agarra un componente (llamar desde XRGrabInteractable).
-    /// En Reto 1: agarra la resistencia defectuosa para reemplazarla.
+    /// El Explorador agarra un componente (llamar desde XRGrabInteractable.selectEntered).
     /// </summary>
     public void OnGrabComponent(SelectableComponent selectable)
     {
@@ -107,16 +106,23 @@ public class PlayerInteraction : MonoBehaviour
         heldComponent = selectable.component;
         selectable.Highlight();
         haptics?.PlayMedium();
-        playerController?.FreezeMovement(true);
 
         Debug.Log($"[PlayerInteraction] Explorador agarró: {heldComponent.name}");
     }
 
     /// <summary>
-    /// El Explorador suelta el componente en su slot de reemplazo.
-    /// Llamar cuando el objeto entra en el trigger del slot correcto.
+    /// El Explorador suelta el componente (llamar desde XRGrabInteractable.selectExited).
     /// </summary>
-    
+    public void OnReleaseComponent(SelectableComponent selectable)
+    {
+        selectable?.ResetHighlight();
+        heldComponent = null;
+        haptics?.PlayLight();
+
+        Debug.Log("[PlayerInteraction] Componente soltado.");
+    }
+
+
 
     // ─────────────────────────────────────────────
     //  Reto 2 — Reconexión de cables paralelos

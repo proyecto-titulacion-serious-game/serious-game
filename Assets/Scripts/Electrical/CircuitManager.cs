@@ -89,7 +89,6 @@ public class CircuitManager : MonoBehaviour
     void OnDestroy()
     {
         CancelInvoke();
-        OnCircuitChanged = null;
     }
 
     // ─────────────────────────────────────────────
@@ -237,21 +236,71 @@ public class CircuitManager : MonoBehaviour
     }
 
     // ── MIXTO (Serie-Paralelo) ─────────────────
-    // Para Reto 3: grupos de ramas asignados por GameManager
-    // Cada ElectricalNode ya tiene su voltaje seteado por GameManager.SetupMixed()
+    // Topología Reto 3: Resistor(es) en SERIE → bloque PARALELO (LED + Capacitor).
+    // Recalcula voltajes de nodo dinámicamente en cada tick para reflejar
+    // el estado actual de los componentes (reparaciones del jugador incluidas).
     void SimulateMixed()
     {
-        _totalCurrent = 0f;
+        VoltageSource source = GetFirstSource();
+        if (source == null) return;
+        _sourceVoltage = source.voltage;
+
+        float seriesR           = 0f;
+        float parallelConductance = 0f;
+        var seriesComps   = new List<ElectricalComponent>();
+        var parallelComps = new List<ElectricalComponent>();
 
         foreach (var comp in components)
         {
             if (comp is VoltageSource) continue;
-            comp.Calculate();
-            _totalCurrent += comp.current;
+            if (comp is Resistor)
+            {
+                seriesR += comp.GetResistance();
+                seriesComps.Add(comp);
+            }
+            else
+            {
+                float r = comp.GetResistance();
+                if (r > 0f) parallelConductance += 1f / r;
+                parallelComps.Add(comp);
+            }
         }
 
-        VoltageSource source = GetFirstSource();
-        if (source != null) _sourceVoltage = source.voltage;
+        float parallelEquivR = parallelConductance > 0f ? 1f / parallelConductance : 1_000_000f;
+        float totalR         = seriesR + parallelEquivR;
+
+        if (totalR <= 0.1f)
+        {
+            _totalCurrent    = 0f;
+            _totalPower      = 0f;
+            isShortCircuited = true;
+            Debug.LogWarning("[CircuitManager] ¡CORTOCIRCUITO en circuito mixto!");
+            return;
+        }
+
+        isShortCircuited = false;
+        _totalCurrent    = _sourceVoltage / totalR;
+        _totalPower      = _sourceVoltage * _totalCurrent;
+
+        // Distribuir caídas de voltaje en el bloque serie
+        float voltageAtNode = _sourceVoltage;
+        foreach (var comp in seriesComps)
+        {
+            float drop = _totalCurrent * comp.GetResistance();
+            if (comp.nodeA != null) { comp.nodeA.voltage = voltageAtNode; comp.nodeA.current = _totalCurrent; }
+            voltageAtNode -= drop;
+            if (comp.nodeB != null) { comp.nodeB.voltage = voltageAtNode; comp.nodeB.current = _totalCurrent; }
+            comp.Calculate();
+        }
+
+        // Aplicar voltaje de unión al bloque paralelo
+        float vParallel = voltageAtNode;
+        foreach (var comp in parallelComps)
+        {
+            if (comp.nodeA != null) comp.nodeA.voltage = vParallel;
+            if (comp.nodeB != null) comp.nodeB.voltage = 0f;
+            comp.Calculate();
+        }
     }
 
     VoltageSource GetFirstSource()

@@ -34,7 +34,7 @@ public class MainThreadDispatcher : MonoBehaviour
     {
         if (!_instance)
         {
-            _instance = FindObjectOfType<MainThreadDispatcher>();
+            _instance = FindFirstObjectByType<MainThreadDispatcher>();
             if (!_instance)
             {
                 var obj = new GameObject("MainThreadDispatcher");

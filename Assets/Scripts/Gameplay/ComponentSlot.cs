@@ -50,8 +50,8 @@ public class ComponentSlot : MonoBehaviour
     {
         _mpb = new MaterialPropertyBlock();
         if (slotRenderer == null) slotRenderer = GetComponent<Renderer>();
-        if (delivery     == null) delivery     = FindObjectOfType<ComponentDeliverySystem>();
-        if (gameManager  == null) gameManager  = FindObjectOfType<GameManager>();
+        if (delivery     == null) delivery     = FindFirstObjectByType<ComponentDeliverySystem>();
+        if (gameManager  == null) gameManager  = FindFirstObjectByType<GameManager>();
 
         var col = GetComponent<Collider>();
         if (col != null && !col.isTrigger) col.isTrigger = true;
@@ -120,8 +120,7 @@ public class ComponentSlot : MonoBehaviour
         _installed    = comp;
 
         Transform anchor = installAnchor != null ? installAnchor : transform;
-        comp.transform.position = anchor.position;
-        comp.transform.rotation = anchor.rotation;
+        comp.transform.SetPositionAndRotation(anchor.position, anchor.rotation);
         comp.transform.SetParent(anchor);
 
         if (comp.TryGetComponent<Rigidbody>(out var rb))
@@ -129,6 +128,9 @@ public class ComponentSlot : MonoBehaviour
             rb.isKinematic = true;
             rb.useGravity  = false;
         }
+
+        // Deshabilitar grab para que no se pueda sacar del slot una vez instalado
+        comp.GetComponent<GrabbableComponent>()?.DisableGrab();
     }
 
     public void ReleaseComponent()

@@ -61,7 +61,7 @@ public class NodeInteractable : MonoBehaviour
 
         // Auto-buscar el multímetro si no se asignó en inspector
         if (multimeter == null)
-            multimeter = FindObjectOfType<Multimeter>();
+            multimeter = FindFirstObjectByType<Multimeter>();
     }
 
     void OnEnable()
@@ -92,25 +92,41 @@ public class NodeInteractable : MonoBehaviour
 
         SetColor(selectedColor);
 
-        // Derecha → punta roja | Izquierda → punta negra
-        bool isRightHand = args.interactorObject.transform.CompareTag("RightHand");
-
         ProbeType resolved = probeType == ProbeType.Auto
-            ? (isRightHand ? ProbeType.Red : ProbeType.Black)
+            ? (IsRightHand(args.interactorObject) ? ProbeType.Red : ProbeType.Black)
             : probeType;
 
-        // ← CAMBIO: ahora le avisa al Multimeter, no a PlayerInteraction
         switch (resolved)
         {
-            case ProbeType.Red:
-                multimeter.SetRedNode(nodeTarget);
-                break;
-            case ProbeType.Black:
-                multimeter.SetBlackNode(nodeTarget);
-                break;
+            case ProbeType.Red:   multimeter.SetRedNode(nodeTarget);   break;
+            case ProbeType.Black: multimeter.SetBlackNode(nodeTarget); break;
         }
 
         Invoke(nameof(ResetColor), 0.5f);
+    }
+
+    // Detecta mano derecha por tag, nombre del GameObject o posición relativa a la cámara.
+    // Orden de prioridad: tag → nombre → posición lateral.
+    static bool IsRightHand(UnityEngine.XR.Interaction.Toolkit.Interactors.IXRInteractor interactor)
+    {
+        Transform t = interactor.transform;
+
+        if (t.CompareTag("RightHand")) return true;
+        if (t.CompareTag("LeftHand"))  return false;
+
+        string n = t.name.ToLowerInvariant();
+        if (n.Contains("right")) return true;
+        if (n.Contains("left"))  return false;
+
+        // Último recurso: si el interactor está a la derecha de la cámara principal
+        Camera cam = Camera.main;
+        if (cam != null)
+        {
+            Vector3 localPos = cam.transform.InverseTransformPoint(t.position);
+            return localPos.x >= 0f;
+        }
+
+        return false;
     }
 
     // ─────────────────────────────────────────────

@@ -1,0 +1,174 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &7618993760969788522
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1562901321707738040}
+  - component: {fileID: 4217084572205065717}
+  - component: {fileID: 6584972413294506050}
+  - component: {fileID: 7234675548936603104}
+  - component: {fileID: 6923144484201314074}
+  - component: {fileID: 894414935829455053}
+  - component: {fileID: 5521008151912796103}
+  m_Layer: 0
+  m_Name: GameManager_System
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1562901321707738040
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7618993760969788522}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4217084572205065717
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7618993760969788522}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee0d5f071f7571a4cbc45fb3d890e851, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameManager
+  circuit: {fileID: 0}
+  multimeter: {fileID: 0}
+  performance: {fileID: 6584972413294506050}
+  instructionSystem: {fileID: 7234675548936603104}
+  reto1Zone: {fileID: 0}
+  reto2Zone: {fileID: 0}
+  reto3Zone: {fileID: 0}
+  reto4Zone: {fileID: 0}
+  zoneTransitionDelay: 3
+  _debugMode: 0
+  timeLimits:
+  - 480
+  - 600
+  - 720
+  - 900
+  _currentLevel: 0
+  _currentIndex: 0
+  _levelCompleted: 0
+  _repairPerformed: 0
+  _wrongAttempts: 0
+  _remainingTime: 0
+  _timerActive: 0
+--- !u!114 &6584972413294506050
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7618993760969788522}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: efa921bf40f04a44d8c2251bfd662790, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PerformanceTracker
+  excellentTimeLimits:
+  - 240
+  - 300
+  - 360
+  - 450
+  maxErrorsForGood: 3
+  _currentErrors: 0
+  _startTime: 0
+  _currentLevelIndex: 0
+--- !u!114 &7234675548936603104
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7618993760969788522}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b893ef55adc184d4cad0ae7de28df398, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InstructionSystem
+  currentStep: 0
+  multimeter: {fileID: 0}
+  gameManager: {fileID: 4217084572205065717}
+  technicianActions: {fileID: 5521008151912796103}
+  hasMeasuredCorrectly: 0
+  hasSelectedCorrectComponent: 0
+  hasAppliedFix: 0
+  instructions: []
+--- !u!114 &6923144484201314074
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7618993760969788522}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7314e1cd7acdc4f4293f58c5f9a05a45, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ObjectiveSystem
+  gameManager: {fileID: 4217084572205065717}
+  performance: {fileID: 6584972413294506050}
+  _objectives: []
+  _totalScore: 0
+  _maxScore: 0
+--- !u!114 &894414935829455053
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7618993760969788522}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9fb68067971e5e479ad3e8ce7fa31af, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ComponentDeliverySystem
+  gameManager: {fileID: 4217084572205065717}
+  puntoDeEntrega: {fileID: 0}
+  resistorPrefab: {fileID: 0}
+  ledPrefab: {fileID: 0}
+  capacitorPrefab: {fileID: 0}
+  arduinoPinPrefab: {fileID: 0}
+  _pendingType: 0
+  _pendingValue: 0
+  _waitingForInstall: 0
+  _spawnedComponent: {fileID: 0}
+--- !u!114 &5521008151912796103
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7618993760969788522}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5273476f12e469543b074be50aec24fa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TechnicianActions
+  circuit: {fileID: 0}
+  multimeter: {fileID: 0}
+  instructionSystem: {fileID: 7234675548936603104}
+  gameManager: {fileID: 4217084572205065717}
+  performance: {fileID: 6584972413294506050}
+  correctResistance: 100
+  normalLedResistance: 50
+  demoMode: 1
+  selectedComponent: {fileID: 0}

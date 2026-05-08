@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using UnityEngine;
 
 /// <summary>
@@ -23,10 +24,19 @@ public class GameManager : MonoBehaviour
     public PerformanceTracker performance;
     public InstructionSystem  instructionSystem;
 
-    public GameObject reto1Zone; 
-    public GameObject reto2Zone;  
-    public GameObject reto3Zone;  
-    public GameObject reto4Zone;   
+    [Header("Zonas de Reto")]
+    public GameObject reto1Zone;
+    public GameObject reto2Zone;
+    public GameObject reto3Zone;
+    public GameObject reto4Zone;
+
+    [Header("Transición entre retos")]
+    [Tooltip("Segundos de pausa entre reto completado y carga del siguiente.")]
+    public float zoneTransitionDelay = 3f;
+
+    [Header("Debug")]
+    [Tooltip("Permite usar GoToLevel() en builds de prueba.")]
+    [SerializeField] private bool _debugMode = false;
 
     [Header("Configuración de niveles")]
     [Tooltip("Tiempo límite en segundos para cada reto (0 = sin límite).")]
@@ -60,8 +70,12 @@ public class GameManager : MonoBehaviour
     public static event Action<LevelType, bool> OnLevelCompleted;
     public static event Action<string>          OnFaultDetected;
     public static event Action                  OnGameCompleted;
-    public static event Action<float>           OnTimerTick;       // segundos restantes
-    public static event Action<LevelType>       OnTimerExpired;    // se acabó el tiempo
+    public static event Action<float>           OnTimerTick;
+    public static event Action<LevelType>       OnTimerExpired;
+    /// <summary>Zona activada: índice 0-3. Útil para UI y efectos de transición.</summary>
+    public static event Action<int>             OnZoneActivated;
+    /// <summary>Disparado justo antes de cargar el siguiente reto.</summary>
+    public static event Action<LevelType, bool> OnZoneTransitionStart;
 
     // ─────────────────────────────────────────────
     //  Constantes de configuración de retos
@@ -82,6 +96,11 @@ public class GameManager : MonoBehaviour
     // ─────────────────────────────────────────────
     //  Unity Lifecycle
     // ─────────────────────────────────────────────
+    void Awake()
+    {
+        ValidateZones();
+    }
+
     void Start()
     {
         CircuitManager.OnCircuitChanged += CheckWinCondition;
@@ -173,11 +192,26 @@ public class GameManager : MonoBehaviour
         circuit?.ForceSimulate();
 
         // Notificar
+        OnZoneActivated?.Invoke(_currentIndex);
         OnLevelLoaded?.Invoke(_currentLevel);
         Debug.Log($"[GameManager] Cargando: {_currentLevel}");
     }
 
     public void NextLevel() => LoadLevel(_currentIndex + 1);
+
+    /// <summary>Reinicia el reto actual desde cero (conserva el índice).</summary>
+    public void RestartCurrentLevel() => LoadLevel(_currentIndex);
+
+    /// <summary>Salta directamente a un reto. Solo funciona con _debugMode activo.</summary>
+    public void GoToLevel(int index)
+    {
+        if (!_debugMode)
+        {
+            Debug.LogWarning("[GameManager] GoToLevel requiere _debugMode = true en el Inspector.");
+            return;
+        }
+        LoadLevel(Mathf.Clamp(index, 0, 3));
+    }
 
     void SetupLevel()
     {
@@ -545,11 +579,18 @@ public class GameManager : MonoBehaviour
     {
         _levelCompleted = true;
         OnLevelCompleted?.Invoke(_currentLevel, success);
+        OnZoneTransitionStart?.Invoke(_currentLevel, success);
 
         if (performance != null)
             Debug.Log($"[GameManager] {_currentLevel} completado — {performance.GetEvaluation()}");
 
-        Invoke(nameof(NextLevel), 3f);
+        StartCoroutine(TransitionToNextLevel());
+    }
+
+    IEnumerator TransitionToNextLevel()
+    {
+        yield return new WaitForSeconds(zoneTransitionDelay);
+        NextLevel();
     }
 
     void CompleteGame()
@@ -566,5 +607,13 @@ public class GameManager : MonoBehaviour
     {
         if (multimeter == null) return false;
         return Mathf.Abs(multimeter.measuredVoltage - RETO1_TARGET_VOLTAGE) <= RETO1_TOLERANCE;
+    }
+
+    void ValidateZones()
+    {
+        if (reto1Zone == null) Debug.LogWarning("[GameManager] reto1Zone no asignado en el Inspector.");
+        if (reto2Zone == null) Debug.LogWarning("[GameManager] reto2Zone no asignado en el Inspector.");
+        if (reto3Zone == null) Debug.LogWarning("[GameManager] reto3Zone no asignado en el Inspector.");
+        if (reto4Zone == null) Debug.LogWarning("[GameManager] reto4Zone no asignado en el Inspector.");
     }
 }

@@ -55,14 +55,6 @@ public class ComponentDeliverySystem : MonoBehaviour
     void OnEnable()  { GameManager.OnLevelLoaded += OnLevelLoaded; }
     void OnDisable() { GameManager.OnLevelLoaded -= OnLevelLoaded; }
 
-    void OnDestroy()
-    {
-        OnComponentSent      = null;
-        OnComponentInstalled = null;
-        OnRepairValidated    = null;
-        OnDeliveryError      = null;
-    }
-
     void OnLevelLoaded(LevelType _) => CancelPendingDelivery();
 
     // ─────────────────────────────────────────────
@@ -286,8 +278,13 @@ public class ComponentDeliverySystem : MonoBehaviour
                     }
                     break;
                 case ComponentType.LED:
-                    if (comp is LED led && led.polarityInverted)
-                        led.polarityInverted = false;
+                    if (comp is LED led)
+                    {
+                        if (led.polarityInverted) led.polarityInverted = false;
+                        // Valor != ±1f → es una resistencia de reemplazo (Reto 2)
+                        if (Mathf.Abs(_pendingValue) != 1f && _pendingValue > 0f)
+                            led.resistance = _pendingValue;
+                    }
                     break;
                 case ComponentType.Capacitor:
                     if (comp is Capacitor cap && cap.polarityInverted)

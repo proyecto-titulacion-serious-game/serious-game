@@ -149,7 +149,7 @@ public class TechnicianController : MonoBehaviour
 
     void EnsureEventSystem()
     {
-        if (FindObjectOfType<EventSystem>() == null)
+        if (FindFirstObjectByType<EventSystem>() == null)
         {
             var esGO = new GameObject("EventSystem");
             esGO.AddComponent<EventSystem>();
