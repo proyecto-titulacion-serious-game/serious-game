@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
 
@@ -14,7 +15,8 @@ using UnityEngine.XR.Interaction.Toolkit.Interactables;
 /// </summary>
 [RequireComponent(typeof(Renderer))]
 [RequireComponent(typeof(Collider))]
-public class DeskComponent : MonoBehaviour
+public class DeskComponent : MonoBehaviour,
+    IPointerClickHandler, IPointerEnterHandler, IPointerExitHandler
 {
     // ─────────────────────────────────────────────
     //  Inspector
@@ -33,14 +35,23 @@ public class DeskComponent : MonoBehaviour
     public Color colorHover    = new Color(0.9f, 0.8f, 0.2f);
     public Color colorSelected = new Color(0.2f, 0.8f, 0.4f);
 
+    [Header("Glow al seleccionar")]
+    [Tooltip("Intensidad del brillo de emisión cuando el componente está seleccionado.")]
+    public float emissionIntensity = 1.8f;
+    [Tooltip("Escala adicional al seleccionar (1.08 = 8% más grande).")]
+    public float selectedScaleMultiplier = 1.08f;
+
     // ─────────────────────────────────────────────
     //  Estado interno
     // ─────────────────────────────────────────────
     private Renderer              _renderer;
     private MaterialPropertyBlock _mpb;
-    private static readonly int   _colorID = Shader.PropertyToID("_Color");
+    private static readonly int   _colorID         = Shader.PropertyToID("_Color");
+    private static readonly int   _baseColorID     = Shader.PropertyToID("_BaseColor");
+    private static readonly int   _emissionColorID = Shader.PropertyToID("_EmissionColor");
     private bool                  _isSelected;
-    private XRBaseInteractable    _xrInteractable;   // null si no hay XRI en la escena
+    private Vector3               _originalScale;
+    private XRBaseInteractable    _xrInteractable;
 
     // ─────────────────────────────────────────────
     //  Unity Lifecycle
@@ -48,14 +59,25 @@ public class DeskComponent : MonoBehaviour
 
     void Awake()
     {
-        _renderer = GetComponent<Renderer>();
-        _mpb      = new MaterialPropertyBlock();
+        _renderer      = GetComponent<Renderer>();
+        _mpb           = new MaterialPropertyBlock();
+        _originalScale = transform.localScale;
+
+        // Copia por objeto del material para habilitar el keyword _EMISSION
+        // sin afectar el material compartido de otros objetos.
+        if (_renderer != null && _renderer.sharedMaterial != null)
+        {
+            var copy = new Material(_renderer.sharedMaterial);
+            copy.EnableKeyword("_EMISSION");
+            copy.EnableKeyword("_ALPHAPREMULTIPLY_ON");
+            _renderer.sharedMaterial = copy;
+        }
+
         SetColor(colorNormal);
 
         if (tray == null)
-            tray = FindFirstObjectByType<ComponentSendingTray>();
+            tray = FindAnyObjectByType<ComponentSendingTray>();
 
-        // XRI es opcional: solo se activa si el GameObject tiene XRSimpleInteractable
         _xrInteractable = GetComponent<XRBaseInteractable>();
     }
 
@@ -76,12 +98,20 @@ public class DeskComponent : MonoBehaviour
     }
 
     // ─────────────────────────────────────────────
-    //  PC — Mouse Interaction
+    //  PC — Mouse Interaction (legacy, funciona en modo "Both")
     // ─────────────────────────────────────────────
 
-    void OnMouseEnter() { if (!_isSelected) SetColor(colorHover);   }
-    void OnMouseExit()  { if (!_isSelected) SetColor(colorNormal);  }
+    void OnMouseEnter() { if (!_isSelected) SetColor(colorHover);  }
+    void OnMouseExit()  { if (!_isSelected) SetColor(colorNormal); }
     void OnMouseDown()  { SelectThisComponent(); }
+
+    // ─────────────────────────────────────────────
+    //  EventSystem pointer events (New Input System + PhysicsRaycaster)
+    // ─────────────────────────────────────────────
+
+    void IPointerClickHandler.OnPointerClick(PointerEventData e)  => SelectThisComponent();
+    void IPointerEnterHandler.OnPointerEnter(PointerEventData e)  { if (!_isSelected) SetColor(colorHover);  }
+    void IPointerExitHandler.OnPointerExit(PointerEventData e)    { if (!_isSelected) SetColor(colorNormal); }
 
     // ─────────────────────────────────────────────
     //  VR — XRI Interaction
@@ -97,11 +127,12 @@ public class DeskComponent : MonoBehaviour
 
     public void SelectThisComponent()
     {
-        foreach (var comp in FindObjectsByType<DeskComponent>(FindObjectsSortMode.None))
+        foreach (var comp in FindObjectsByType<DeskComponent>(FindObjectsInactive.Exclude))
             comp.Deselect();
 
         _isSelected = true;
         SetColor(colorSelected);
+        transform.localScale = _originalScale * selectedScaleMultiplier;
         tray?.PlaceComponent(this);
 
         Debug.Log($"[DeskComponent] Seleccionado: {componentType} {componentValue}");
@@ -111,6 +142,7 @@ public class DeskComponent : MonoBehaviour
     {
         _isSelected = false;
         SetColor(colorNormal);
+        transform.localScale = _originalScale;
     }
 
     // ─────────────────────────────────────────────
@@ -121,7 +153,14 @@ public class DeskComponent : MonoBehaviour
     {
         if (_renderer == null || _mpb == null) return;
         _renderer.GetPropertyBlock(_mpb);
-        _mpb.SetColor(_colorID, c);
+
+        _mpb.SetColor(_colorID,     c);
+        _mpb.SetColor(_baseColorID, c);     // URP Lit usa _BaseColor
+
+        // Emisión: solo cuando está seleccionado
+        Color emission = _isSelected ? c * emissionIntensity : Color.black;
+        _mpb.SetColor(_emissionColorID, emission);
+
         _renderer.SetPropertyBlock(_mpb);
     }
 }

@@ -57,11 +57,19 @@ public class TechnicianManualDisplay : MonoBehaviour
 
     void Start()
     {
-        if (btnPaginaAnterior != null)
-            btnPaginaAnterior.onClick.AddListener(PaginaAnterior);
+        // Auto-buscar referencias no asignadas en el Inspector
+        if (gameManager == null) gameManager = FindFirstObjectByType<GameManager>();
+        if (manual      == null) manual      = FindFirstObjectByType<TechnicianManual>();
 
-        if (btnPaginaSiguiente != null)
-            btnPaginaSiguiente.onClick.AddListener(PaginaSiguiente);
+        if (gameManager == null)
+            Debug.LogWarning("[TechnicianManualDisplay] GameManager no encontrado. " +
+                             "Asígnalo en el Inspector de TechnicianManualDisplay.");
+        if (manual == null)
+            Debug.LogWarning("[TechnicianManualDisplay] TechnicianManual no encontrado. " +
+                             "Asígnalo en el Inspector de TechnicianManualDisplay.");
+
+        if (btnPaginaAnterior  != null) btnPaginaAnterior.onClick.AddListener(PaginaAnterior);
+        if (btnPaginaSiguiente != null) btnPaginaSiguiente.onClick.AddListener(PaginaSiguiente);
 
         GameManager.OnLevelLoaded += OnLevelLoaded;
         BuildPages();

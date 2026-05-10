@@ -45,6 +45,10 @@ public class TechnicianController : MonoBehaviour
     [Tooltip("Distancia del canvas al frente del técnico")]
     public float canvasDistanceVR = 1.2f;
 
+    [Header("Debug / Override")]
+    [Tooltip("Fuerza modo PC aunque haya dispositivos XR en escena (útil al probar sin headset)")]
+    public bool forcePCMode = false;
+
     // ─────────────────────────────────────────────
     //  Internos
     // ─────────────────────────────────────────────
@@ -60,21 +64,45 @@ public class TechnicianController : MonoBehaviour
         Debug.Log($"[TechnicianController] Modo activo: {_activeMode}");
     }
 
+    void LateUpdate()
+    {
+        // En modo PC, el sistema XR o el Input System pueden re-bloquear el cursor
+        // en frames posteriores al Start. LateUpdate lo corrige cada frame.
+        if (_activeMode == TechnicianMode.PC)
+        {
+            if (Cursor.lockState != CursorLockMode.None) Cursor.lockState = CursorLockMode.None;
+            if (!Cursor.visible)                          Cursor.visible   = true;
+        }
+    }
+
     // ─────────────────────────────────────────────
     //  Detección automática de modo
     // ─────────────────────────────────────────────
 
     TechnicianMode DetectMode()
     {
+        if (forcePCMode)          return TechnicianMode.PC;
         if (mode != TechnicianMode.Auto) return mode;
 
-        // Si hay algún XRController conectado → VR
+        // Filtrar solo dispositivos HMD reales (ignorar Mock HMD del paquete XR)
         var xrDevices = new System.Collections.Generic.List<UnityEngine.XR.InputDevice>();
-        UnityEngine.XR.InputDevices.GetDevices(xrDevices);
+        UnityEngine.XR.InputDevices.GetDevicesWithCharacteristics(
+            UnityEngine.XR.InputDeviceCharacteristics.HeadMounted, xrDevices);
 
-        bool vrConnected = xrDevices.Count > 0;
-        Debug.Log($"[TechnicianController] Dispositivos XR detectados: {xrDevices.Count}");
-        return vrConnected ? TechnicianMode.VR : TechnicianMode.PC;
+        // El Mock HMD aparece como HeadMounted pero no está realmente conectado:
+        // verificar que al menos uno reporte isValid = true
+        bool realHMD = false;
+        foreach (var d in xrDevices)
+        {
+            if (d.isValid && !d.name.ToLowerInvariant().Contains("mock"))
+            {
+                realHMD = true;
+                break;
+            }
+        }
+
+        Debug.Log($"[TechnicianController] Dispositivos HMD: {xrDevices.Count}, HMD real: {realHMD}");
+        return realHMD ? TechnicianMode.VR : TechnicianMode.PC;
     }
 
     // ─────────────────────────────────────────────
@@ -97,15 +125,47 @@ public class TechnicianController : MonoBehaviour
     void SetupPC()
     {
         // Activar cámara PC, desactivar XR Origin del Técnico
-        if (pcCamera          != null) pcCamera.gameObject.SetActive(true);
-        if (xrOriginTechnician!= null) xrOriginTechnician.SetActive(false);
+        if (pcCamera           != null) pcCamera.gameObject.SetActive(true);
+        if (xrOriginTechnician != null) xrOriginTechnician.SetActive(false);
 
-        // Canvas en Screen Space - Camera
-        if (technicianCanvas != null)
+        Camera cam = pcCamera != null ? pcCamera : Camera.main;
+
+        if (cam != null)
         {
-            technicianCanvas.renderMode       = RenderMode.ScreenSpaceCamera;
-            technicianCanvas.worldCamera      = pcCamera;
-            technicianCanvas.planeDistance    = 1f;
+            // Para cada Canvas WorldSpace: asignar cámara y GraphicRaycaster si faltan.
+            // Sin GraphicRaycaster el EventSystem no puede rutear clicks al canvas.
+            // Sin worldCamera el GraphicRaycaster no puede convertir coordenadas de pantalla.
+            foreach (var canvas in FindObjectsByType<Canvas>(FindObjectsInactive.Include))
+            {
+                if (canvas.renderMode != RenderMode.WorldSpace) continue;
+
+                if (canvas.worldCamera == null)
+                    canvas.worldCamera = cam;
+
+                if (canvas.GetComponent<UnityEngine.UI.GraphicRaycaster>() == null)
+                    canvas.gameObject.AddComponent<UnityEngine.UI.GraphicRaycaster>();
+            }
+
+            // El canvas principal del técnico se convierte a ScreenSpaceCamera para
+            // que sea siempre visible y legible desde la cámara fija PC.
+            if (technicianCanvas != null)
+            {
+                technicianCanvas.renderMode    = RenderMode.ScreenSpaceCamera;
+                technicianCanvas.worldCamera   = cam;
+                technicianCanvas.planeDistance = 1f;
+
+                // Desactivar raycastTarget en imágenes decorativas para que los clicks
+                // pasen al PhysicsRaycaster y lleguen a los DeskComponents 3D.
+                foreach (var img in technicianCanvas.GetComponentsInChildren<UnityEngine.UI.Image>(true))
+                {
+                    if (img.GetComponentInParent<UnityEngine.UI.Selectable>() == null)
+                        img.raycastTarget = false;
+                }
+            }
+
+            // PhysicsRaycaster enruta eventos de puntero del EventSystem a objetos 3D.
+            if (cam.GetComponent<PhysicsRaycaster>() == null)
+                cam.gameObject.AddComponent<PhysicsRaycaster>();
         }
 
         // Activar EventSystem para mouse
@@ -149,13 +209,36 @@ public class TechnicianController : MonoBehaviour
 
     void EnsureEventSystem()
     {
-        if (FindFirstObjectByType<EventSystem>() == null)
+        var es = FindFirstObjectByType<EventSystem>();
+
+#if ENABLE_INPUT_SYSTEM
+        if (es == null)
         {
             var esGO = new GameObject("EventSystem");
             esGO.AddComponent<EventSystem>();
-            esGO.AddComponent<StandaloneInputModule>();
-            Debug.Log("[TechnicianController] EventSystem creado automáticamente.");
+            esGO.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
+            Debug.Log("[TechnicianController] EventSystem creado con InputSystemUIInputModule.");
+            return;
         }
+
+        // Si ya existe un EventSystem pero tiene StandaloneInputModule, reemplazarlo.
+        // StandaloneInputModule no procesa teclado con New Input System activo,
+        // por eso TMP_InputField no responde al teclado.
+        var standalone = es.GetComponent<StandaloneInputModule>();
+        if (standalone != null)
+        {
+            Destroy(standalone);
+            if (es.GetComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>() == null)
+                es.gameObject.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
+            Debug.Log("[TechnicianController] StandaloneInputModule reemplazado por InputSystemUIInputModule.");
+        }
+#else
+        if (es != null) return;
+        var go = new GameObject("EventSystem");
+        go.AddComponent<EventSystem>();
+        go.AddComponent<StandaloneInputModule>();
+        Debug.Log("[TechnicianController] EventSystem creado con StandaloneInputModule.");
+#endif
     }
 
     // ─────────────────────────────────────────────

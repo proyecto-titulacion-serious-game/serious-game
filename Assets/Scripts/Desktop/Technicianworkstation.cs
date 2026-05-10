@@ -67,9 +67,14 @@ public class TechnicianWorkstation : MonoBehaviour
     void Start()
     {
         if (gameManager       == null) gameManager       = FindFirstObjectByType<GameManager>();
-        if (circuit           == null) circuit           = FindFirstObjectByType<CircuitManager>();
         if (manual            == null) manual            = FindFirstObjectByType<TechnicianManual>();
         if (technicianActions == null) technicianActions = FindFirstObjectByType<TechnicianActions>();
+
+        // circuit NO se busca aquí: con 4 CircuitManagers en escena FindFirstObjectByType
+        // devolvería el primero encontrado (posiblemente inactivo). OnLevelLoaded lo asigna
+        // desde gameManager.circuit, que siempre apunta al reto activo.
+        if (circuit == null && gameManager != null)
+            circuit = gameManager.circuit;
 
         CircuitManager.OnCircuitChanged += RefreshDiagnosticPanel;
         GameManager.OnLevelLoaded       += OnLevelLoaded;

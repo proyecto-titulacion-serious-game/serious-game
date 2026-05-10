@@ -106,6 +106,30 @@ public class TechnicianActions : MonoBehaviour
     }
 
     /// <summary>
+    /// Reconecta el cable suelto del ArduinoPin en la protoboard (Reto 4).
+    /// Asignar este método a un botón "Reconectar Cable" en el Inspector.
+    /// </summary>
+    public void FixLooseCable()
+    {
+        if (circuit == null) return;
+
+        foreach (var comp in circuit.components)
+        {
+            if (comp is ArduinoPin pin && pin.hasLooseCable)
+            {
+                pin.FixLooseCable();
+                circuit.MarkDirty();
+                gameManager?.RegisterRepairAction();
+                Debug.Log("[TechnicianActions] Cable suelto reconectado.");
+                return;
+            }
+        }
+
+        Debug.Log("[TechnicianActions] No se encontró cable suelto en el circuito activo.");
+        if (!demoMode) RegisterError("Acción reconectar cable sin cable suelto presente");
+    }
+
+    /// <summary>
     /// Repara la rama rota del circuito paralelo (Reto 2).
     /// </summary>
     public void FixParallelCircuit()

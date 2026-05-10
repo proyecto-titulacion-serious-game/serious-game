@@ -31,11 +31,35 @@ public class ManualBookOpener : MonoBehaviour
 
         _mpb = new MaterialPropertyBlock();
 
-        // Ocultar el manual al inicio
+        // Auto-buscar el overlay si no fue asignado en el Inspector
+        if (manualOverlay == null)
+        {
+            // Buscar un Canvas Screen Space Overlay en la escena que contenga
+            // TechnicianManualDisplay (así no se confunde con otros overlays)
+            var display = FindFirstObjectByType<TechnicianManualDisplay>();
+            if (display != null)
+                manualOverlay = display.gameObject;
+        }
+
         if (manualOverlay != null)
             manualOverlay.SetActive(false);
 
         SetColor(colorNormal);
+    }
+
+    void Update()
+    {
+        if (!isOpen) return;
+
+        // Escape cierra el manual — compatible con New Input System y legacy Input
+#if ENABLE_INPUT_SYSTEM
+        var kb = UnityEngine.InputSystem.Keyboard.current;
+        if (kb != null && kb.escapeKey.wasPressedThisFrame)
+            CloseManual();
+#else
+        if (Input.GetKeyDown(KeyCode.Escape))
+            CloseManual();
+#endif
     }
 
     /// <summary>Hover del mouse — brillo azul claro.</summary>

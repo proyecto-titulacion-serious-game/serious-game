@@ -33,14 +33,16 @@ public class ExplorerComponentReceiver : MonoBehaviour
 
     void OnEnable()
     {
-        GameSession.OnComponenteRecibido += HandleComponenteRecibido;
-        GameSession.OnRetoChanged        += HandleRetoChanged;
+        GameSession.OnComponenteRecibido          += HandleComponenteRecibido;
+        GameSession.OnRetoChanged                 += HandleRetoChanged;
+        ComponentSendingTray.OnComponentSentLocal += HandleComponenteRecibido;
     }
 
     void OnDisable()
     {
-        GameSession.OnComponenteRecibido -= HandleComponenteRecibido;
-        GameSession.OnRetoChanged        -= HandleRetoChanged;
+        GameSession.OnComponenteRecibido          -= HandleComponenteRecibido;
+        GameSession.OnRetoChanged                 -= HandleRetoChanged;
+        ComponentSendingTray.OnComponentSentLocal -= HandleComponenteRecibido;
     }
 
     // ─────────────────────────────────────────────
