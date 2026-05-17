@@ -240,32 +240,37 @@ public class GameManager : MonoBehaviour
         if (reto3Zone != null) reto3Zone.SetActive(level == LevelType.Mixed);    
         if (reto4Zone != null) reto4Zone.SetActive(level == LevelType.Arduino);
 
-        // NUEVO: Actualizar la referencia circuit al CircuitManager de la zona activa
+        // Actualizar la referencia circuit al CircuitManager de la zona activa.
+        // Se usa includeInactive:true porque la zona puede estar inactiva en jerarquía
+        // cuando esta función corre (padre GameZones desactivado al inicio).
         switch (level)
         {
             case LevelType.OhmLaw:
                 if (reto1Zone != null)
-                    circuit = reto1Zone.GetComponentInChildren<CircuitManager>();
+                    circuit = reto1Zone.GetComponentInChildren<CircuitManager>(true);
                 break;
             case LevelType.Parallel:
                 if (reto2Zone != null)
-                    circuit = reto2Zone.GetComponentInChildren<CircuitManager>();
+                    circuit = reto2Zone.GetComponentInChildren<CircuitManager>(true);
                 break;
-            case LevelType.Mixed:     // ← NUEVO
+            case LevelType.Mixed:
                 if (reto3Zone != null)
-                    circuit = reto3Zone.GetComponentInChildren<CircuitManager>();
+                    circuit = reto3Zone.GetComponentInChildren<CircuitManager>(true);
                 break;
-            case LevelType.Arduino:   // ← NUEVO
+            case LevelType.Arduino:
                 if (reto4Zone != null)
-                    circuit = reto4Zone.GetComponentInChildren<CircuitManager>();
+                    circuit = reto4Zone.GetComponentInChildren<CircuitManager>(true);
                 break;
         }
 
         if (circuit == null)
         {
-            Debug.LogError("[GameManager] No se encontró CircuitManager en la zona activa.");
+            Debug.LogError($"[GameManager] No se encontró CircuitManager en la zona activa ({level}). " +
+                           "Asegúrate de que cada zona tenga un CircuitManager hijo.");
             return;
         }
+
+        Debug.Log($"[GameManager] circuit reasignado → '{circuit.name}' (path={GetTransformPath(circuit.transform)}) en {level}");
 
         // Activar/desactivar COMPONENTES del circuito
         var allComponents = circuit.GetComponentsInChildren<ElectricalComponent>(true);
@@ -586,5 +591,12 @@ public class GameManager : MonoBehaviour
         if (reto2Zone == null) Debug.LogWarning("[GameManager] reto2Zone no asignado en el Inspector.");
         if (reto3Zone == null) Debug.LogWarning("[GameManager] reto3Zone no asignado en el Inspector.");
         if (reto4Zone == null) Debug.LogWarning("[GameManager] reto4Zone no asignado en el Inspector.");
+    }
+
+    static string GetTransformPath(Transform t)
+    {
+        string path = t.name;
+        while (t.parent != null) { t = t.parent; path = t.name + "/" + path; }
+        return path;
     }
 }

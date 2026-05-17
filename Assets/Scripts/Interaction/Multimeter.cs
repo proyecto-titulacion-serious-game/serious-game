@@ -141,21 +141,44 @@ public class Multimeter : MonoBehaviour
             Debug.Log($"    NodeInteractable '{ni.name}': nodeTarget={targetInfo}, multimeter={multInfo}");
         }
 
-        var cm = FindAnyObjectByType<CircuitManager>();
-        if (cm != null)
+        var gm = FindAnyObjectByType<GameManager>();
+        int gmCircuitID = -1;
+        if (gm != null)
         {
-            Debug.Log($"  CircuitManager '{cm.name}': components={cm.components.Count}, sourceVoltage={cm.sourceVoltage:F2} V, totalCurrent={cm.totalCurrent * 1000f:F2} mA, shortCircuit={cm.isShortCircuited}");
-            foreach (var comp in cm.components)
-            {
-                string nodeA = comp.nodeA != null ? $"{comp.nodeA.voltage:F2}V" : "null";
-                string nodeB = comp.nodeB != null ? $"{comp.nodeB.voltage:F2}V" : "null";
-                Debug.Log($"    {comp.GetType().Name} '{comp.name}': nodeA={nodeA}, nodeB={nodeB}, R={comp.GetResistance():F1}Ω");
-            }
+            gmCircuitID = gm.circuit != null ? gm.circuit.GetInstanceID() : -1;
+            string circuitInfo = gm.circuit != null
+                ? $"'{gm.circuit.name}' id={gmCircuitID} path={GetPath(gm.circuit.transform)}"
+                : "NULL ← CRÍTICO";
+            Debug.Log($"  GameManager '{gm.name}': circuit → {circuitInfo}");
+            Debug.Log($"  GameManager zonas: reto1={NullOrName(gm.reto1Zone)} | reto2={NullOrName(gm.reto2Zone)} | reto3={NullOrName(gm.reto3Zone)} | reto4={NullOrName(gm.reto4Zone)}");
         }
         else
         {
-            Debug.LogWarning("  CircuitManager NO encontrado en la escena.");
+            Debug.LogWarning("  GameManager NO encontrado en la escena.");
         }
+
+        var allCMs = FindObjectsByType<CircuitManager>(FindObjectsSortMode.None);
+        Debug.Log($"  CircuitManagers en escena: {allCMs.Length}");
+        foreach (var cm in allCMs)
+        {
+            bool isActive = cm.gameObject.activeInHierarchy;
+            bool isGmCircuit = cm.GetInstanceID() == gmCircuitID;
+            Debug.Log($"  ── CircuitManager '{cm.name}' id={cm.GetInstanceID()} {(isGmCircuit ? "← GameManager.circuit" : "")} " +
+                      $"path={GetPath(cm.transform)} activo={isActive} " +
+                      $"components={cm.components.Count} sourceVoltage={cm.sourceVoltage:F2} V " +
+                      $"totalCurrent={cm.totalCurrent * 1000f:F2} mA shortCircuit={cm.isShortCircuited}");
+            foreach (var comp in cm.components)
+            {
+                string nodeA = comp.nodeA != null ? $"'{comp.nodeA.name}'={comp.nodeA.voltage:F2}V" : "NULL ← no asignado";
+                string nodeB = comp.nodeB != null ? $"'{comp.nodeB.name}'={comp.nodeB.voltage:F2}V" : "NULL ← no asignado";
+                if (comp is VoltageSource vs)
+                    Debug.Log($"    VoltageSource '{comp.name}': voltage.field={vs.voltage:F2}V | nodeA={nodeA} | nodeB={nodeB}");
+                else
+                    Debug.Log($"    {comp.GetType().Name} '{comp.name}': nodeA={nodeA} | nodeB={nodeB} | R={comp.GetResistance():F1}Ω");
+            }
+        }
+        if (allCMs.Length == 0)
+            Debug.LogWarning("  CircuitManager NO encontrado en la escena.");
         Debug.Log("──────────────────────────────────────────────────");
     }
 
@@ -335,6 +358,15 @@ public class Multimeter : MonoBehaviour
     };
 
     static void Set(TMP_Text t, string s) { if (t) t.text = s; }
+
+    static string GetPath(Transform t)
+    {
+        string path = t.name;
+        while (t.parent != null) { t = t.parent; path = t.name + "/" + path; }
+        return path;
+    }
+
+    static string NullOrName(GameObject go) => go != null ? $"'{go.name}'" : "NULL ← asignar en Inspector";
 }
 
 // ──────────────────────────────────────────────────────────────────────────────

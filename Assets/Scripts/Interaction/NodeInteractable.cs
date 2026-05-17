@@ -174,29 +174,8 @@ public class NodeInteractable : MonoBehaviour
         return false;
     }
 
-    // ─────────────────────────────────────────────
-    //  Contacto físico — punta del multímetro entra en el nodo
-    // ─────────────────────────────────────────────
-
-    // Detectado desde el lado del nodo: la esfera trigger de la punta toca este collider.
-    void OnTriggerEnter(Collider other)
-    {
-        if (multimeter == null || nodeTarget == null) return;
-
-        var probe = other.GetComponent<MultimeterProbe>()
-                 ?? other.GetComponentInParent<MultimeterProbe>();
-        if (probe == null) return;
-
-        ProbeType resolved = probeType == ProbeType.Auto ? probe.probeType : probeType;
-        switch (resolved)
-        {
-            case ProbeType.Red:   multimeter.SetRedNode(nodeTarget);   break;
-            case ProbeType.Black: multimeter.SetBlackNode(nodeTarget); break;
-        }
-
-        SetColor(selectedColor);
-        Invoke(nameof(ResetColor), 0.5f);
-    }
+    // Contacto físico gestionado exclusivamente por MultimeterProbe.OnTriggerEnter
+    // (en la punta del multímetro). Tener detección en ambos lados causa doble asignación.
 
     // ─────────────────────────────────────────────
     //  Helpers
