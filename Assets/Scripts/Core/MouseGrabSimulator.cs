@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.XR.Management;
 
 /// <summary>
 /// Simula la mano VR del Explorador usando el mouse.
@@ -43,6 +44,14 @@ public class MouseGrabSimulator : MonoBehaviour
     [SerializeField] private GameObject _heldObject;
     [SerializeField] private bool _isHolding = false;
 
+    static bool IsXRActive()
+    {
+        // Check both legacy API and new XR Plugin Management
+        if (UnityEngine.XR.XRSettings.isDeviceActive) return true;
+        var mgr = XRGeneralSettings.Instance?.Manager;
+        return mgr != null && mgr.activeLoader != null;
+    }
+
     private Camera _cam;
     private Rigidbody _heldRb;
     private float _currentDistance;
@@ -59,6 +68,13 @@ public class MouseGrabSimulator : MonoBehaviour
 
     void Update()
     {
+        // Este simulador es SOLO para el Editor. En builds de Quest se deshabilita por completo.
+#if !UNITY_EDITOR
+        return;
+#endif
+        // En el Editor: tampoco corre si hay un runtime XR activo (Quest Link u otro).
+        if (IsXRActive()) return;
+
         HandleCameraMovement();
         HandleGrab();
         HandleScroll();
@@ -66,6 +82,9 @@ public class MouseGrabSimulator : MonoBehaviour
 
     void FixedUpdate()
     {
+#if !UNITY_EDITOR
+        return;
+#endif
         MoveHeldObject();
     }
 

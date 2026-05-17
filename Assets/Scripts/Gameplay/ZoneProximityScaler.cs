@@ -55,7 +55,6 @@ public class ZoneProximityScaler : MonoBehaviour
     // ─────────────────────────────────────────────
 
     private Vector3 _escalaOriginal;
-    private bool    _inicializado;
 
     // ─────────────────────────────────────────────
     //  Unity Lifecycle
@@ -68,8 +67,6 @@ public class ZoneProximityScaler : MonoBehaviour
 
         // Arrancar en tamaño mínimo
         transform.localScale = _escalaOriginal * factorMinimo;
-        _inicializado = true;
-
         BuscarJugador();
 
         // Validar distancias

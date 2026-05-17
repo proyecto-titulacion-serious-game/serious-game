@@ -14,13 +14,18 @@ permissions:
 jobs:
   build-and-docs:
     runs-on: self-hosted
+    env:
+      # Actualizar UNITY_EDITOR al cambiar de versión o runner.
+      # También se puede sobreescribir como variable de repositorio:
+      # Settings → Secrets and variables → Variables → UNITY_EDITOR_PATH
+      UNITY_EDITOR: ${{ vars.UNITY_EDITOR_PATH || '/home/mauros/Unity/Hub/Editor/6000.4.5f1/Editor/Unity' }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Build Unity (Windows)
         run: |
-          /home/mauros/Unity/Hub/Editor/6000.4.5f1/Editor/Unity \
+          "$UNITY_EDITOR" \
             -batchmode \
             -nographics \
             -silent-crashes \

@@ -54,6 +54,11 @@ public class GameSession : NetworkBehaviour
         Debug.Log($"[GameSession] Spawned. IsMine={Object.HasStateAuthority}  Reto={RetoActual}");
     }
 
+    public override void Despawned(NetworkRunner runner, bool hasState)
+    {
+        if (Instance == this) Instance = null;
+    }
+
     // ─────────────────────────────────────────────
     //  API del Técnico → Explorador
     // ─────────────────────────────────────────────

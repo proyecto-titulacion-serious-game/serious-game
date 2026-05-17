@@ -58,8 +58,8 @@ public class TechnicianManualDisplay : MonoBehaviour
     void Start()
     {
         // Auto-buscar referencias no asignadas en el Inspector
-        if (gameManager == null) gameManager = FindFirstObjectByType<GameManager>();
-        if (manual      == null) manual      = FindFirstObjectByType<TechnicianManual>();
+        if (gameManager == null) gameManager = FindAnyObjectByType<GameManager>();
+        if (manual      == null) manual      = FindAnyObjectByType<TechnicianManual>();
 
         if (gameManager == null)
             Debug.LogWarning("[TechnicianManualDisplay] GameManager no encontrado. " +

@@ -133,19 +133,16 @@ public class LED : ElectricalComponent
             _                     => colorOff
         };
 
-        ApplyColor(displayColor);
+        ApplyColor(displayColor, newState != LEDState.Off);
     }
 
-    /// <summary>
-    /// Aplica color con MaterialPropertyBlock — NO crea materiales nuevos.
-    /// </summary>
-    void ApplyColor(Color color)
+    void ApplyColor(Color color, bool emissive)
     {
         if (_renderer == null || _mpb == null) return;
 
         _renderer.GetPropertyBlock(_mpb);
         _mpb.SetColor(_colorID,    color);
-        _mpb.SetColor(_emissionID, color * (color == colorOff ? 0f : 1.5f));
+        _mpb.SetColor(_emissionID, emissive ? color * 1.5f : Color.black);
         _renderer.SetPropertyBlock(_mpb);
     }
 }

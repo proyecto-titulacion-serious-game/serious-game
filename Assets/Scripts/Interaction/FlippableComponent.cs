@@ -61,7 +61,7 @@ public class FlippableComponent : MonoBehaviour
         _mpb          = new MaterialPropertyBlock();
 
         if (playerInteraction == null)
-            playerInteraction = FindFirstObjectByType<PlayerInteraction>();
+            playerInteraction = FindAnyObjectByType<PlayerInteraction>();
     }
 
     void OnEnable()  => _interactable.selectEntered.AddListener(OnFlip);

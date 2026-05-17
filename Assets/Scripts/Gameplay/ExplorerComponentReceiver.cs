@@ -31,6 +31,28 @@ public class ExplorerComponentReceiver : MonoBehaviour
     //  Lifecycle
     // ─────────────────────────────────────────────
 
+    void Awake()
+    {
+        // Auto-asignar ComponentDeliverySystem y copiar sus prefabs si faltan
+        if (delivery == null)
+            delivery = FindAnyObjectByType<ComponentDeliverySystem>();
+
+        if (delivery != null)
+        {
+            if (resistorPrefab   == null) resistorPrefab   = delivery.resistorPrefab;
+            if (ledPrefab        == null) ledPrefab        = delivery.ledPrefab;
+            if (capacitorPrefab  == null) capacitorPrefab  = delivery.capacitorPrefab;
+            if (arduinoPinPrefab == null) arduinoPinPrefab = delivery.arduinoPinPrefab;
+        }
+
+        // Auto-asignar punto de entrega desde el Toolbox si no está asignado
+        if (puntoDeEntrega == null)
+        {
+            var toolbox = FindAnyObjectByType<ToolboxController>();
+            if (toolbox != null) puntoDeEntrega = toolbox.GetComponentSlot();
+        }
+    }
+
     void OnEnable()
     {
         GameSession.OnComponenteRecibido          += HandleComponenteRecibido;

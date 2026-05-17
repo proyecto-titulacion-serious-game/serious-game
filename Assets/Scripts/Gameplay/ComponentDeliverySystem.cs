@@ -52,6 +52,26 @@ public class ComponentDeliverySystem : MonoBehaviour
     // ─────────────────────────────────────────────
     //  Unity Lifecycle
     // ─────────────────────────────────────────────
+    void Awake()
+    {
+        if (gameManager == null)
+            gameManager = FindAnyObjectByType<GameManager>();
+
+        if (puntoDeEntrega == null)
+        {
+            var tray = GameObject.Find("Bandeja_Recepcion");
+            if (tray != null)
+            {
+                puntoDeEntrega = tray.transform;
+            }
+            else
+            {
+                var toolbox = FindAnyObjectByType<ToolboxController>();
+                if (toolbox != null) puntoDeEntrega = toolbox.GetComponentSlot();
+            }
+        }
+    }
+
     void OnEnable()  { GameManager.OnLevelLoaded += OnLevelLoaded; }
     void OnDisable() { GameManager.OnLevelLoaded -= OnLevelLoaded; }
 

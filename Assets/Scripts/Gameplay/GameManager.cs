@@ -342,6 +342,9 @@ public class GameManager : MonoBehaviour
             }
         }
 
+        if (circuit.FindCircuitComponent<Resistor>() == null)
+            Debug.LogWarning("[GameManager] SetupReto1: no hay Resistor en circuit.components — la falla no se aplicó. Revisa la escena.");
+
         OnFaultDetected?.Invoke(
             "Reto 1: La resistencia tiene valor incorrecto.\n" +
             "El Técnico debe calcular el valor correcto usando Ley de Ohm.");
@@ -350,15 +353,14 @@ public class GameManager : MonoBehaviour
     void CheckReto1()
     {
         if (!_repairPerformed) return;
- 
+
         foreach (var comp in circuit.components)
         {
             if (comp is Resistor r)
             {
-                // Verificar que la resistencia fue reparada Y tiene el valor correcto
                 bool valorCorrecto = Mathf.Abs(r.resistance - RETO1_CORRECT_RESISTANCE)
                                      <= RETO1_TOLERANCE;
- 
+
                 if (!r.hasFault && valorCorrecto)
                 {
                     CompleteLevel(true);
@@ -366,7 +368,6 @@ public class GameManager : MonoBehaviour
                 }
                 else if (!r.hasFault && !valorCorrecto)
                 {
-                    // Instaló algo pero no es el valor correcto → error educativo
                     RegisterWrongAttempt($"Resistencia incorrecta: {r.resistance:F0}Ω (correcto: {RETO1_CORRECT_RESISTANCE}Ω)");
                     OnFaultDetected?.Invoke(
                         $"Valor incorrecto: {r.resistance:F0} Ω\n" +
@@ -376,6 +377,8 @@ public class GameManager : MonoBehaviour
                 return; // Solo hay un resistor en Reto 1
             }
         }
+
+        Debug.LogWarning("[GameManager] CheckReto1: no hay Resistor en circuit.components — condición de victoria inaccesible. Revisa la escena.");
     }
 
     // ─────────────────────────────────────────────
@@ -436,7 +439,7 @@ public class GameManager : MonoBehaviour
             }
             if (comp is Capacitor cap)
             {
-                cap.polarityInverted = true;   // ← era: cap.SetPolarityInverted(true)
+                cap.polarityInverted = true;
             }
             if (comp is Resistor r)
             {
@@ -446,43 +449,11 @@ public class GameManager : MonoBehaviour
             }
         }
 
-        SetupMixedNodeVoltages();
-
         OnFaultDetected?.Invoke(
             "Reto 3: 3 fallas simultáneas.\n" +
             "1) LED con polaridad invertida\n" +
             "2) Capacitor con polaridad invertida\n" +
             "3) Resistencia con código de colores erróneo");
-    }
-
-    void SetupMixedNodeVoltages()
-    {
-        VoltageSource source   = null;
-        Resistor      resistor = null;
-
-        foreach (var comp in circuit.components)
-        {
-            if (comp is VoltageSource vs) source   = vs;
-            if (comp is Resistor r)       resistor = r;
-        }
-
-        if (source == null || resistor == null) return;
-
-        float V = source.voltage;
-        float I = V / (resistor.GetResistance() + 50f);
-        float vAfterR = V - I * resistor.GetResistance();
-
-        if (resistor.nodeA != null) resistor.nodeA.voltage = V;
-        if (resistor.nodeB != null) resistor.nodeB.voltage = vAfterR;
-
-        foreach (var comp in circuit.components)
-        {
-            if (comp is LED || comp is Capacitor)
-            {
-                if (comp.nodeA != null) comp.nodeA.voltage = vAfterR;
-                if (comp.nodeB != null) comp.nodeB.voltage = 0f;
-            }
-        }
     }
 
     void CheckReto3()

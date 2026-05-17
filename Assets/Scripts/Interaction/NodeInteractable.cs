@@ -45,6 +45,9 @@ public class NodeInteractable : MonoBehaviour
     private MaterialPropertyBlock _mpb;
     private static readonly int _colorID = Shader.PropertyToID("_BaseColor");
 
+    // Radio de búsqueda para auto-detección de nodeTarget por proximidad
+    private const float AUTO_DETECT_RADIUS = 0.5f;
+
     // ─────────────────────────────────────────────
     //  Unity Lifecycle
     // ─────────────────────────────────────────────
@@ -59,9 +62,42 @@ public class NodeInteractable : MonoBehaviour
         if (nodeRenderer != null)
             _originalColor = nodeRenderer.sharedMaterial.color;
 
-        // Auto-buscar el multímetro si no se asignó en inspector
-        if (multimeter == null)
-            multimeter = FindFirstObjectByType<Multimeter>();
+        if (multimeter == null || !multimeter.gameObject.activeInHierarchy)
+            multimeter = FindAnyObjectByType<Multimeter>();
+    }
+
+    void Start()
+    {
+        if (nodeTarget != null) return;
+
+        // 1. Mismo GO o hijos
+        nodeTarget = GetComponent<ElectricalNode>()
+                  ?? GetComponentInChildren<ElectricalNode>(true);
+
+        if (nodeTarget != null)
+        {
+            Debug.Log($"[NodeInteractable] '{name}': nodeTarget auto-detectado en '{nodeTarget.name}'.");
+            return;
+        }
+
+        // 2. ElectricalNode más cercano dentro del radio
+        float minDist = AUTO_DETECT_RADIUS;
+        foreach (var n in FindObjectsByType<ElectricalNode>(FindObjectsSortMode.None))
+        {
+            float d = Vector3.Distance(transform.position, n.transform.position);
+            if (d < minDist) { minDist = d; nodeTarget = n; }
+        }
+
+        if (nodeTarget != null)
+        {
+            Debug.LogWarning($"[NodeInteractable] '{name}': nodeTarget auto-detectado por proximidad → '{nodeTarget.name}' ({minDist:F3} m). " +
+                             "Asigna el ElectricalNode manualmente en el Inspector para mayor fiabilidad.");
+        }
+        else
+        {
+            Debug.LogError($"[NodeInteractable] '{name}': nodeTarget no asignado y no se encontró ningún ElectricalNode a menos de {AUTO_DETECT_RADIUS} m. " +
+                           "El multímetro no podrá medir en este nodo. Asígnalo en el Inspector.");
+        }
     }
 
     void OnEnable()
@@ -88,7 +124,16 @@ public class NodeInteractable : MonoBehaviour
 
     void OnSelectEnter(SelectEnterEventArgs args)
     {
-        if (multimeter == null || nodeTarget == null) return;
+        if (multimeter == null)
+        {
+            Debug.LogWarning($"[NodeInteractable] '{name}': multimeter es null. Verifica que Multimeter_VR está en la escena activa.");
+            return;
+        }
+        if (nodeTarget == null)
+        {
+            Debug.LogWarning($"[NodeInteractable] '{name}': nodeTarget es null. Asigna el ElectricalNode correspondiente en el Inspector.");
+            return;
+        }
 
         SetColor(selectedColor);
 
@@ -127,6 +172,30 @@ public class NodeInteractable : MonoBehaviour
         }
 
         return false;
+    }
+
+    // ─────────────────────────────────────────────
+    //  Contacto físico — punta del multímetro entra en el nodo
+    // ─────────────────────────────────────────────
+
+    // Detectado desde el lado del nodo: la esfera trigger de la punta toca este collider.
+    void OnTriggerEnter(Collider other)
+    {
+        if (multimeter == null || nodeTarget == null) return;
+
+        var probe = other.GetComponent<MultimeterProbe>()
+                 ?? other.GetComponentInParent<MultimeterProbe>();
+        if (probe == null) return;
+
+        ProbeType resolved = probeType == ProbeType.Auto ? probe.probeType : probeType;
+        switch (resolved)
+        {
+            case ProbeType.Red:   multimeter.SetRedNode(nodeTarget);   break;
+            case ProbeType.Black: multimeter.SetBlackNode(nodeTarget); break;
+        }
+
+        SetColor(selectedColor);
+        Invoke(nameof(ResetColor), 0.5f);
     }
 
     // ─────────────────────────────────────────────

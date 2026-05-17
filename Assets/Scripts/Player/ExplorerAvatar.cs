@@ -58,6 +58,27 @@ public class ExplorerAvatar : MonoBehaviour
     {
         _cc = GetComponent<CharacterController>();
 
+        if (xrCamera == null)
+        {
+            Camera cam = Camera.main ?? FindAnyObjectByType<Camera>();
+            if (cam != null)
+            {
+                xrCamera = cam.transform;
+                Debug.Log($"[ExplorerAvatar] xrCamera auto-encontrada: {xrCamera.name}");
+            }
+        }
+
+        if (avatarRoot == null)
+        {
+            GameObject robot = GameObject.Find("RobotKyle_Explorer")
+                            ?? GameObject.Find("RobotKyle");
+            if (robot != null)
+            {
+                avatarRoot = robot.transform;
+                Debug.Log($"[ExplorerAvatar] avatarRoot auto-encontrado: {avatarRoot.name}");
+            }
+        }
+
         if (avatarAnimator == null && avatarRoot != null)
             avatarAnimator = avatarRoot.GetComponentInChildren<Animator>();
     }

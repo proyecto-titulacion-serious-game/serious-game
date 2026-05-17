@@ -209,7 +209,7 @@ public class TechnicianController : MonoBehaviour
 
     void EnsureEventSystem()
     {
-        var es = FindFirstObjectByType<EventSystem>();
+        var es = FindAnyObjectByType<EventSystem>();
 
 #if ENABLE_INPUT_SYSTEM
         if (es == null)

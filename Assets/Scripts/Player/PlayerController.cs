@@ -1,4 +1,6 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.XR;
 using UnityEngine.XR.Interaction.Toolkit;   // Requiere: com.unity.xr.interaction.toolkit
 
 /// <summary>
@@ -23,11 +25,10 @@ public class PlayerController : MonoBehaviour
     // ─────────────────────────────────────────────
     [Header("Modo de locomocion")]
     [Tooltip("True = caminadora KAT VR.  False = joystick Meta Quest (fallback).")]
-    public bool useKatVR = false;
+    public bool useKatVR = true;
 
-    [Header("Velocidad (joystick fallback)")]
+    [Header("Velocidad (joystick VR)")]
     public float walkSpeed = 2.0f;
-    public float turnSpeed = 60.0f;
 
     [Header("KAT VR")]
     [Tooltip("Numero de serie del dispositivo. Dejar vacio para detectar automaticamente.")]
@@ -40,6 +41,10 @@ public class PlayerController : MonoBehaviour
     public Transform xrRig;
     [Tooltip("Camara principal del visor (hijo de XR Origin).")]
     public Camera headCamera;
+
+    [Header("Input Actions (New Input System)")]
+    [Tooltip("Accion de movimiento del joystick izquierdo (Vector2). Asignar desde InputSystem_Actions.")]
+    public InputActionReference moveAction;
 
     [Header("Interaccion")]
     public PlayerInteraction interaction;
@@ -63,10 +68,34 @@ public class PlayerController : MonoBehaviour
     void Awake()
     {
         _cc = GetComponent<CharacterController>();
+        _lastKatPosition = transform.position;
+
+        if (headCamera == null)
+            headCamera = Camera.main;
+    }
+
+    void OnEnable()
+    {
+        moveAction?.action.Enable();
+    }
+
+    void OnDisable()
+    {
+        moveAction?.action.Disable();
     }
 
     void Start()
     {
+#if !UNITY_EDITOR
+        // En builds finales el Explorador requiere headset VR activo.
+        if (!XRSettings.isDeviceActive)
+        {
+            Debug.LogError("[PlayerController] No hay dispositivo XR activo. " +
+                           "El Explorador requiere Meta Quest 3.");
+            enabled = false;
+            return;
+        }
+#endif
         if (useKatVR) InitKatVR();
     }
 
@@ -135,6 +164,13 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
+        // Fallback si el SDK devuelve deviceDatas vacío (estado transitorio de reconexión)
+        if (data.deviceDatas == null || data.deviceDatas.Length == 0)
+        {
+            HandleJoystickLocomotion();
+            return;
+        }
+
         // Calibracion: el boton del sensor sincroniza cuerpo<->visor (estandar del SDK)
         if (data.deviceDatas[0].btnPressed)
         {
@@ -171,16 +207,20 @@ public class PlayerController : MonoBehaviour
 
     void HandleJoystickLocomotion()
     {
-        float horizontal = Input.GetAxis("Horizontal");
-        float vertical   = Input.GetAxis("Vertical");
+        if (headCamera == null)
+        {
+            headCamera = Camera.main;
+            if (headCamera == null) return;
+        }
 
-        Transform cam = headCamera != null ? headCamera.transform : Camera.main?.transform;
-        if (cam == null) return;
+        Vector2 stick = moveAction != null
+            ? moveAction.action.ReadValue<Vector2>()
+            : Vector2.zero;
 
-        Vector3 forward = Vector3.ProjectOnPlane(cam.forward, Vector3.up).normalized;
-        Vector3 right   = Vector3.ProjectOnPlane(cam.right,   Vector3.up).normalized;
+        Vector3 forward = Vector3.ProjectOnPlane(headCamera.transform.forward, Vector3.up).normalized;
+        Vector3 right   = Vector3.ProjectOnPlane(headCamera.transform.right,   Vector3.up).normalized;
 
-        Vector3 moveDir = (forward * vertical + right * horizontal).normalized;
+        Vector3 moveDir = (forward * stick.y + right * stick.x).normalized;
         _cc.Move(moveDir * walkSpeed * Time.deltaTime);
     }
 

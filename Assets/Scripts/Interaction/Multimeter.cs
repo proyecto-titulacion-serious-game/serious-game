@@ -87,6 +87,7 @@ public class Multimeter : MonoBehaviour
         _grab = GetComponent<XRGrabInteractable>();
         _grab.selectEntered.AddListener(OnGrabbed);
         _grab.selectExited.AddListener(OnReleased);
+        _indicatorMpb = new MaterialPropertyBlock();
     }
 
     void Update()
@@ -115,6 +116,47 @@ public class Multimeter : MonoBehaviour
         SetIndicator(indicatorBlack, node != null);
         SendHaptic();
         Debug.Log($"[Multimeter] Punta negra → {node?.gameObject.name} ({node?.voltage:F2}V)");
+    }
+
+    /// <summary>
+    /// Diagnóstico completo — clic derecho en el script en el Inspector → "Diagnosticar Lectura".
+    /// Funciona en Play Mode.
+    /// </summary>
+    [ContextMenu("Diagnosticar Lectura")]
+    public void DiagnosticarLectura()
+    {
+        Debug.Log("──────────── [Multimeter] DIAGNÓSTICO ────────────");
+        Debug.Log($"  Punta roja  (_nodeRed):   {(_nodeRed   != null ? $"'{_nodeRed.name}' → {_nodeRed.voltage:F3} V"   : "NULL ← no asignada")}");
+        Debug.Log($"  Punta negra (_nodeBlack): {(_nodeBlack != null ? $"'{_nodeBlack.name}' → {_nodeBlack.voltage:F3} V" : "NULL ← no asignada")}");
+        Debug.Log($"  Leyendo: {_isReading}  |  Voltaje medido: {_measuredVoltage:F3} V  |  Corriente: {_measuredCurrent * 1000f:F2} mA");
+
+        var nodeInteractables = FindObjectsByType<NodeInteractable>(FindObjectsSortMode.None);
+        Debug.Log($"  NodeInteractables en escena: {nodeInteractables.Length}");
+        foreach (var ni in nodeInteractables)
+        {
+            string targetInfo = ni.nodeTarget != null
+                ? $"'{ni.nodeTarget.name}' → {ni.nodeTarget.voltage:F3} V"
+                : "nodeTarget = NULL ← ASIGNAR EN INSPECTOR";
+            string multInfo = ni.multimeter != null ? $"'{ni.multimeter.name}'" : "NULL";
+            Debug.Log($"    NodeInteractable '{ni.name}': nodeTarget={targetInfo}, multimeter={multInfo}");
+        }
+
+        var cm = FindAnyObjectByType<CircuitManager>();
+        if (cm != null)
+        {
+            Debug.Log($"  CircuitManager '{cm.name}': components={cm.components.Count}, sourceVoltage={cm.sourceVoltage:F2} V, totalCurrent={cm.totalCurrent * 1000f:F2} mA, shortCircuit={cm.isShortCircuited}");
+            foreach (var comp in cm.components)
+            {
+                string nodeA = comp.nodeA != null ? $"{comp.nodeA.voltage:F2}V" : "null";
+                string nodeB = comp.nodeB != null ? $"{comp.nodeB.voltage:F2}V" : "null";
+                Debug.Log($"    {comp.GetType().Name} '{comp.name}': nodeA={nodeA}, nodeB={nodeB}, R={comp.GetResistance():F1}Ω");
+            }
+        }
+        else
+        {
+            Debug.LogWarning("  CircuitManager NO encontrado en la escena.");
+        }
+        Debug.Log("──────────────────────────────────────────────────");
     }
 
     /// <summary>Reinicia ambas puntas (llamado por GameManager al cargar nivel).</summary>
@@ -247,13 +289,15 @@ public class Multimeter : MonoBehaviour
 
     static readonly Color _colorAssigned = new Color(0.2f, 0.85f, 0.3f); // verde
     static readonly Color _colorIdle     = new Color(0.4f, 0.4f,  0.4f); // gris
+    static readonly int   _baseColorID   = Shader.PropertyToID("_BaseColor");
+    private MaterialPropertyBlock _indicatorMpb;
 
     void SetIndicator(Renderer r, bool assigned)
     {
         if (r == null) return;
-        var mpb = new MaterialPropertyBlock();
-        mpb.SetColor("_BaseColor", assigned ? _colorAssigned : _colorIdle);
-        r.SetPropertyBlock(mpb);
+        r.GetPropertyBlock(_indicatorMpb);
+        _indicatorMpb.SetColor(_baseColorID, assigned ? _colorAssigned : _colorIdle);
+        r.SetPropertyBlock(_indicatorMpb);
     }
 
     // ─────────────────────────────────────────────

@@ -8,7 +8,7 @@ using UnityEngine.SceneManagement;
 public class ConnectionManager : MonoBehaviour, INetworkRunnerCallbacks
 {
     [Header("Configuración de Red")]
-    [SerializeField] private NetworkPrefabRef playerPrefab;
+    [SerializeField] private NetworkPrefabRef playerPrefab = default;
 
     public enum AutoConnectRole { Ninguno, Explorador, Tecnico }
 
@@ -18,8 +18,21 @@ public class ConnectionManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private NetworkRunner _runner;
 
+    [Header("Modo Offline")]
+    [Tooltip("Si está activo, omite Fusion y activa el entorno local directamente (útil para testing sin red).")]
+    public bool modoOffline = false;
+
+    [Tooltip("GO 'Entorno del explorador' a activar en modo offline. Si queda vacío se busca por nombre.")]
+    public GameObject entornoExplorador;
+
     private void Start()
     {
+        if (modoOffline)
+        {
+            ActivarEntornoLocal();
+            return;
+        }
+
         // Conexión automática para la escena del Explorador
         if (rolAutomatico == AutoConnectRole.Explorador)
         {
@@ -32,6 +45,34 @@ public class ConnectionManager : MonoBehaviour, INetworkRunnerCallbacks
             Debug.Log("[Red] Creando servidor automáticamente como Técnico...");
             StartSimulation(GameMode.Host);
         }
+    }
+
+    void ActivarEntornoLocal()
+    {
+        if (entornoExplorador == null)
+            entornoExplorador = BuscarIncluyendoInactivos("Entorno del explorador");
+
+        if (entornoExplorador != null)
+        {
+            entornoExplorador.SetActive(true);
+            Debug.Log("[Red] Modo offline: 'Entorno del explorador' activado localmente.");
+        }
+        else
+        {
+            Debug.LogWarning("[Red] Modo offline: no se encontró 'Entorno del explorador'. Asígnalo en el Inspector.");
+        }
+    }
+
+    static GameObject BuscarIncluyendoInactivos(string nombre)
+    {
+        // GameObject.Find() omite objetos inactivos; hay que iterar la jerarquía manualmente
+        foreach (var root in UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects())
+        {
+            if (root.name == nombre) return root;
+            var child = root.transform.Find(nombre);
+            if (child != null) return child.gameObject;
+        }
+        return null;
     }
 
     public async void StartSimulation(GameMode mode)
@@ -53,14 +94,19 @@ public class ConnectionManager : MonoBehaviour, INetworkRunnerCallbacks
             // Fusion sincroniza objetos de red pero NO carga/descarga escenas.
         });
 
-        // 2. Si eres el Técnico (Host), inicializamos el sistema de entrega
+        // 2. Si eres el Host (Técnico), spawnear la GameSession compartida en la red
         if (mode == GameMode.Host || mode == GameMode.Server)
         {
-            var deliverySystem = FindFirstObjectByType<ComponentDeliverySystemBackup>();
-            if (deliverySystem != null)
+            var sessionPrefab = Resources.Load<NetworkObject>("GameSession");
+            if (sessionPrefab != null)
             {
-                deliverySystem.InicializarManual(_runner);
-                Debug.Log("[Red] Sistema de entrega conectado al NetworkRunner.");
+                _runner.Spawn(sessionPrefab, Vector3.zero, Quaternion.identity);
+                Debug.Log("[Red] GameSession spawneada en la red.");
+            }
+            else
+            {
+                Debug.LogWarning("[Red] Prefab 'GameSession' no encontrado en Resources/. " +
+                                 "Coloca el prefab en Assets/Resources/GameSession.prefab con NetworkObject.");
             }
         }
     }

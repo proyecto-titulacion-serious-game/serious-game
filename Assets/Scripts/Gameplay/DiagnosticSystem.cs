@@ -22,10 +22,10 @@ public class DiagnosticSystem
     public string GetDiagnosis(List<ElectricalComponent> components, float totalCurrent)
     {
         if (components == null || components.Count == 0)
-            return "⚠ Sin componentes en el circuito.";
+            return "[!] Sin componentes en el circuito.";
 
         if (totalCurrent <= 0f)
-            return "⚠ Sin corriente. Verifica conexiones y fuente de voltaje.";
+            return "[!] Sin corriente. Verifica conexiones y fuente de voltaje.";
 
         var sb = new StringBuilder();
 
@@ -36,36 +36,36 @@ public class DiagnosticSystem
             {
                 if (led.polarityInverted)
                 {
-                    sb.AppendLine("🔴 LED con polaridad invertida → apagado.");
-                    sb.AppendLine("   Indica al Explorador girar el LED 180°.");
+                    sb.AppendLine("[X] LED con polaridad invertida -> apagado.");
+                    sb.AppendLine("   Indica al Explorador girar el LED 180.");
                     continue;
                 }
 
                 if (!led.isOn)
                 {
-                    sb.AppendLine("⚫ LED apagado — corriente insuficiente.");
+                    sb.AppendLine("[.] LED apagado -- corriente insuficiente.");
                     sb.AppendLine($"   Corriente actual: {led.current * 1000f:F1} mA");
-                    sb.AppendLine("   Mínimo para encender: 5 mA");
+                    sb.AppendLine("   Minimo para encender: 5 mA");
                     continue;
                 }
 
                 switch (led.state)
                 {
                     case LEDState.Overload:
-                        sb.AppendLine("🔴 LED en SOBRECARGA — resistencia demasiado baja.");
-                        sb.AppendLine($"   Corriente: {led.current * 1000f:F1} mA (máx. seguro: 20 mA)");
+                        sb.AppendLine("[X] LED en SOBRECARGA -- resistencia demasiado baja.");
+                        sb.AppendLine($"   Corriente: {led.current * 1000f:F1} mA (max. seguro: 20 mA)");
                         float rNeed = (led.nodeA != null ? led.nodeA.voltage : 9f) / 0.01f;
-                        sb.AppendLine($"   R necesaria ≈ {rNeed:F0} Ω");
+                        sb.AppendLine($"   R necesaria aprox {rNeed:F0} Ohm");
                         break;
 
                     case LEDState.NearOverload:
-                        sb.AppendLine("🟡 LED cerca del límite.");
+                        sb.AppendLine("[~] LED cerca del limite.");
                         sb.AppendLine($"   Corriente: {led.current * 1000f:F1} mA");
                         break;
 
                     case LEDState.Correct:
-                        sb.AppendLine("🟢 LED funcionando correctamente.");
-                        sb.AppendLine($"   Corriente: {led.current * 1000f:F1} mA ✓");
+                        sb.AppendLine("[OK] LED funcionando correctamente.");
+                        sb.AppendLine($"   Corriente: {led.current * 1000f:F1} mA");
                         break;
                 }
             }
@@ -75,9 +75,9 @@ public class DiagnosticSystem
             {
                 if (r.hasFault)
                 {
-                    sb.AppendLine($"⚠ Resistencia INCORRECTA: {r.resistance:F0} Ω");
-                    sb.AppendLine($"   Valor correcto: {r.correctResistance:F0} Ω");
-                    sb.AppendLine($"   Código de colores correcto: {r.GetColorBandString()}");
+                    sb.AppendLine($"[!] Resistencia INCORRECTA: {r.resistance:F0} Ohm");
+                    sb.AppendLine($"   Valor correcto: {r.correctResistance:F0} Ohm");
+                    sb.AppendLine($"   Codigo de colores correcto: {r.GetColorBandString()}");
                 }
             }
 
@@ -88,13 +88,13 @@ public class DiagnosticSystem
                 {
                     if (cap.state == CapacitorState.ShortCircuit)
                     {
-                        sb.AppendLine("🔴 Capacitor en CORTOCIRCUITO — polaridad invertida.");
+                        sb.AppendLine("[X] Capacitor en CORTOCIRCUITO -- polaridad invertida.");
                         sb.AppendLine("   PRIORIDAD 1: girar el capacitor inmediatamente.");
                     }
                     else
                     {
-                        sb.AppendLine("⚠ Capacitor con polaridad invertida.");
-                        sb.AppendLine("   Indica al Explorador girar el capacitor 180°.");
+                        sb.AppendLine("[!] Capacitor con polaridad invertida.");
+                        sb.AppendLine("   Indica al Explorador girar el capacitor 180.");
                     }
                 }
             }
@@ -104,18 +104,18 @@ public class DiagnosticSystem
             {
                 if (pin.hasFault)
                 {
-                    sb.AppendLine($"⚠ Sensor en pin D{pin.pinNumber} — incorrecto.");
+                    sb.AppendLine($"[!] Sensor en pin D{pin.pinNumber} -- incorrecto.");
                     sb.AppendLine($"   Pin correcto: D{pin.correctPinNumber}");
                 }
                 if (pin.hasLooseCable)
                 {
-                    sb.AppendLine("⚠ Cable suelto detectado en protoboard.");
+                    sb.AppendLine("[!] Cable suelto detectado en protoboard.");
                     sb.AppendLine("   Indica al Explorador reconectar el cable.");
                 }
             }
         }
 
-        return sb.Length > 0 ? sb.ToString().TrimEnd() : "✓ Circuito sin fallas detectadas.";
+        return sb.Length > 0 ? sb.ToString().TrimEnd() : "OK Circuito sin fallas detectadas.";
     }
 
     // ─────────────────────────────────────────────
@@ -132,7 +132,7 @@ public class DiagnosticSystem
             return "Sin datos.";
 
         var sb = new StringBuilder();
-        sb.AppendLine("── ANÁLISIS DETALLADO ──");
+        sb.AppendLine("-- ANALISIS DETALLADO --");
 
         float sourceVoltage = 0f;
 
@@ -145,46 +145,45 @@ public class DiagnosticSystem
             }
             else if (comp is Resistor r)
             {
-                sb.AppendLine($"Resistencia: {r.resistance:F0} Ω {(r.hasFault ? "⚠ FALLA" : "✓")}");
+                sb.AppendLine($"Resistencia: {r.resistance:F0} Ohm {(r.hasFault ? "[!] FALLA" : "OK")}");
                 if (r.hasFault)
-                    sb.AppendLine($"  Correcto:  {r.correctResistance:F0} Ω");
+                    sb.AppendLine($"  Correcto:  {r.correctResistance:F0} Ohm");
 
                 float vDrop = comp.current * r.resistance;
-                sb.AppendLine($"  Caída V:   {vDrop:F2} V");
+                sb.AppendLine($"  Caida V:   {vDrop:F2} V");
                 sb.AppendLine($"  Corriente: {comp.current * 1000f:F1} mA");
             }
             else if (comp is LED led)
             {
                 sb.AppendLine($"LED:         {(led.isOn ? "ENCENDIDO" : "APAGADO")} {GetLEDStateIcon(led.state)}");
                 sb.AppendLine($"  Corriente: {led.current * 1000f:F1} mA");
-                sb.AppendLine($"  Caída V:   {led.voltageDrop:F2} V");
+                sb.AppendLine($"  Caida V:   {led.voltageDrop:F2} V");
 
                 if (led.polarityInverted)
-                    sb.AppendLine("  ⚠ Polaridad INVERTIDA");
+                    sb.AppendLine("  [!] Polaridad INVERTIDA");
             }
             else if (comp is Capacitor cap)
             {
-                sb.AppendLine($"Capacitor:   {(cap.polarityInverted ? "⚠ INVERTIDO" : "✓ OK")}");
+                sb.AppendLine($"Capacitor:   {(cap.polarityInverted ? "[!] INVERTIDO" : "OK")}");
                 sb.AppendLine($"  Estado:    {cap.state}");
             }
             else if (comp is ArduinoPin pin)
             {
-                sb.AppendLine($"Arduino D{pin.pinNumber}: {(pin.hasFault ? $"⚠ Pin incorrecto (correcto: D{pin.correctPinNumber})" : "✓ OK")}");
+                sb.AppendLine($"Arduino D{pin.pinNumber}: {(pin.hasFault ? $"[!] Pin incorrecto (correcto: D{pin.correctPinNumber})" : "OK")}");
                 if (pin.hasLooseCable)
-                    sb.AppendLine("  ⚠ Cable suelto");
+                    sb.AppendLine("  [!] Cable suelto");
             }
         }
 
-        sb.AppendLine($"────────────────────");
+        sb.AppendLine($"--------------------");
         sb.AppendLine($"I total:     {totalCurrent * 1000f:F1} mA");
 
-        // Evaluación de corriente
         if (totalCurrent > 0.1f)
-            sb.AppendLine("Estado:      ⚠ SOBRECARGA");
+            sb.AppendLine("Estado:      [!] SOBRECARGA");
         else if (totalCurrent > 0.005f && totalCurrent <= 0.02f)
-            sb.AppendLine("Estado:      ✓ CORRECTO");
+            sb.AppendLine("Estado:      OK CORRECTO");
         else if (totalCurrent > 0)
-            sb.AppendLine("Estado:      ⚠ Fuera de rango");
+            sb.AppendLine("Estado:      [!] Fuera de rango");
 
         return sb.ToString().TrimEnd();
     }
@@ -203,11 +202,11 @@ public class DiagnosticSystem
         // Prioridad 1: Capacitor en cortocircuito
         foreach (var comp in components)
             if (comp is Capacitor cap && cap.polarityInverted && cap.state == CapacitorState.ShortCircuit)
-                return "🚨 URGENTE: Di al Explorador que gire el capacitor 180°.";
+                return "[!!] URGENTE: Di al Explorador que gire el capacitor 180.";
 
         // Prioridad 2: Sin corriente
         if (totalCurrent <= 0f)
-            return "Di al Explorador que verifique que todos los cables están conectados.";
+            return "Di al Explorador que verifique que todos los cables estan conectados.";
 
         // Prioridad 3: LED en sobrecarga
         foreach (var comp in components)
@@ -215,26 +214,25 @@ public class DiagnosticSystem
             {
                 float vSource = GetSourceVoltage(components);
                 float rTarget = vSource / 0.01f - led.resistance;
-                return $"Resistencia incorrecta. Calcula: R = {vSource:F0}V / 10mA - {led.resistance:F0}Ω ≈ {rTarget:F0}Ω\nEscribe {Mathf.Round(rTarget / 10) * 10:F0} y pulsa ENVIAR.";
+                return $"Resistencia incorrecta. Calcula: R = {vSource:F0}V / 10mA - {led.resistance:F0}Ohm aprox {rTarget:F0}Ohm\nEscribe {Mathf.Round(rTarget / 10) * 10:F0} y pulsa ENVIAR.";
             }
 
         // Prioridad 4: LED con polaridad invertida
         foreach (var comp in components)
             if (comp is LED led2 && led2.polarityInverted)
-                return "Di al Explorador que gire el LED 180° para corregir la polaridad.";
+                return "Di al Explorador que gire el LED 180 para corregir la polaridad.";
 
         // Prioridad 5: Resistencia incorrecta
         foreach (var comp in components)
             if (comp is Resistor r && r.hasFault)
-                return $"Resistencia incorrecta ({r.resistance:F0}Ω).\nEscribe {r.correctResistance:F0} en el campo y pulsa ENVIAR.";
+                return $"Resistencia incorrecta ({r.resistance:F0}Ohm).\nEscribe {r.correctResistance:F0} en el campo y pulsa ENVIAR.";
 
         // Prioridad 6: Arduino
         foreach (var comp in components)
             if (comp is ArduinoPin pin && pin.hasFault)
                 return $"Di al Explorador: mover cable del pin D{pin.pinNumber} al pin D{pin.correctPinNumber}.";
 
-        // Todo correcto
-        return "✓ El circuito está correcto. ¡Reto completado!";
+        return "OK El circuito esta correcto. Reto completado!";
     }
 
     // ─────────────────────────────────────────────
@@ -243,10 +241,10 @@ public class DiagnosticSystem
 
     string GetLEDStateIcon(LEDState state) => state switch
     {
-        LEDState.Correct      => "🟢",
-        LEDState.NearOverload => "🟡",
-        LEDState.Overload     => "🔴",
-        _                     => "⚫"
+        LEDState.Correct      => "[OK]",
+        LEDState.NearOverload => "[~]",
+        LEDState.Overload     => "[X]",
+        _                     => "[.]"
     };
 
     float GetSourceVoltage(List<ElectricalComponent> components)

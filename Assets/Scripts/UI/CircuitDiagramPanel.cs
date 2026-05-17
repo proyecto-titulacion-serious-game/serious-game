@@ -88,7 +88,7 @@ public class CircuitDiagramPanel : MonoBehaviour
         gridTxt.text            = sb.ToString();
         gridTxt.fontSize        = 4f;
         gridTxt.color           = new Color(0.14f, 0.32f, 0.14f, 0.5f);
-        gridTxt.enableWordWrapping = true;
+        gridTxt.textWrappingMode = TMPro.TextWrappingModes.Normal;
         gridTxt.alignment       = TextAlignmentOptions.TopLeft;
 
         // ── Root del diagrama con padding ─────────────────────────────────────
@@ -495,12 +495,12 @@ public class CircuitDiagramPanel : MonoBehaviour
 
     static string ValorComp(ElectricalComponent c) => c switch
     {
-        Resistor r    => r.hasFault       ? $"⚠ {r.resistance:F0} Ω" : $"{r.resistance:F0} Ω",
-        LED led       => led.isOn         ? "ON  ✓"
-                       : led.polarityInverted ? "⊘ Inv."  : "OFF",
-        Capacitor cap => cap.polarityInverted ? "⊘ Inv."  : "OK",
+        Resistor r    => r.hasFault       ? $"[!] {r.resistance:F0} Ohm" : $"{r.resistance:F0} Ohm",
+        LED led       => led.isOn         ? "ON  OK"
+                       : led.polarityInverted ? "[X] Inv."  : "OFF",
+        Capacitor cap => cap.polarityInverted ? "[X] Inv."  : "OK",
         VoltageSource vs => $"{vs.voltage} V",
-        ArduinoPin pin => pin.hasFault    ? $"⚠ D{pin.pinNumber}" : $"D{pin.pinNumber}",
+        ArduinoPin pin => pin.hasFault    ? $"[!] D{pin.pinNumber}" : $"D{pin.pinNumber}",
         _ => "—"
     };
 

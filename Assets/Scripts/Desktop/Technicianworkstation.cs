@@ -66,9 +66,9 @@ public class TechnicianWorkstation : MonoBehaviour
 
     void Start()
     {
-        if (gameManager       == null) gameManager       = FindFirstObjectByType<GameManager>();
-        if (manual            == null) manual            = FindFirstObjectByType<TechnicianManual>();
-        if (technicianActions == null) technicianActions = FindFirstObjectByType<TechnicianActions>();
+        if (gameManager       == null) gameManager       = FindAnyObjectByType<GameManager>();
+        if (manual            == null) manual            = FindAnyObjectByType<TechnicianManual>();
+        if (technicianActions == null) technicianActions = FindAnyObjectByType<TechnicianActions>();
 
         // circuit NO se busca aquí: con 4 CircuitManagers en escena FindFirstObjectByType
         // devolvería el primero encontrado (posiblemente inactivo). OnLevelLoaded lo asigna

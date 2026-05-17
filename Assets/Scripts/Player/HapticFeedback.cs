@@ -99,8 +99,11 @@ public class HapticFeedback : MonoBehaviour
         if (!_leftController.isValid || !_rightController.isValid)
             RefreshDevices();
 
-        _leftController.SendHapticImpulse( 0, amplitude, duration);
-        _rightController.SendHapticImpulse(0, amplitude, duration);
+        if (_leftController.isValid)
+            _leftController.SendHapticImpulse(0, amplitude, duration);
+
+        if (_rightController.isValid)
+            _rightController.SendHapticImpulse(0, amplitude, duration);
     }
 
     IEnumerator ErrorPattern()

@@ -9,6 +9,12 @@ public class InteractableResistor : MonoBehaviour
 
     void OnMouseDown()
     {
+        if (resistor == null)
+        {
+            Debug.LogWarning("[InteractableResistor] Campo 'resistor' no asignado en el Inspector.", this);
+            return;
+        }
+
         index = (index + 1) % values.Length;
         resistor.resistance = values[index];
 

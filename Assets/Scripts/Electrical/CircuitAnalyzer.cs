@@ -5,18 +5,18 @@ public class CircuitAnalyzer
     public string AnalyzeVoltage(float measured, float target, float tolerance)
     {
         if (measured == 0)
-            return "⚠ No hay medición. Conecta el multímetro.";
+            return "[!] No hay medicion. Conecta el multimetro.";
 
         if (Mathf.Abs(measured - target) <= tolerance)
-            return "✅ Voltaje correcto. El circuito funciona bien.";
+            return "[OK] Voltaje correcto. El circuito funciona bien.";
 
         if (measured < target)
-            return "⚠ Voltaje bajo. Posible resistencia alta o mala conexión.";
+            return "[!] Voltaje bajo. Posible resistencia alta o mala conexion.";
 
         if (measured > target)
-            return "⚠ Voltaje alto. Posible error en el circuito.";
+            return "[!] Voltaje alto. Posible error en el circuito.";
 
-        return "❓ Estado desconocido.";
+        return "[?] Estado desconocido.";
     }
 
     public string AnalyzeByLevel(LevelType level, float measured, float target, float tolerance, CircuitManager circuit)
@@ -30,7 +30,7 @@ public class CircuitAnalyzer
                 return AnalyzeParallel(circuit);
 
             default:
-                return "ℹ Nivel en desarrollo.";
+                return "[i] Nivel en desarrollo.";
         }
     }
 
@@ -50,8 +50,8 @@ public class CircuitAnalyzer
         }
 
         if (anyLedOff)
-            return "⚠ Hay una rama del circuito paralelo sin funcionar. Revisa conexiones o componentes de esa rama.";
+            return "[!] Hay una rama del circuito paralelo sin funcionar. Revisa conexiones o componentes de esa rama.";
 
-        return "✅ Todas las ramas del circuito paralelo están funcionando.";
+        return "[OK] Todas las ramas del circuito paralelo estan funcionando.";
     }
 }

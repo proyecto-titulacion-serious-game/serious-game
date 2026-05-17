@@ -36,7 +36,7 @@ public class ManualBookOpener : MonoBehaviour
         {
             // Buscar un Canvas Screen Space Overlay en la escena que contenga
             // TechnicianManualDisplay (así no se confunde con otros overlays)
-            var display = FindFirstObjectByType<TechnicianManualDisplay>();
+            var display = FindAnyObjectByType<TechnicianManualDisplay>();
             if (display != null)
                 manualOverlay = display.gameObject;
         }

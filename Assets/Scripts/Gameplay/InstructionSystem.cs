@@ -223,7 +223,7 @@ public class InstructionSystem : MonoBehaviour
                 break;
 
             case 1:
-                if (multimeter != null && multimeter.measuredVoltage >= 0f)
+                if (multimeter != null && multimeter.measuredVoltage > 0.1f)
                 {
                     hasMeasuredCorrectly = true;
                     NextStep();

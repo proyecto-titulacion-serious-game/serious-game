@@ -50,8 +50,8 @@ public class ComponentSlot : MonoBehaviour
     {
         _mpb = new MaterialPropertyBlock();
         if (slotRenderer == null) slotRenderer = GetComponent<Renderer>();
-        if (delivery     == null) delivery     = FindFirstObjectByType<ComponentDeliverySystem>();
-        if (gameManager  == null) gameManager  = FindFirstObjectByType<GameManager>();
+        if (delivery     == null) delivery     = FindAnyObjectByType<ComponentDeliverySystem>();
+        if (gameManager  == null) gameManager  = FindAnyObjectByType<GameManager>();
 
         var col = GetComponent<Collider>();
         if (col != null && !col.isTrigger) col.isTrigger = true;

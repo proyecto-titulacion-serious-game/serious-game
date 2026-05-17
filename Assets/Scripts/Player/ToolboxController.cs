@@ -54,7 +54,7 @@ public class ToolboxController : MonoBehaviour
         _rb   = GetComponent<Rigidbody>();
 
         if (haptics == null)
-            haptics = FindFirstObjectByType<HapticFeedback>();
+            haptics = FindAnyObjectByType<HapticFeedback>();
 
         // La caja siempre es kinematic: no cae ni es empujada por física
         _rb.isKinematic = true;

@@ -115,12 +115,19 @@ public class CircuitManager : MonoBehaviour
         return a.voltage - b.voltage;
     }
 
-    /// <summary>¿Todos los LEDs del circuito están encendidos?</summary>
+    /// <summary>¿Todos los LEDs del circuito están encendidos? Retorna false si no hay LEDs.</summary>
     public bool AreAllLEDsOn()
     {
+        bool foundAny = false;
         foreach (var comp in components)
-            if (comp is LED led && !led.isOn) return false;
-        return true;
+        {
+            if (comp is LED led)
+            {
+                foundAny = true;
+                if (!led.isOn) return false;
+            }
+        }
+        return foundAny;
     }
 
     /// <summary>Primer componente del tipo T encontrado en la lista.</summary>
@@ -145,6 +152,7 @@ public class CircuitManager : MonoBehaviour
 
     void RunSimulation()
     {
+        if (components.Count == 0) return;
         switch (topology)
         {
             case CircuitTopology.Series:   SimulateSeries();   break;
@@ -183,6 +191,10 @@ public class CircuitManager : MonoBehaviour
         isShortCircuited = false;
         _totalCurrent = _sourceVoltage / totalR;           // Ley de Ohm
         _totalPower = _sourceVoltage * _totalCurrent;      // Ley de Watt
+
+        // Nodos de la fuente: + = sourceVoltage, – = 0 V (referencia de tierra)
+        if (source.nodeA != null) { source.nodeA.voltage = _sourceVoltage; source.nodeA.current = _totalCurrent; }
+        if (source.nodeB != null) { source.nodeB.voltage = 0f;             source.nodeB.current = _totalCurrent; }
 
         // Aplicar caídas de voltaje en secuencia
         float voltageAtNode = _sourceVoltage;

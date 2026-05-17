@@ -40,8 +40,8 @@ public class GrabbableComponent : MonoBehaviour
         _grab = GetComponent<XRGrabInteractable>();
         _rb   = GetComponent<Rigidbody>();
 
-        if (haptics          == null) haptics          = FindFirstObjectByType<HapticFeedback>();
-        if (playerInteraction == null) playerInteraction = FindFirstObjectByType<PlayerInteraction>();
+        if (haptics          == null) haptics          = FindAnyObjectByType<HapticFeedback>();
+        if (playerInteraction == null) playerInteraction = FindAnyObjectByType<PlayerInteraction>();
         if (selectable        == null) selectable        = GetComponent<SelectableComponent>();
     }
 
@@ -55,6 +55,7 @@ public class GrabbableComponent : MonoBehaviour
     {
         _grab.selectEntered.RemoveListener(OnGrabbed);
         _grab.selectExited.RemoveListener(OnReleased);
+        CancelInvoke(nameof(EnableGravity));
     }
 
     void OnGrabbed(SelectEnterEventArgs args)
@@ -62,9 +63,8 @@ public class GrabbableComponent : MonoBehaviour
         // Desparentar de la caja para que la física sea independiente
         transform.SetParent(null);
 
-        // Activar física completa mientras está en la mano
-        _rb.isKinematic = false;
-        _rb.useGravity  = true;
+        // XRGrabInteractable (MovementType.Kinematic) gestiona isKinematic internamente.
+        // No sobreescribir aquí: si lo ponemos false, el objeto cae y XRI no puede moverlo.
 
         haptics?.PlayMedium();
         playerInteraction?.OnGrabComponent(selectable);
@@ -74,10 +74,26 @@ public class GrabbableComponent : MonoBehaviour
 
     void OnReleased(SelectExitEventArgs args)
     {
+        // XRGrabInteractable.OnSelectExited dispara este evento y luego llama Drop(),
+        // que restaura isKinematic al valor previo al grab (true). Si ponemos
+        // isKinematic = false aquí, Drop() lo sobreescribe en el mismo frame.
+        // Diferir un frame garantiza que nuestro cambio llegue después de Drop().
+        Invoke(nameof(EnableGravity), 0f);
+
         haptics?.PlayLight();
         playerInteraction?.OnReleaseComponent(selectable);
 
         Debug.Log($"[GrabbableComponent] Soltado: {name}");
+    }
+
+    void EnableGravity()
+    {
+        // Si el componente fue instalado en un slot, DisableGrab() deshabilita
+        // el XRGrabInteractable. En ese caso no debe caer.
+        if (!_grab.enabled) return;
+
+        _rb.isKinematic = false;
+        _rb.useGravity  = true;
     }
 
     /// <summary>

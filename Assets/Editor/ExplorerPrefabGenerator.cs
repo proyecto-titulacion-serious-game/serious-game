@@ -84,7 +84,6 @@ public static class ExplorerPrefabGenerator
 
         playerCtrl.useKatVR           = false;
         playerCtrl.walkSpeed          = 2f;
-        playerCtrl.turnSpeed          = 60f;
         playerCtrl.katSpeedMultiplier = 1f;
 
         // ── XR Origin ────────────────────────────────────────────────────────

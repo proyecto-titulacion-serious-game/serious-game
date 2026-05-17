@@ -61,6 +61,9 @@ public class ComponentSendingTray : MonoBehaviour
     /// </summary>
     public static event System.Action<ComponentType, float> OnComponentSentLocal;
 
+    public static void RaiseOnComponentSentLocal(ComponentType tipo, float valor)
+        => OnComponentSentLocal?.Invoke(tipo, valor);
+
     // ─────────────────────────────────────────────
     //  Estado
     // ─────────────────────────────────────────────
@@ -77,9 +80,9 @@ public class ComponentSendingTray : MonoBehaviour
             btnEnviar.onClick.AddListener(Enviar);
 
         if (technicianActions == null)
-            technicianActions = FindFirstObjectByType<TechnicianActions>();
+            technicianActions = FindAnyObjectByType<TechnicianActions>();
         if (gameManager == null)
-            gameManager = FindFirstObjectByType<GameManager>();
+            gameManager = FindAnyObjectByType<GameManager>();
 
         if (togglePolaridad != null)
             togglePolaridad.onValueChanged.AddListener(OnPolaridadToggleChanged);
@@ -173,20 +176,27 @@ public class ComponentSendingTray : MonoBehaviour
             {
                 bool correcta = togglePolaridad == null || togglePolaridad.isOn;
                 float valorLED = correcta ? 1f : -1f;
-                if (delivery != null) { delivery.SendLED(correcta); exito = true; }
-                else if (correcta)    { exito = FixLEDPolarity(); }
+                if (GameSession.Instance != null)
+                {
+                    GameSession.Instance.EnviarComponente(ComponentType.LED, valorLED);
+                    exito = true;
+                }
+                else if (delivery != null)
+                {
+                    delivery.SendLED(correcta);
+                    exito = true;
+                }
+                else if (correcta)
+                {
+                    exito = FixLEDPolarity();
+                    if (exito) OnComponentSentLocal?.Invoke(ComponentType.LED, valorLED);
+                }
                 else
                 {
                     gameManager?.RegisterWrongAttempt("LED enviado con polaridad incorrecta");
                     Set(txtFeedback, "Polaridad incorrecta. El LED no encenderá.");
+                    OnComponentSentLocal?.Invoke(ComponentType.LED, valorLED);
                     exito = true;
-                }
-                if (exito)
-                {
-                    if (GameSession.Instance != null)
-                        GameSession.Instance.EnviarComponente(ComponentType.LED, valorLED);
-                    else if (delivery == null)
-                        OnComponentSentLocal?.Invoke(ComponentType.LED, valorLED);
                 }
                 break;
             }
@@ -195,20 +205,27 @@ public class ComponentSendingTray : MonoBehaviour
             {
                 bool correcta = togglePolaridad == null || togglePolaridad.isOn;
                 float valorCap = correcta ? 1f : -1f;
-                if (delivery != null) { delivery.SendCapacitor(correcta); exito = true; }
-                else if (correcta)    { exito = FixCapacitorPolarity(); }
+                if (GameSession.Instance != null)
+                {
+                    GameSession.Instance.EnviarComponente(ComponentType.Capacitor, valorCap);
+                    exito = true;
+                }
+                else if (delivery != null)
+                {
+                    delivery.SendCapacitor(correcta);
+                    exito = true;
+                }
+                else if (correcta)
+                {
+                    exito = FixCapacitorPolarity();
+                    if (exito) OnComponentSentLocal?.Invoke(ComponentType.Capacitor, valorCap);
+                }
                 else
                 {
                     gameManager?.RegisterWrongAttempt("Capacitor enviado con polaridad incorrecta");
                     Set(txtFeedback, "Polaridad incorrecta. El capacitor generará falla.");
+                    OnComponentSentLocal?.Invoke(ComponentType.Capacitor, valorCap);
                     exito = true;
-                }
-                if (exito)
-                {
-                    if (GameSession.Instance != null)
-                        GameSession.Instance.EnviarComponente(ComponentType.Capacitor, valorCap);
-                    else if (delivery == null)
-                        OnComponentSentLocal?.Invoke(ComponentType.Capacitor, valorCap);
                 }
                 break;
             }
@@ -270,29 +287,27 @@ public class ComponentSendingTray : MonoBehaviour
             return false;
         }
 
-        // Enviar con el valor escrito (sin validar si es correcto o no)
-        if (delivery != null)
+        // Prioridad: red (Fusion) → entrega local (mismo proceso) → modo demo directo
+        if (GameSession.Instance != null)
+        {
+            GameSession.Instance.EnviarComponente(ComponentType.Resistor, valorEscrito);
+            Set(txtFeedback, $"Resistencia de {valorEscrito:F0} ohm enviada.");
+            return true;
+        }
+        else if (delivery != null)
         {
             delivery.SendResistor(valorEscrito);
-            GameSession.Instance?.EnviarComponente(ComponentType.Resistor, valorEscrito);
             Set(txtFeedback, $"Resistencia de {valorEscrito:F0} ohm enviada.");
             return true;
         }
         else if (technicianActions != null)
         {
-            // Modo demo sin Explorador — aplicar directo al circuito
             bool resultado = technicianActions.ApplyResistorValue(valorEscrito);
             if (resultado)
                 Set(txtFeedback, $"Resistencia de {valorEscrito:F0} ohm aplicada.");
             else
                 Set(txtFeedback, $"Resistencia de {valorEscrito:F0} ohm aplicada. Revisa el LED.");
-
-            // Notificar al Explorador local si Fusion no está activo
-            if (GameSession.Instance != null)
-                GameSession.Instance.EnviarComponente(ComponentType.Resistor, valorEscrito);
-            else
-                OnComponentSentLocal?.Invoke(ComponentType.Resistor, valorEscrito);
-
+            OnComponentSentLocal?.Invoke(ComponentType.Resistor, valorEscrito);
             return true;
         }
 
@@ -321,10 +336,15 @@ public class ComponentSendingTray : MonoBehaviour
             return false;
         }
 
-        if (delivery != null)
+        if (GameSession.Instance != null)
+        {
+            GameSession.Instance.EnviarComponente(ComponentType.ArduinoPin, pinEscrito);
+            Set(txtFeedback, $"Pin D{pinEscrito} enviado.");
+            return true;
+        }
+        else if (delivery != null)
         {
             delivery.SendArduinoPin(pinEscrito);
-            GameSession.Instance?.EnviarComponente(ComponentType.ArduinoPin, pinEscrito);
             Set(txtFeedback, $"Pin D{pinEscrito} enviado.");
             return true;
         }
@@ -341,11 +361,7 @@ public class ComponentSendingTray : MonoBehaviour
                     gameManager.circuit.MarkDirty();
                     gameManager.RegisterRepairAction();
                     Set(txtFeedback, $"Pin D{pinEscrito} aplicado.");
-
-                    if (GameSession.Instance != null)
-                        GameSession.Instance.EnviarComponente(ComponentType.ArduinoPin, pinEscrito);
-                    else
-                        OnComponentSentLocal?.Invoke(ComponentType.ArduinoPin, pinEscrito);
+                    OnComponentSentLocal?.Invoke(ComponentType.ArduinoPin, pinEscrito);
                     return true;
                 }
             }
