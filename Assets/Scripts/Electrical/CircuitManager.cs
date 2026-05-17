@@ -55,6 +55,15 @@ public class CircuitManager : MonoBehaviour
         AutoDetectComponents();
     }
 
+    void OnEnable()
+    {
+        // Simular inmediatamente al activar la zona, sin esperar el primer tick de InvokeRepeating.
+        // Cubre el caso en que GameManager activa la zona y luego llama ForceSimulate,
+        // pero el CM aún no tenía Start() corriendo (zona iniciaba desactivada).
+        if (components.Count == 0) AutoDetectComponents();
+        if (components.Count > 0) ForceSimulate();
+    }
+
     public void AutoDetectComponents()
     {
         bool needsRefresh = components.Count == 0;
@@ -68,20 +77,20 @@ public class CircuitManager : MonoBehaviour
         if (needsRefresh)
         {
             components.Clear();
-            var found = GetComponentsInChildren<ElectricalComponent>();
+            // includeInactive:true para capturar componentes desactivados temporalmente
+            var found = GetComponentsInChildren<ElectricalComponent>(true);
 
             foreach (var c in found)
                 if (c is VoltageSource) components.Add(c);
             foreach (var c in found)
                 if (!(c is VoltageSource)) components.Add(c);
 
-            Debug.Log($"[CircuitManager] Auto-detectados {components.Count} componentes");
+            Debug.Log($"[CircuitManager] Auto-detectados {components.Count} componentes en '{name}'");
         }
     }
 
     void Start()
     {
-        //Simula cada intervalo de segundo
         AutoDetectComponents();
         InvokeRepeating(nameof(SimulateIfDirty), 0f, simulationInterval);
     }

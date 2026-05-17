@@ -130,7 +130,7 @@ public class Multimeter : MonoBehaviour
         Debug.Log($"  Punta negra (_nodeBlack): {(_nodeBlack != null ? $"'{_nodeBlack.name}' → {_nodeBlack.voltage:F3} V" : "NULL ← no asignada")}");
         Debug.Log($"  Leyendo: {_isReading}  |  Voltaje medido: {_measuredVoltage:F3} V  |  Corriente: {_measuredCurrent * 1000f:F2} mA");
 
-        var nodeInteractables = FindObjectsByType<NodeInteractable>(FindObjectsSortMode.None);
+        var nodeInteractables = FindObjectsByType<NodeInteractable>(FindObjectsInactive.Include);
         Debug.Log($"  NodeInteractables en escena: {nodeInteractables.Length}");
         foreach (var ni in nodeInteractables)
         {
@@ -157,7 +157,7 @@ public class Multimeter : MonoBehaviour
             Debug.LogWarning("  GameManager NO encontrado en la escena.");
         }
 
-        var allCMs = FindObjectsByType<CircuitManager>(FindObjectsSortMode.None);
+        var allCMs = FindObjectsByType<CircuitManager>(FindObjectsInactive.Include);
         Debug.Log($"  CircuitManagers en escena: {allCMs.Length}");
         foreach (var cm in allCMs)
         {

@@ -82,7 +82,7 @@ public class NodeInteractable : MonoBehaviour
 
         // 2. ElectricalNode más cercano dentro del radio
         float minDist = AUTO_DETECT_RADIUS;
-        foreach (var n in FindObjectsByType<ElectricalNode>(FindObjectsSortMode.None))
+        foreach (var n in FindObjectsByType<ElectricalNode>(FindObjectsInactive.Exclude))
         {
             float d = Vector3.Distance(transform.position, n.transform.position);
             if (d < minDist) { minDist = d; nodeTarget = n; }
