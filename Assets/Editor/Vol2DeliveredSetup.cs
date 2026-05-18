@@ -118,7 +118,8 @@ public static class Vol2DeliveredSetup
 
     /// <summary>
     /// Crea un nuevo prefab agarrable a partir del modelo fuente.
-    /// Copia únicamente la malla y el material; no hereda prefab link.
+    /// Usa Object.Instantiate para copiar la jerarquía completa —
+    /// malla, materiales, texturas y sub-meshes incluidos.
     /// </summary>
     static void BuildDeliveredPrefab(GameObject source, string outputName,
                                      ComponentType type, Vector3 scale)
@@ -134,67 +135,42 @@ public static class Vol2DeliveredSetup
             if (!overwrite) return;
         }
 
-        // ── Crear raíz vacía ───────────────────────────────────────────
-        var go   = new GameObject(outputName);
+        // ── Instanciar copia completa del source ───────────────────────
+        // Object.Instantiate (no PrefabUtility.InstantiatePrefab) crea una
+        // copia desconectada del prefab original — preserva malla y materiales
+        // sin generar overrides ni variantes.
+        var go = Object.Instantiate(source);
+        go.name = outputName;
         go.transform.localScale = scale;
 
-        // ── Copiar malla y material del source ─────────────────────────
-        var srcMf = source.GetComponent<MeshFilter>();
-        var srcMr = source.GetComponent<MeshRenderer>();
-
-        if (srcMf != null && srcMr != null)
-        {
-            go.AddComponent<MeshFilter>().sharedMesh = srcMf.sharedMesh;
-            var mr = go.AddComponent<MeshRenderer>();
-            mr.sharedMaterials   = srcMr.sharedMaterials;
-            mr.shadowCastingMode = srcMr.shadowCastingMode;
-            mr.receiveShadows    = srcMr.receiveShadows;
-        }
-        else
-        {
-            // El source puede tener la malla en un hijo — copiar la jerarquía completa
-            // como hijo estático para preservar el aspecto visual.
-            var visual = Object.Instantiate(source, go.transform);
-            visual.name = "Visual";
-            visual.transform.localPosition = Vector3.zero;
-            visual.transform.localRotation = Quaternion.identity;
-            visual.transform.localScale    = Vector3.one;
-            // Eliminar scripts del hijo visual para no duplicar lógica
-            foreach (var mb in visual.GetComponentsInChildren<MonoBehaviour>())
-                Object.DestroyImmediate(mb);
-        }
-
         // ── Collider ───────────────────────────────────────────────────
-        // Los prefabs Vol.2 ya traen MeshCollider — ponemos convex para Rigidbody.
-        var srcMc = source.GetComponent<MeshCollider>();
-        if (srcMc != null)
+        // Los prefabs Vol.2 traen MeshCollider; debe ser convex con Rigidbody.
+        bool hasCollider = false;
+        foreach (var mc in go.GetComponentsInChildren<MeshCollider>())
         {
-            var mc = go.AddComponent<MeshCollider>();
-            mc.sharedMesh = srcMc.sharedMesh ?? (srcMf != null ? srcMf.sharedMesh : null);
-            mc.convex     = true;   // obligatorio al tener Rigidbody
-            mc.isTrigger  = false;
+            mc.convex    = true;   // obligatorio al tener Rigidbody
+            mc.isTrigger = false;
+            hasCollider  = true;
         }
-        else
-        {
-            // Fallback: BoxCollider si no hay MeshCollider
+        if (!hasCollider && go.GetComponentInChildren<Collider>() == null)
             go.AddComponent<BoxCollider>().isTrigger = false;
-        }
 
         // ── Rigidbody ──────────────────────────────────────────────────
-        var rb         = go.AddComponent<Rigidbody>();
+        var rb = go.GetComponent<Rigidbody>() ?? go.AddComponent<Rigidbody>();
         rb.isKinematic = true;
         rb.useGravity  = false;
 
         // ── XRGrabInteractable ─────────────────────────────────────────
-        var grab = go.AddComponent<XRGrabInteractable>();
+        var grab = go.GetComponent<XRGrabInteractable>() ?? go.AddComponent<XRGrabInteractable>();
         grab.movementType  = XRBaseInteractable.MovementType.Kinematic;
         grab.trackPosition = true;
         grab.trackRotation = true;
 
         // ── GrabbableComponent ─────────────────────────────────────────
-        go.AddComponent<GrabbableComponent>();
+        if (go.GetComponent<GrabbableComponent>() == null)
+            go.AddComponent<GrabbableComponent>();
 
-        // ── Script eléctrico (necesario para ComponentSlot.DetectComponentType) ──
+        // ── Script eléctrico (ComponentSlot.DetectComponentType lo usa) ─
         AddElectricalScript(go, type);
 
         // ── Guardar prefab ─────────────────────────────────────────────
