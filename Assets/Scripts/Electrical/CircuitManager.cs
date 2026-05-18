@@ -162,12 +162,40 @@ public class CircuitManager : MonoBehaviour
     void RunSimulation()
     {
         if (components.Count == 0) return;
+        EnsureAllNodesExist();
         switch (topology)
         {
             case CircuitTopology.Series:   SimulateSeries();   break;
             case CircuitTopology.Parallel: SimulateParallel(); break;
             case CircuitTopology.Mixed:    SimulateMixed();    break;
         }
+    }
+
+    // Auto-crea ElectricalNodes en componentes que los tengan a null.
+    // Evita que el circuito simule en silencio con voltajes 0 por falta de asignación.
+    void EnsureAllNodesExist()
+    {
+        foreach (var comp in components)
+        {
+            if (comp.nodeA == null) comp.nodeA = GetOrCreateNode(comp, $"{comp.name}_NodeA");
+            if (comp.nodeB == null) comp.nodeB = GetOrCreateNode(comp, $"{comp.name}_NodeB");
+        }
+    }
+
+    ElectricalNode GetOrCreateNode(ElectricalComponent owner, string nodeName)
+    {
+        var existing = owner.transform.Find(nodeName);
+        if (existing != null)
+        {
+            var n = existing.GetComponent<ElectricalNode>();
+            if (n != null) return n;
+        }
+        var go = new GameObject(nodeName);
+        go.transform.SetParent(owner.transform);
+        go.transform.localPosition = Vector3.zero;
+        var node = go.AddComponent<ElectricalNode>();
+        Debug.Log($"[CircuitManager] Auto-creado nodo '{nodeName}' en '{owner.name}'");
+        return node;
     }
 
     // ── SERIE ──────────────────────────────────
