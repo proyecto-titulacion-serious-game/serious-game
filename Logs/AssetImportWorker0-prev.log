@@ -1,11 +1,11 @@
 [Licensing::Module] Trying to connect to existing licensing client channel...
-[Licensing::IpcConnector] Successfully connected to: "LicenseClient-holaq" at "2026-05-16T22:17:15.5056605Z"
 Built from '6000.4/staging' branch; Version is '6000.4.3f1 (39d1a88d4dd1) revision 3789224'; Using compiler version '194234433'; Build Type 'Release'
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-holaq" at "2026-05-18T01:02:45.5789101Z"
 OS: 'Windows 11  (10.0.26200) Core' Language: 'en' Physical Memory: 15986 MB
 BatchMode: 1, IsHumanControllingUs: 0, StartBugReporterOnCrash: 0, Is64bit: 1
 System  architecture: x64
 Process architecture: x64
-Date: 2026-05-16T22:17:15Z
+Date: 2026-05-18T01:02:45Z
 
 COMMAND LINE ARGUMENTS:
 C:\Program Files\Unity\Hub\Editor\6000.4.3f1\Editor\Unity.exe
@@ -19,7 +19,7 @@ C:/Users/holaq/Proyecto-TITA
 -logFile
 Logs/AssetImportWorker0.log
 -srvPort
-62735
+60845
 -licensingIpc
 LicenseClient-holaq
 -force-d3d12
@@ -68,12 +68,12 @@ C:/Users/holaq/Proyecto-TITA
     "memorysetup-job-temp-allocator-block-size=2097152"
     "memorysetup-job-temp-allocator-block-size-background=1048576"
     "memorysetup-job-temp-allocator-reduction-small-platforms=262144"
-Player connection [20180]  Target information:
+Player connection [45828]  Target information:
 
-Player connection [20180]  * "[IP] 192.168.100.57 [Port] 0 [Flags] 2 [Guid] 1290762001 [EditorId] 1290762001 [Version] 1048832 [Id] WindowsEditor(7,Richie) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
+Player connection [45828]  * "[IP] 192.168.100.57 [Port] 0 [Flags] 2 [Guid] 441988399 [EditorId] 441988399 [Version] 1048832 [Id] WindowsEditor(7,Richie) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
 
-Player connection [20180] Host joined multi-casting on [225.0.0.222:54997]...
-Player connection [20180] Host joined alternative multi-casting on [225.0.0.222:34997]...
+Player connection [45828] Host joined multi-casting on [225.0.0.222:54997]...
+Player connection [45828] Host joined alternative multi-casting on [225.0.0.222:34997]...
 JobSystem: Creating JobQueue using job-worker-count value 11
 Input System module state changed to: Initialized.
 [Physics::Module] Initialized fallback backend.
@@ -91,24 +91,24 @@ Library Redirect Path: Library/
 	ResponseStatus: Unsupported protocol version '1.18.1'.
 [Licensing::Module] Error: Failed to handshake to channel: "LicenseClient-holaq"
 [Licensing::IpcConnector] LicenseClient-holaq channel disconnected successfully.
-[Licensing::IpcConnector] Successfully connected to: "LicenseClient-holaq-6000.4.3" at "2026-05-16T22:17:18.7425469Z"
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-holaq-6000.4.3" at "2026-05-18T01:02:49.5201854Z"
 [Licensing::Client] Handshaking with LicensingClient:
   Version:                 1.18.1+9fbee8e
-  Session Id:              6c61ea4babb145b0b07b555e27f28043
-  Correlation Id:          c0cf45b162f87b0fafbeb2e30b15785b
-  External correlation Id: 7841284839296729052
+  Session Id:              8f6a2bdfbdb0459d8be6e80ffae47e63
+  Correlation Id:          667fd8eed3510e655878dd5072f61cdb
+  External correlation Id: 2015286066912989560
   Machine Id:              aYOC8M6GzU8LPa17P+sGjwEmDsY=
-[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-holaq-6000.4.3" (connect: 0.00s, validation: 0.00s, handshake: 3.08s)
-[Licensing::IpcConnector] Successfully connected to: "LicenseClient-holaq-6000.4.3-notifications" at "2026-05-16T22:17:21.8227287Z"
-[Licensing::Module] Licensing Background thread has ended after 6.32s
-[Licensing::Module] Licensing is initialized (took 5.86s).
+[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-holaq-6000.4.3" (connect: 0.00s, validation: 0.00s, handshake: 3.58s)
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-holaq-6000.4.3-notifications" at "2026-05-18T01:02:53.1009122Z"
+[Licensing::Module] Licensing Background thread has ended after 7.52s
+[Licensing::Module] Licensing is initialized (took 6.17s).
 [Licensing::Client] Successfully resolved entitlement details
 [Licensing::Module] License group:
   Id: 4673626520103-UnityPersXXXX
   Product: Unity Personal
   Type: Assigned
   Expiration: Unlimited
-Refreshing native plugins compatible for Editor in 26.69 ms, found 17 plugins.
+Refreshing native plugins compatible for Editor in 196.93 ms, found 17 plugins.
 Initialize engine version: 6000.4.3f1 (39d1a88d4dd1)
 [Subsystems] Discovering subsystems at path C:/Program Files/Unity/Hub/Editor/6000.4.3f1/Editor/Data/Resources/UnitySubsystems
 [Subsystems] Discovering subsystems at path C:/Users/holaq/Proyecto-TITA/Assets
@@ -126,13 +126,13 @@ Initialize mono
 Mono path[0] = 'C:/Program Files/Unity/Hub/Editor/6000.4.3f1/Editor/Data/Managed'
 Mono path[1] = 'C:/Program Files/Unity/Hub/Editor/6000.4.3f1/Editor/Data/MonoBleedingEdge/lib/mono/unityjit-win32'
 Mono config path = 'C:/Program Files/Unity/Hub/Editor/6000.4.3f1/Editor/Data/MonoBleedingEdge/etc'
-Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56336
+Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56884
 CodeReloadManager initialized
 Begin MonoManager ReloadAssembly
 Registering precompiled unity dll's ...
 Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.4.3f1/Editor/Data/PlaybackEngines/WindowsStandaloneSupport/UnityEditor.WindowsStandalone.Extensions.dll
 Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.4.3f1/Editor/Data/PlaybackEngines/AndroidPlayer/UnityEditor.Android.Extensions.dll
-Registered in 0.002794 seconds.
+Registered in 0.005098 seconds.
 Native extension for Android target not found
 Native extension for WindowsStandalone target not found
 Package Manager log level set to [2]
@@ -141,23 +141,23 @@ Package Manager log level set to [2]
 [Package Manager] Cannot connect to Unity Package Manager local server
 ScheduleIndexationOnStartup MainProcess:False IndexOnStartup:True
 Mono: successfully reloaded assembly
-- Finished resetting the current domain, in  0.488 seconds
-Domain Reload Profiling: 1026ms
-	BeginReloadAssembly (166ms)
-	RebuildCommonClasses (41ms)
-	RebuildNativeTypeToScriptingClass (14ms)
-	initialDomainReloadingComplete (83ms)
-	LoadAllAssembliesAndSetupDomain (233ms)
-		LoadAssemblies (160ms)
-		AnalyzeDomain (222ms)
-			TypeCache.Refresh (221ms)
-				TypeCache.ScanAssembly (206ms)
-	FinalizeReload (490ms)
+- Finished resetting the current domain, in  0.541 seconds
+Domain Reload Profiling: 1307ms
+	BeginReloadAssembly (236ms)
+	RebuildCommonClasses (57ms)
+	RebuildNativeTypeToScriptingClass (16ms)
+	initialDomainReloadingComplete (175ms)
+	LoadAllAssembliesAndSetupDomain (279ms)
+		LoadAssemblies (232ms)
+		AnalyzeDomain (266ms)
+			TypeCache.Refresh (264ms)
+				TypeCache.ScanAssembly (248ms)
+	FinalizeReload (543ms)
 		SetupLoadedEditorAssemblies (0ms)
-			InitializePlatformSupportModulesInManaged (103ms)
-			BeforeProcessingInitializeOnLoad (91ms)
-			ProcessInitializeOnLoadAttributes (133ms)
-			ProcessInitializeOnLoadMethodAttributes (71ms)
+			InitializePlatformSupportModulesInManaged (135ms)
+			BeforeProcessingInitializeOnLoad (95ms)
+			ProcessInitializeOnLoadAttributes (127ms)
+			ProcessInitializeOnLoadMethodAttributes (87ms)
 Assembly reference Packages/com.unity.cinemachine/Editor/Samples/ExposeHDRPInternals/HDRP-Editor-ref.asmref has no target assembly definition
 ========================================================================
 Worker process is ready to serve import requests
@@ -234,7 +234,7 @@ Assembly reference Packages/com.unity.cinemachine/Editor/Samples/ExposeHDRPInter
 'Packages/com.unity.cinemachine/Editor/Editors/CinemachineVirtualCameraBaseEditor.cs' contains partial class of Unity.Object, exactly 1 of the partial classes needs to be in a file with the same filename. This is to know the one that can be referenced from ie. GameObjects
 'Assets/Photon/Fusion/Runtime/Fusion.Unity.cs' contains partial class of Unity.Object, exactly 1 of the partial classes needs to be in a file with the same filename. This is to know the one that can be referenced from ie. GameObjects
 'Assets/Photon/Fusion/Runtime/Fusion.Unity.cs' contains partial class of Unity.Object, exactly 1 of the partial classes needs to be in a file with the same filename. This is to know the one that can be referenced from ie. GameObjects
-Refreshing native plugins compatible for Editor in 17.28 ms, found 17 plugins.
+Refreshing native plugins compatible for Editor in 35.69 ms, found 17 plugins.
 Native extension for Android target not found
 Native extension for WindowsStandalone target not found
 Assembly reference Packages/com.unity.cinemachine/Editor/Samples/ExposeHDRPInternals/HDRP-Editor-ref.asmref has no target assembly definition
@@ -247,7 +247,7 @@ Assembly reference Packages/com.unity.cinemachine/Editor/Samples/ExposeHDRPInter
 [Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
 [Package Manager] Unable to send message (not connected to server process).
 [Package Manager] Cannot connect to Unity Package Manager local server
-Refreshing native plugins compatible for Editor in 17.40 ms, found 17 plugins.
+Refreshing native plugins compatible for Editor in 68.80 ms, found 17 plugins.
 ScheduleIndexationOnStartup MainProcess:False IndexOnStartup:True
 Mono: successfully reloaded assembly
 [Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
@@ -256,29 +256,29 @@ Mono: successfully reloaded assembly
 [Package Manager] Failed to launch server process. Reason: Unity was launched with the -noUpm command-line argument
 [Package Manager] Unable to send message (not connected to server process).
 [Package Manager] Cannot connect to Unity Package Manager local server
-- Finished resetting the current domain, in  1.218 seconds
-Domain Reload Profiling: 2556ms
-	BeginReloadAssembly (228ms)
-		DisableScriptedObjects (5ms)
-		CreateAndSetChildDomain (32ms)
-	RebuildCommonClasses (47ms)
+- Finished resetting the current domain, in  3.043 seconds
+Domain Reload Profiling: 4933ms
+	BeginReloadAssembly (315ms)
+		DisableScriptedObjects (8ms)
+		CreateAndSetChildDomain (37ms)
+	RebuildCommonClasses (43ms)
 	RebuildNativeTypeToScriptingClass (15ms)
-	initialDomainReloadingComplete (108ms)
-	LoadAllAssembliesAndSetupDomain (939ms)
-		LoadAssemblies (598ms)
-		AnalyzeDomain (465ms)
-			TypeCache.Refresh (333ms)
-				TypeCache.ScanAssembly (301ms)
-			BuildScriptInfoCaches (103ms)
-			ResolveRequiredComponents (26ms)
-	FinalizeReload (1218ms)
+	initialDomainReloadingComplete (245ms)
+	LoadAllAssembliesAndSetupDomain (1271ms)
+		LoadAssemblies (967ms)
+		AnalyzeDomain (494ms)
+			TypeCache.Refresh (355ms)
+				TypeCache.ScanAssembly (324ms)
+			BuildScriptInfoCaches (117ms)
+			ResolveRequiredComponents (20ms)
+	FinalizeReload (3044ms)
 		SetupLoadedEditorAssemblies (0ms)
-			InitializePlatformSupportModulesInManaged (19ms)
-			BeforeProcessingInitializeOnLoad (191ms)
-			ProcessInitializeOnLoadAttributes (519ms)
-			ProcessInitializeOnLoadMethodAttributes (192ms)
-			AfterProcessingInitializeOnLoad (9ms)
-		AwakeInstancesAfterBackupRestoration (13ms)
+			InitializePlatformSupportModulesInManaged (32ms)
+			BeforeProcessingInitializeOnLoad (423ms)
+			ProcessInitializeOnLoadAttributes (1786ms)
+			ProcessInitializeOnLoadMethodAttributes (280ms)
+			AfterProcessingInitializeOnLoad (11ms)
+		AwakeInstancesAfterBackupRestoration (26ms)
 WARNING: Shader Unsupported: 'Hidden/Simulation/URP/Synthetic' - All subshaders removed
 WARNING: Shader Did you use #pragma only_renderers and omit this platform?
 WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
@@ -297,26 +297,1122 @@ WARNING: Shader If subshaders removal was intentional, you may have forgotten tu
 WARNING: Shader Unsupported: 'Simulation/URP/Lit' - All subshaders removed
 WARNING: Shader Did you use #pragma only_renderers and omit this platform?
 WARNING: Shader If subshaders removal was intentional, you may have forgotten turning Fallback off?
-Launched and connected shader compiler UnityShaderCompiler.exe after 0.03 seconds
-Refreshing native plugins compatible for Editor in 16.91 ms, found 17 plugins.
+Launched and connected shader compiler UnityShaderCompiler.exe after 0.30 seconds
+Refreshing native plugins compatible for Editor in 19.16 ms, found 17 plugins.
 Unloading 33 Unused Serialized files (Serialized files now loaded: 0)
-Unloading 9012 unused Assets / (10.0 MB). Loaded Objects now: 9864.
-Memory consumption went from 190.1 MB to 180.1 MB.
-Total: 12.936000 ms (FindLiveObjects: 1.895300 ms CreateObjectMapping: 0.422700 ms MarkObjects: 6.096700 ms  DeleteObjects: 4.518300 ms)
+Unloading 9017 unused Assets / (10.0 MB). Loaded Objects now: 9869.
+Memory consumption went from 190.3 MB to 180.2 MB.
+Total: 16.235800 ms (FindLiveObjects: 1.985300 ms CreateObjectMapping: 0.948100 ms MarkObjects: 8.028000 ms  DeleteObjects: 5.003400 ms)
 
 ========================================================================
 Received Import Request.
-  Time since last request: 14784.939172 seconds.
-  path: Assets/Scenes/Explorador.unity
-  importAddress: Guid(c0b3084dc3bbef443adb26d03d5a743e) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
-Start importing Assets/Scenes/Explorador.unity using Guid(c0b3084dc3bbef443adb26d03d5a743e) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'f62bab82a8547a983784da8803b3fa97') in 0.11504 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=898ebfcaefb194a788c2bfdadf4b35ef DependenciesID=411f3f51d7eab14a98bb61fc477c1fde StaticDependenciesID=ef7795ae1b8e3fef9de93b99bcf12db5 
+  Time since last request: 96182.711087 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/Shaders/Subgraphs
+  importAddress: Guid(4f0b4cf401045ea4ba36bf058f7e9a5e) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/Shaders/Subgraphs using Guid(4f0b4cf401045ea4ba36bf058f7e9a5e) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '30a54122ba28f6b93331d3bcd518da6d') in 0.0764131 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=e10e0a9236af828d6802d4c22a8cd33b DependenciesID=13938f6fb0978d5d78fd7628321e976e StaticDependenciesID=3b8f96c554d7119a1eb6ad4153c04421 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000019 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/XR Device Simulator/Scripts
+  importAddress: Guid(000d1a33d8d2f8445bb24d7d483fc34d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/XR Device Simulator/Scripts using Guid(000d1a33d8d2f8445bb24d7d483fc34d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '3eb2196882efee701783c19925b04d87') in 0.0093032 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=49d68e284ff4f0471bc4833f21b02ac8 DependenciesID=f11797e158ef7093ff406a4860333ed1 StaticDependenciesID=47179ee2bc909b6a19880cd39561758f 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000033 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Prefabs/Interactors/Direct Interactor.prefab
+  importAddress: Guid(2fd3e07afe5b461490fb8e314976b1b0) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Prefabs/Interactors/Direct Interactor.prefab using Guid(2fd3e07afe5b461490fb8e314976b1b0) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '0cb3290dc13f721e1b992ac4140706f8') in 0.2819577 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=e921a7f0fb86ac5a35e04536e9674709 DependenciesID=7c69d4dd7ad46fa1e08b58948ad60795 StaticDependenciesID=dee21f1fbc79af4c9a36de78e4b9f1ad 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 8
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000022 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/XR Device Simulator/UI/General/Unlocked.png
+  importAddress: Guid(f01f3bb228b3b4251a04e2036212d115) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/XR Device Simulator/UI/General/Unlocked.png using Guid(f01f3bb228b3b4251a04e2036212d115) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '08272dfed7275f74a5bc892ee2132468') in 0.0538127 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=767a6dc8717a2fbdfb28a5944c064cfc DependenciesID=03719b1ed301bf47fc32319abc3540dd StaticDependenciesID=b72d6701399e49fb4918edd2e6e1dbdb 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 3
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000029 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/HandsDemoSceneAssets/Prefabs/PokeButton.prefab
+  importAddress: Guid(d661f645c81f29b4aa596207971ae441) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/HandsDemoSceneAssets/Prefabs/PokeButton.prefab using Guid(d661f645c81f29b4aa596207971ae441) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '8092aad17b9bd30e5e253f613c3e127b') in 0.048384 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=0e89650e85b76251abc990a677fef1f9 DependenciesID=bd311dbf0c00dc4dabf07db527b7b8c8 StaticDependenciesID=f1d7822d1283f8451c19a76893af566f 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 40
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000021 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/HandsDemoSceneAssets/Models/Frame.fbx
+  importAddress: Guid(171affcd2d7ddf545ae966acd2de57c2) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/HandsDemoSceneAssets/Models/Frame.fbx using Guid(171affcd2d7ddf545ae966acd2de57c2) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '1e3fd33aaddcbd705435ca98836b5bfe') in 0.0390299 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=e628fa213278daf26b241c5d4d97c74d DependenciesID=519344f83181ac652714335c0653d25b StaticDependenciesID=c95d82cfb3d593a8f4f0239c1aa31c5a 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 30
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000022 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/AffordanceThemes/InteractionColor.asset
+  importAddress: Guid(2447c2ae63ed301429bb0f32f88ef8ce) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/AffordanceThemes/InteractionColor.asset using Guid(2447c2ae63ed301429bb0f32f88ef8ce) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '689073489201a7194d2e21034f8d4e13') in 0.0122548 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=e3b680eec3d69678cb59b5b16d72692b DependenciesID=cb13fd8518af9027293e78de058dd6f6 StaticDependenciesID=c76edce863a05ea1744b076fe7120b12 
 Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
 
 ========================================================================
 Received Import Request.
   Time since last request: 0.000023 seconds.
-  path: Assets/XR/Settings/OpenXRPackageSettings.asset
-  importAddress: Guid(a1c0fb5dac9350b489ed11ac08592d8d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
-Start importing Assets/XR/Settings/OpenXRPackageSettings.asset using Guid(a1c0fb5dac9350b489ed11ac08592d8d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '7c3c396ca9f429d01c4ed876bed108d2') in 0.0880596 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=16e38576eae7a2597e225dad122b9ee2 DependenciesID=7d0652786d078e131c6646d6bf3815d7 StaticDependenciesID=c5185c5ddb84850c931ab16746c7f3d9 
+  path: Assets/Scripts/Core/XRRenderGuard.cs
+  importAddress: Guid(3b8fb7c0b8d54b54f9eb0eb71f3d0e61) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Scripts/Core/XRRenderGuard.cs using Guid(3b8fb7c0b8d54b54f9eb0eb71f3d0e61) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '31e01dd7571ebdd971dd25c53ab80ac3') in 0.0047785 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=9fdae50d340f2871f5ebbd830e397991 DependenciesID=2c4fbfa17465b5c138f7a9801f542797 StaticDependenciesID=ad01bdd89464826ea8354e9459af8aa6 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 0
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000018 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/XR Device Simulator/Hand Expression Captures/Poke Expression Capture.asset
+  importAddress: Guid(95c319715e9d2644da8ae09af8ccfee6) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/XR Device Simulator/Hand Expression Captures/Poke Expression Capture.asset using Guid(95c319715e9d2644da8ae09af8ccfee6) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'faddd31f7e4b28be173507fbd1e0fcb4') in 0.00806 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=9529f4d71dd251d6cee4bb2096968e86 DependenciesID=8a707f4ef73182f52895bf8d016165a5 StaticDependenciesID=a56dbac68bdff0275fcfab716e04bfd4 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 2
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000022 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/HandsDemoSceneAssets/Prefabs/PawnController.prefab
+  importAddress: Guid(a5f97d75a3184ad46aef39618607e083) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/HandsDemoSceneAssets/Prefabs/PawnController.prefab using Guid(a5f97d75a3184ad46aef39618607e083) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '2876ddafa1edc44b1da9b63ed9e02c4d') in 0.0460139 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=4b37e7836043c14ee651c94f10061660 DependenciesID=1d509379236a3a277ee9cb448a54d993 StaticDependenciesID=035dc8178482831bbd2ef10286679739 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 29
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000022 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Materials/Telport Area.mat
+  importAddress: Guid(be1e10ce8a6f8cc4fb08d11c7f722469) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Materials/Telport Area.mat using Guid(be1e10ce8a6f8cc4fb08d11c7f722469) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '65d8247005ebdbd238e97137876c0025') in 0.0070463 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=22146a89c153e3917979fd727af8d76b DependenciesID=6f11ced42e7a60495a79585257536816 StaticDependenciesID=8471969ccf93d3bc15d9ae956142f0af 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 2
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000031 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/HandsDemoSceneAssets/Prefabs/UI/ScrollHandMenu.prefab
+  importAddress: Guid(30194602712a0eb4980318e2379d1bb8) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/HandsDemoSceneAssets/Prefabs/UI/ScrollHandMenu.prefab using Guid(30194602712a0eb4980318e2379d1bb8) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'cb4b77534944ae96aee9a3c33df64638') in 0.0393116 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=60ca788a5172231738e174110ba8b7a8 DependenciesID=4a535be71e3e2c6e91e66ae0ae1153bc StaticDependenciesID=e2481f3c7beb777f041b97758e8ba108 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 243
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000025 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Shaders/BiRP_Fresnel.shader
+  importAddress: Guid(b24c216c4acb0094c892a61dfbbb76b4) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Shaders/BiRP_Fresnel.shader using Guid(b24c216c4acb0094c892a61dfbbb76b4) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '7f0f68181287fe3eed73fd6f2f25f78b') in 0.0110723 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=df200a6099bc9ad3725f0ec0528b6555 DependenciesID=e5201ef82dfddc966e2716585c709a2a StaticDependenciesID=a5e61a8ea4e87fa7e44aa43ab5960cac 
 Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000017 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Animations/ArrowBounce.anim
+  importAddress: Guid(ebfa13455423c254e943b87bf6e1f310) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Animations/ArrowBounce.anim using Guid(ebfa13455423c254e943b87bf6e1f310) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'af160d96ffcbcf705e0eedc7888b12f3') in 0.0232759 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=405f00f49aa452baad3e6396cafe66bf DependenciesID=c08ac9dceb80a530c067e3650fb1f890 StaticDependenciesID=f00f2220e67be99f822134200c05723f 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000018 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/DemoAssets/Sprites/Asset.png
+  importAddress: Guid(17d565bb4a7744b41b7e4dc7e3a09e35) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/DemoAssets/Sprites/Asset.png using Guid(17d565bb4a7744b41b7e4dc7e3a09e35) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'df712fa4e058e9436fd0a074c6769e02') in 0.0094531 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=cc341b357aa82090299fad14c31000af DependenciesID=087e08c600594a9d377ed61d71f3aa83 StaticDependenciesID=cef61b232f276af7c35c917cda332b79 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 3
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000030 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/Scripts/LocalPositionOffsetAffordanceReceiver.cs
+  importAddress: Guid(865d01d2834c9cb4caa8f2c901104c2d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/Scripts/LocalPositionOffsetAffordanceReceiver.cs using Guid(865d01d2834c9cb4caa8f2c901104c2d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '621e1e69e185fcec053421e742c28af9') in 0.0050131 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=9e840671876a6918ee5021e716749ce0 DependenciesID=c09608b72440946e25ac51612070ecbc StaticDependenciesID=1aed3e79828f09814ffa8f543a86ace5 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 0
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000018 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/XR Interaction Simulator/UI/Controller/LeftController.png
+  importAddress: Guid(c2bc09e4357ee4c6bbb9d0e8ccf7f21d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/XR Interaction Simulator/UI/Controller/LeftController.png using Guid(c2bc09e4357ee4c6bbb9d0e8ccf7f21d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '816e365975538a5e9afad4db50adb9e4') in 0.0117107 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=715a2fb5e769ac06c82d518176af13f2 DependenciesID=ac4979c0a965dfa884573f5e517ff737 StaticDependenciesID=a3a35becf511877699e4c1679b898a6a 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 3
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000025 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/TunnelingVignette/TunnelingVignette.shader
+  importAddress: Guid(e51b4af1e50be764e8de46e07d4e3f3f) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/TunnelingVignette/TunnelingVignette.shader using Guid(e51b4af1e50be764e8de46e07d4e3f3f) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'aced781f544c2c3216060a0ada66f39b') in 0.0085317 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=1f5011036051290234fa25fa02fac0b0 DependenciesID=bf71f7fd24ab7735fbb434f668551bed StaticDependenciesID=cb4d10805ce0e15bbd4054f79f1bbc40 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000017 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/DemoAssets/Prefabs/Teleport/Teleport Area.prefab
+  importAddress: Guid(beb4e2871579447497fe41dfb108e2cd) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/DemoAssets/Prefabs/Teleport/Teleport Area.prefab using Guid(beb4e2871579447497fe41dfb108e2cd) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '319138113892a5e1b0f87b5437fdb928') in 0.0226049 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=f36a8f1eec3ec4ae7bf2378f3ed044ad DependenciesID=e540f7ab62bcc00905a13c4acefd2303 StaticDependenciesID=c9f03773df1d6d4020ef3681f5620aa6 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 10
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000020 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/Textures
+  importAddress: Guid(16f05c518e5885742a9bfcce46480095) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/Textures using Guid(16f05c518e5885742a9bfcce46480095) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '5b7cb598a168f9eaa0e7a62d0d9fb447') in 0.0048995 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=af62911f96aa7c9e35344507b8b5ca0b DependenciesID=b6197f981f22efab652440c64da42684 StaticDependenciesID=e0f2a899abe292aa6975c5346dd1abfe 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000026 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Prefabs/Teleport
+  importAddress: Guid(e71c638c311acc546a63dbfa61f89ab6) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Prefabs/Teleport using Guid(e71c638c311acc546a63dbfa61f89ab6) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '0ef8b332b4da4e65e5b13f83381ec025') in 0.0042778 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=2b4e1f528d1964f0985cc5014a3c358a DependenciesID=11ab4c61d9934556b7132ca47e1306ee StaticDependenciesID=9d97904599de8e69c54b2e5e3b0043aa 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000017 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/AffordanceThemes/PokeSphereInteraction.asset
+  importAddress: Guid(c2712227db89c5142adad58b143bf039) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/AffordanceThemes/PokeSphereInteraction.asset using Guid(c2712227db89c5142adad58b143bf039) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'a60996eff7d32d3fb367c5d1e2367eb0') in 0.0080018 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=b6114264de2b23ef51db230dc46639cc DependenciesID=e78caa9bb87d12696db1e203777ae809 StaticDependenciesID=f87af68ecbe01b36d003a6734151bff1 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000015 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Materials/Telport Anchor.mat
+  importAddress: Guid(fd3c5d8fce991e04f9c11109dde95b3b) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Materials/Telport Anchor.mat using Guid(fd3c5d8fce991e04f9c11109dde95b3b) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '77a393016d737507883a9b177cd8631c') in 0.0075298 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=30d7c1995651f4e62cebf529a0486392 DependenciesID=b89f6a4cbb6fddcd8411d6455d9f6f76 StaticDependenciesID=a6a886b7bd96cbf3e7128f65bf524bf0 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 2
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000016 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Models
+  importAddress: Guid(34f03838a812f0e41b1e3da17ff4038e) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Models using Guid(34f03838a812f0e41b1e3da17ff4038e) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'daca11f04f7e8a76cca904a31ac2dacb') in 0.0040882 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=191ecc7eee054c9335e147527948f5bf DependenciesID=22ab9103c571e9cc46a5a95d7ca381b2 StaticDependenciesID=15eab4655519467c0c5c3bcdb244147a 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000021 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/DemoAssets/Models
+  importAddress: Guid(90a5974969e85834f8306496fd3cda4c) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/DemoAssets/Models using Guid(90a5974969e85834f8306496fd3cda4c) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '03740c218a0599e599fbe309beca34e7') in 0.0037916 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=39bf17f14a4f2ed9092b00bcd9d9c46e DependenciesID=64d5d4a89c55cfdeb80e8f083ff088d6 StaticDependenciesID=65432292795b579aaa9b9a1d9d9e6f82 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000023 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/XR Device Simulator/DeviceSimulator.asmdef
+  importAddress: Guid(a0c6cb4ff4b70b44e933543a342fb2b1) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/XR Device Simulator/DeviceSimulator.asmdef using Guid(a0c6cb4ff4b70b44e933543a342fb2b1) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '4dac3090c89f1583ac428d847b98f54f') in 0.006366 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=650198006041d2993a90cb6a1e4980a2 DependenciesID=234180a9dfdbb7914320b63061d16d34 StaticDependenciesID=d22481b80b56d66d62e417031349b4c3 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000018 seconds.
+  path: Assets/Samples/XR Hands/1.7.2/HandVisualizer/Materials/TransparentRed.mat
+  importAddress: Guid(d149182fa7aa1dc47bd32b2a6da80ec9) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Hands/1.7.2/HandVisualizer/Materials/TransparentRed.mat using Guid(d149182fa7aa1dc47bd32b2a6da80ec9) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'a590937eeb91f77184f87b7ad2b8e844') in 0.0096917 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=a5b81ed3b2d074446578d7c99522f9b7 DependenciesID=052eaf31e90e7aac7380ae11ec82f569 StaticDependenciesID=bf0accc5177b5b963d9e50e460c0cd5b 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000017 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/XR Device Simulator/UI
+  importAddress: Guid(1713155dc4dd14e65b554e9690db4a5b) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/XR Device Simulator/UI using Guid(1713155dc4dd14e65b554e9690db4a5b) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'aca088004104be8a1d4291d89196209a') in 0.004502 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=82a68f031bde86b69b78414cac41c76b DependenciesID=f7a0114cf80b527f9a6ea4ad76d5fad3 StaticDependenciesID=6460d69b10ef57aa165e8442a9944108 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000018 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/XR Device Simulator/UI/General/btn_bgbottom.png
+  importAddress: Guid(89cb99e3e22696848a1cbce7b320f520) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/XR Device Simulator/UI/General/btn_bgbottom.png using Guid(89cb99e3e22696848a1cbce7b320f520) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '261ac09903eaf93bb929d082d8685a62') in 0.010079 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=4157a834e4dfb30980d04899131fdffa DependenciesID=510646c2825afbf868631234069f5e8a StaticDependenciesID=d0171a2060c1aec059e27103598c8587 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 3
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000021 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Prefabs/Teleport/Climb Teleport Arrow.prefab
+  importAddress: Guid(ae1968658b9687b47976fe86c062168f) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Prefabs/Teleport/Climb Teleport Arrow.prefab using Guid(ae1968658b9687b47976fe86c062168f) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'f1f00a4c55a2c3d97374c2fb5c012104') in 0.0229753 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=7229332a0749ac9848e9f2697788276c DependenciesID=430188a7b4850ca94d68643f88ac8418 StaticDependenciesID=b0aaa6924fed1d3188882899a7923e18 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 27
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000038 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/XR Device Simulator/XR Device Hand Controls.inputactions
+  importAddress: Guid(b72ab2a46d9094be38774d023beb4d34) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/XR Device Simulator/XR Device Hand Controls.inputactions using Guid(b72ab2a46d9094be38774d023beb4d34) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'c326f72932510328efa1791c6b3214e3') in 0.0242394 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=f7d798f3d62f96b5b0da4b7743a97683 DependenciesID=731e066f688ddefa44f86a5b94a4793e StaticDependenciesID=f05db55e4fa46827e7c75ec4cc101846 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 9
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000023 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/Scripts/OneEuroFilterVector3.cs
+  importAddress: Guid(8cf24614c456bc04c9adb820d19e35c5) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/Scripts/OneEuroFilterVector3.cs using Guid(8cf24614c456bc04c9adb820d19e35c5) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'b6c1d48cd57d1991d20e705439f678e7') in 0.0057122 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=4b36b0f0fbe28ff3681d38630cfeb67c DependenciesID=cbcde272bc5e1451027d97088a617cce StaticDependenciesID=fb36afe26df1e992220ef36f5d594626 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 0
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000018 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/DatumPresets/Menu Controller Follow Preset.asset
+  importAddress: Guid(2899508b1645c5e4fa421b4217da9539) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/DatumPresets/Menu Controller Follow Preset.asset using Guid(2899508b1645c5e4fa421b4217da9539) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'ffbad4f4807538cdaa998fc368dc2041') in 0.0115396 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=4fa0ff190f1110fd2ca139c81cba36c4 DependenciesID=40abcd6b4ddac2b8f536a296c07e5909 StaticDependenciesID=99388d7bf22bf8e4eac35f13824de358 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000023 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Scripts/ControllerAnimator.cs
+  importAddress: Guid(4a5f76f9ea8c80547973ab01877f9567) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Scripts/ControllerAnimator.cs using Guid(4a5f76f9ea8c80547973ab01877f9567) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'b0242d0a27159c077725dcd3187b29a1') in 0.0059897 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=3e8b304c95968418bca376c2241a84ab DependenciesID=91db7771b2b1f86d48d940b3ecae3d2a StaticDependenciesID=c292c047137086d5b88aacdbc2aebd62 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 0
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000031 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/XR Interaction Simulator/UI/Rotate/BackRotate@2x.png
+  importAddress: Guid(db211eab80abe447b865ccff41592e0e) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/XR Interaction Simulator/UI/Rotate/BackRotate@2x.png using Guid(db211eab80abe447b865ccff41592e0e) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '61691edb7b8c2e6d4face743f87913f4') in 0.0123185 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=39c790dd430119cf6f2d69865fe7d476 DependenciesID=9c6bf50e0d803a4a364cbf2d7850b4d8 StaticDependenciesID=58a62cfbf12982762ec9aef402999926 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 3
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000016 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Editor/StarterAssets.Editor.asmdef
+  importAddress: Guid(9233538b711383d449a485633568d17c) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Editor/StarterAssets.Editor.asmdef using Guid(9233538b711383d449a485633568d17c) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'd8ca179c63f113bdbee88b6482e5a292') in 0.0057434 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=e30f9bd34305b6083f3335c2c96ddd6f DependenciesID=2d8331a0d3a8b5be70b9b45926cce070 StaticDependenciesID=15e3684300a304cf2ed449f5e648d58a 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000020 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/HandsDemoSceneAssets/Models/Primitives/Cube.fbx
+  importAddress: Guid(ce5fb6ec8c1eb4a4eb135301f2602a6c) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/HandsDemoSceneAssets/Models/Primitives/Cube.fbx using Guid(ce5fb6ec8c1eb4a4eb135301f2602a6c) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'b69c09ed95670b2359436450094064b6') in 0.0530414 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=c547c0ae8e4b506dd24d0cc6793b23dc DependenciesID=e4e7c56ba72bcad7ace40004b9328bf8 StaticDependenciesID=c66f2b8a6cd3357eb0defb13bab97e41 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 8
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000024 seconds.
+  path: Assets/XR/UserSimulationSettings/SimulationEnvironmentAssetsManager.asset
+  importAddress: Guid(8a699a4b9264cd443b630a0249ef089f) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/XR/UserSimulationSettings/SimulationEnvironmentAssetsManager.asset using Guid(8a699a4b9264cd443b630a0249ef089f) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '6e5e97d99264bc6c1402edcdd3847332') in 0.0083798 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=06834511c21aa4ec113aeacdd1c2e3c6 DependenciesID=2d99946a93a59e04a2ca428b5e0979ec StaticDependenciesID=6eaffde6b11473f7b23f8388ec0b27ea 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000049 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Prefabs/Interactors/Right_NearFarInteractor.prefab
+  importAddress: Guid(b200f6587d118224eba8467281481800) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Prefabs/Interactors/Right_NearFarInteractor.prefab using Guid(b200f6587d118224eba8467281481800) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '589a48fbd31ea74da08ac2f6f540cb3e') in 0.0746694 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=f09dfc42a8227bc7a7aaead2a1729e3c DependenciesID=aa9227706127cdacb16ae96034c4db00 StaticDependenciesID=dbbfc96afeaf9f30757532e363e47153 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 46
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000016 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/XR Device Simulator/UI/Mouse/MouseR_d.png
+  importAddress: Guid(308cc8b73722e43eab64c228a76560a6) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/XR Device Simulator/UI/Mouse/MouseR_d.png using Guid(308cc8b73722e43eab64c228a76560a6) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'bba4d60ab190580024dadf5a76ecacc5') in 0.0101115 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=db2bc7a1cdbc77354f718384a98cb17c DependenciesID=71702497ff31f4914ecc2a3185b35466 StaticDependenciesID=d0680edcffc9c52c53a1c6673f381c31 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 3
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000022 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/DemoAssets/Prefabs/UI/Icon Toggle.prefab
+  importAddress: Guid(541ed11e270c6994ca5910042c7e04da) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/DemoAssets/Prefabs/UI/Icon Toggle.prefab using Guid(541ed11e270c6994ca5910042c7e04da) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '75d73a6184b54bb9bff1bcf961be6ef2') in 0.0388041 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=a2b74de5e437dfa535f0c8727b565d94 DependenciesID=c4ac069d59dd2c6012d3c7d0a397b39f StaticDependenciesID=baf64256d95603aec4370b7d76e5eb82 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 21
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000033 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Animations/Climb Teleport Arrow.controller
+  importAddress: Guid(db6239f7ccb29ca4aac63126c6a35e7d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Animations/Climb Teleport Arrow.controller using Guid(db6239f7ccb29ca4aac63126c6a35e7d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '038754dc3b8542f769cdd7bd452e0cad') in 0.0100492 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=7ec267e378f935500d6b114d1c29fe72 DependenciesID=3857e751558601f87e5ff773ff4fc6ce StaticDependenciesID=ebbd5384f59934ee2891cf43b3e4fb06 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 4
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000020 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/HandsDemoSceneAssets/Audio
+  importAddress: Guid(71a837b47f3069c4582a87e6a15555aa) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/HandsDemoSceneAssets/Audio using Guid(71a837b47f3069c4582a87e6a15555aa) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '346463b700c46aa7333a3e3d452d2816') in 0.0045822 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=698ffff7f411212af2c822b0c5b39a34 DependenciesID=f09d55f456bf73fa4d032b1e02d7a40e StaticDependenciesID=98f486dc5b1b2985ba2f2150125b37c2 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000018 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Presets/XRI Default Dynamic Move.preset
+  importAddress: Guid(da25954ba1a2e604294f2ccda1d6372c) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Presets/XRI Default Dynamic Move.preset using Guid(da25954ba1a2e604294f2ccda1d6372c) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'eeae43f47d367ae3e98ec023135febb2') in 0.0171002 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=c871affdb1b1b1e01aa845bd85fa9486 DependenciesID=2b42c36ef35368ad6a608965d1a09e5b StaticDependenciesID=e13d2801e227438e1396a657b848d0c3 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 4
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000030 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/XR Device Simulator/UI/General/Locked.png
+  importAddress: Guid(3aad042fcb57b4bed9d9a46b932df060) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/XR Device Simulator/UI/General/Locked.png using Guid(3aad042fcb57b4bed9d9a46b932df060) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '6b7e029667ae8b77e0c16dcf552d5a6e') in 0.0181981 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=f300c332cfb7fc1039c9a1f8735793f2 DependenciesID=af136facb3dee6d3e47bddae277dcdaa StaticDependenciesID=93592ccb5900cec456f4ee35cabba12c 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 3
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000035 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/XR Device Simulator/UI/Head/HMD_d.png
+  importAddress: Guid(177f60e6b21ff774093004ca330b2241) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/XR Device Simulator/UI/Head/HMD_d.png using Guid(177f60e6b21ff774093004ca330b2241) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'e8bd5e62ecd7f0023979145330d9f3ff') in 0.014188 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=83c4ad5a03abc1e810e5ca72637c7687 DependenciesID=8d7e0ec39cc070f955fafdde04669d5e StaticDependenciesID=b168a356e2e64b8f8e695d0c6f94cd9e 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 3
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000015 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Scripts/ToggleComponentZone.cs
+  importAddress: Guid(5fe39fdeebcc91a45919bfcb77ef6eb4) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Scripts/ToggleComponentZone.cs using Guid(5fe39fdeebcc91a45919bfcb77ef6eb4) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '1cfe92eeb5d46b95db3caeeab5aedf2b') in 0.0045521 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=414dae76616213ec84c861079ee57aa7 DependenciesID=4da497804f2cc5795b63237894b4b715 StaticDependenciesID=b826fc2e18482ff2ccbda505c7ec6ebb 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 0
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000022 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/HandsDemoSceneAssets/Affordances/LargeScale.asset
+  importAddress: Guid(d47a7e28eb1851943b2b99ded7acba3b) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/HandsDemoSceneAssets/Affordances/LargeScale.asset using Guid(d47a7e28eb1851943b2b99ded7acba3b) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'fc0336fd082894c86b0d0e1bc7e7d31f') in 0.0078974 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=813735c02cd50fa277ad2e42cffab0ca DependenciesID=bbb5577ddd7d529620fd2d3bd6ac4c80 StaticDependenciesID=39ed37de7a9af3ea4fa8124ae53e0d45 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000022 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/XR Interaction Simulator/UI/Hands/LeftHandOutlineThin@2x.png
+  importAddress: Guid(10965b4049d944e82bf6a78d4c23cfe6) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/XR Interaction Simulator/UI/Hands/LeftHandOutlineThin@2x.png using Guid(10965b4049d944e82bf6a78d4c23cfe6) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '9fcddfe7f7fc9ad3592f9cefe9218173') in 0.0131456 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=b07ba858b79976fbb16744b48ec2e1ce DependenciesID=69e07870046e1a32edc92dadc2e3a6a9 StaticDependenciesID=e5d9bfed69454a993250af2ff10e9985 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 3
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000028 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Prefabs/Controllers/XR Controller Left.prefab
+  importAddress: Guid(1392f805216c47742996d4742c80721c) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Prefabs/Controllers/XR Controller Left.prefab using Guid(1392f805216c47742996d4742c80721c) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '0b87413c43a175c9ed1924084d4c9f08') in 0.0204281 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=355c4adfbad4539e9553386b7af3600b DependenciesID=82a958060ba4eca7943d8f51b686a662 StaticDependenciesID=84e2961eccfd0a72d103989e706e70f3 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 59
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000024 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/HandsDemoSceneAssets/Audio/ButtonClick.wav
+  importAddress: Guid(eeeda5dce5e1d344f8e2f6195f16cb38) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/HandsDemoSceneAssets/Audio/ButtonClick.wav using Guid(eeeda5dce5e1d344f8e2f6195f16cb38) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '5e2faba05d575f64104c274a846d43a7') in 0.0171302 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=660bd079018c2f2550210e6dd6b75ce9 DependenciesID=96d8a76b3aae8edba2216a9de4eaf2f8 StaticDependenciesID=76472336ba6555b18bc3fa68a66abe00 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000021 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/DemoAssets/Prefabs/UI/Dropdown.prefab
+  importAddress: Guid(870459f1cb8d7b7428337cc5935feb67) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/DemoAssets/Prefabs/UI/Dropdown.prefab using Guid(870459f1cb8d7b7428337cc5935feb67) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '1c2bc9fb66efa06927f582a94ac18ad4') in 0.062178 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=af70d7de17f1c6993b6b217538890f66 DependenciesID=1eb9a5bc26734585ca3fac69735ea5d4 StaticDependenciesID=d0c05a21c5e9539a0d69a1fe3ce01327 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 69
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000044 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/DemoAssets/Prefabs/Interactables/Torus-Cut.prefab
+  importAddress: Guid(833cb867d186193418fc107735ae3139) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/DemoAssets/Prefabs/Interactables/Torus-Cut.prefab using Guid(833cb867d186193418fc107735ae3139) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '3b7deaa4a15bdb21ccbe492a94c75253') in 0.0204893 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=dadc036b736cce3676e93b705dd771b5 DependenciesID=b77167b54c8f6a9f5faea7425bd76ed6 StaticDependenciesID=35c2251e3de267a18770a91c30c2ffed 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 24
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000038 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/HandsDemoSceneAssets/Affordances/ChessPieceColor.asset
+  importAddress: Guid(c39d3614cd6089347a01b0743003ae34) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/HandsDemoSceneAssets/Affordances/ChessPieceColor.asset using Guid(c39d3614cd6089347a01b0743003ae34) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'bd8fdee3c6b67f8f673fb86ba565d359') in 0.0058401 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=b8d4d379c28d1b2c05df907fbcfb91e5 DependenciesID=11adbc8ff9286b19dd0a84986474e9dc StaticDependenciesID=b9d1999bdcd66424f52efc96e942737c 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000019 seconds.
+  path: Assets/Samples/XR Hands/1.7.2/HandVisualizer/Prefabs
+  importAddress: Guid(3acfee4a2c8c7c24b96095fdac3ee33d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Hands/1.7.2/HandVisualizer/Prefabs using Guid(3acfee4a2c8c7c24b96095fdac3ee33d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '5dea79e55341db731695d398259bb352') in 0.0054317 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=bd8c88b09559c2d22e3eb5e12d9f6a5e DependenciesID=22db051cbe9d1e46000ec3e3ae4fd645 StaticDependenciesID=97878e16a157f862c7bae20b471a9eb2 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000015 seconds.
+  path: Assets/Samples/XR Hands/1.7.2/HandVisualizer/Models/RightHand.fbx
+  importAddress: Guid(56186ccf27ad7864681108ed88349071) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Hands/1.7.2/HandVisualizer/Models/RightHand.fbx using Guid(56186ccf27ad7864681108ed88349071) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'f2c1e852916ab19103c62aadc8e7b579') in 0.0095518 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=96da18e67d4fc64a5739e6eca109a0da DependenciesID=fbe0a3166660c6a77c10fa1f5b264a78 StaticDependenciesID=a34843da68589ba0472b574150afbb0c 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 60
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000020 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/Editor/Scripts
+  importAddress: Guid(86f27c2138eb8584fa6527e18c1be13d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/Editor/Scripts using Guid(86f27c2138eb8584fa6527e18c1be13d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '0699a4051d0fea77e4d7f96e800d8268') in 0.0053212 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=78ba1ee011bf267c435bf1a9430395c5 DependenciesID=b8649732e9d0c468dd22a23a39cdfecd StaticDependenciesID=bb1ccf4340229ceca3052024a8d0b0e9 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000026 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/XR Interaction Simulator/UI/Highlight
+  importAddress: Guid(09e02e2a169b66e4cb3f67fa4951f4ce) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/XR Interaction Simulator/UI/Highlight using Guid(09e02e2a169b66e4cb3f67fa4951f4ce) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'b8666e7517fd9001333a206dd3a634b2') in 0.0052436 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=988bce6665dd891c6d480e24115efc47 DependenciesID=31fe72f6ab24307b1cd676195d53547e StaticDependenciesID=fa1bc9e65d0606ecc7c6f941836154e6 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000015 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/XR Interaction Simulator/UI/Controller/BothControllers.png
+  importAddress: Guid(87805fa2e196d415b84396f8e984abcf) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/XR Interaction Simulator/UI/Controller/BothControllers.png using Guid(87805fa2e196d415b84396f8e984abcf) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '7048fdeb197c3f18d092b40fea136eac') in 0.0104519 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=29423d1d6d2e4a23db12f4142b79f931 DependenciesID=409f4464a15201f5c6ff035be71e4ea4 StaticDependenciesID=444b0a627cd575c0558caf2eddc0f3d5 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 3
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000016 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/XR Interaction Simulator/UI/Controller/LeftControllerOutline@2x.png
+  importAddress: Guid(86ad78bcde32c40de86c59ef68e8c525) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/XR Interaction Simulator/UI/Controller/LeftControllerOutline@2x.png using Guid(86ad78bcde32c40de86c59ef68e8c525) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '63258f764f405625638f9de29ddd6e49') in 0.0095645 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=50f9b1e1ec1d4b1f8aab5ce8e03342e5 DependenciesID=359755daba390455de8442a6fbfd1131 StaticDependenciesID=18dccc2cabd710112c628fe14233e277 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 3
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000023 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/XR Device Simulator/UI/Head
+  importAddress: Guid(01820cd5d6cab46b9afde2261f687a48) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/XR Device Simulator/UI/Head using Guid(01820cd5d6cab46b9afde2261f687a48) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'a1cf51d11aa745746a03bb462f0423f7') in 0.0032215 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=1d30ee973bf9579ef338c9ec8a217690 DependenciesID=6c43c46e0239fa2c4ef0b10e584386ab StaticDependenciesID=70c4daf03d8731134a91e1ce486e95fa 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000028 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/DemoAssets/Prefabs/Far Grab Samples.prefab
+  importAddress: Guid(f5ee409d69254d64da7a3b74d31a5a40) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/DemoAssets/Prefabs/Far Grab Samples.prefab using Guid(f5ee409d69254d64da7a3b74d31a5a40) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'fedb20d02ca28637a122c02e160a2f5c') in 0.013712 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=4c9f3dbb0f8a5ccdd3664fabf03a961e DependenciesID=22e9a0374a8fc5f30c3e9f71eb3a2fc8 StaticDependenciesID=49406740b8f11e9c49656e53f8a1dcd7 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 84
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000019 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Prefabs/XR Origin (XR Rig).prefab
+  importAddress: Guid(f6336ac4ac8b4d34bc5072418cdc62a0) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Prefabs/XR Origin (XR Rig).prefab using Guid(f6336ac4ac8b4d34bc5072418cdc62a0) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '309630c603f86a86e37cf56cb2b29bde') in 0.0476328 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=a232f2729022c80b8620e619bba49126 DependenciesID=fe6a7b7432a58d155c180a391a5cf747 StaticDependenciesID=51ae88e67742298a8fc71ed26f3ca527 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 356
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000017 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/HandsDemoSceneAssets/Models
+  importAddress: Guid(244d416b583e0204289c36456c6419cd) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/HandsDemoSceneAssets/Models using Guid(244d416b583e0204289c36456c6419cd) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'f628f49de1d060a9ada34b072b5c8289') in 0.0043425 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=8ab59cecfa6ef455248e09ce5ab954e3 DependenciesID=50e9491a525d6ec1d7675f4a1796cbc5 StaticDependenciesID=2d793d7bc87590bdb158a37ee7b85db9 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000023 seconds.
+  path: Assets/Samples/XR Hands/1.7.2/HandVisualizer/Materials/White.mat
+  importAddress: Guid(c3474c208278e814cb8d1c29aa806e81) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Hands/1.7.2/HandVisualizer/Materials/White.mat using Guid(c3474c208278e814cb8d1c29aa806e81) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'f570b669ecc1f447f1e1206661c5a0e2') in 0.0081219 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=3ec4ce0f63c77abf465e90ad131eb6b9 DependenciesID=c7a9a7748281079456dbd986a51559d3 StaticDependenciesID=8ec15af2cd3c7e8e66feee04846b6cc3 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000038 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Scripts/PermissionsManager.cs
+  importAddress: Guid(4f62c7b7418ee024aa16285921e63d56) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Scripts/PermissionsManager.cs using Guid(4f62c7b7418ee024aa16285921e63d56) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '399d52bd8cdf1c9ac632a9a4540c55cb') in 0.0064355 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=cdf6c65f6a563fd70822d579bd9f9c81 DependenciesID=2bcf2ac9603a2ee2bbcd8401eb2adfcc StaticDependenciesID=d3ebe2e538e6377adea4ebd0f7f1a2c9 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 0
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000021 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/DemoAssets/Textures/Concrete_Metallic.tif
+  importAddress: Guid(f3fb518ec70eb4047b1c6ec34933fbce) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/DemoAssets/Textures/Concrete_Metallic.tif using Guid(f3fb518ec70eb4047b1c6ec34933fbce) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '5315c62f978ca0f79086b205428ffae3') in 0.0165412 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=d41746b8c361c422a39d7e9a45640a91 DependenciesID=4ca20662fcc27027edeeddac2f352970 StaticDependenciesID=5fb47271277045a31f83e9380c07a999 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000019 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/XR Interaction Simulator/UI/Rotate/RotateUpArrow.png
+  importAddress: Guid(45cf9a9247ff14898b4edee9ea72ebf2) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/XR Interaction Simulator/UI/Rotate/RotateUpArrow.png using Guid(45cf9a9247ff14898b4edee9ea72ebf2) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '7409c147a5da64f7de689e6242e2f475') in 0.0111957 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=c6839bca0ae3e71cb16ebf2a72b64d4e DependenciesID=0ec2abdd0d552da15476b93fc57cc4c4 StaticDependenciesID=65c4735c1ebe9cc1144d54b40c4bb47e 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 3
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000021 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/Prefabs/HandPokeInteractorAffordances.prefab
+  importAddress: Guid(eed9e61964b17194d94ce56bffabb610) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/Prefabs/HandPokeInteractorAffordances.prefab using Guid(eed9e61964b17194d94ce56bffabb610) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '2607cd94d4ab9d5d187150e451770ef2') in 0.0272206 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=50234ce59e3d7707853d173a7b05912f DependenciesID=0f3b29821cf69bf9a3f5564eda17c386 StaticDependenciesID=fdf94f4bba0c1e357ccc54daef4cf326 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 10
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000041 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/Prefabs/LeftHandAndroidXRVisual.prefab
+  importAddress: Guid(c596c6eccbc90fe48949f87e583ce552) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/Prefabs/LeftHandAndroidXRVisual.prefab using Guid(c596c6eccbc90fe48949f87e583ce552) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'f9bc82b70d1a32edca92633593a6cb4a') in 0.0199479 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=3a90009d4c0d6e0a8f7aacb3b2065ef2 DependenciesID=f3b017e3d23280b404c271b4be95e45a StaticDependenciesID=e53c7541268a81d45ba3971354cfa375 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 169
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000019 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/HandsDemoScene.unity
+  importAddress: Guid(3ff35cecbcc52cc42945cf531638a60a) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/HandsDemoScene.unity using Guid(3ff35cecbcc52cc42945cf531638a60a) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '58a38e1d1b92a15f2b92ba904c900cd1') in 0.0119019 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=882aa9b9db9ccca4ca84a5ae0b13dbc9 DependenciesID=23111017c325deb789f2ef5d49b11a72 StaticDependenciesID=831a313bfd3b6b200df12f88e6d629ce 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000020 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Scripts/ControllerInputActionManager.cs
+  importAddress: Guid(f9ac216f0eb04754b1d938aac6380b31) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Scripts/ControllerInputActionManager.cs using Guid(f9ac216f0eb04754b1d938aac6380b31) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '48b4e28c5c390694f5d6c77c2b43e7bd') in 0.0056016 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=18e7f4b61d414cdba8f964cefac7d0bf DependenciesID=28d13e85b0954098c9e4720d4dcdeb94 StaticDependenciesID=4f315b325014238e863dc427a857d8d9 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 0
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000022 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/DemoAssets/Models/PushButton.fbx
+  importAddress: Guid(7ab6f3b0fd1a6ba41b2a47766c16613f) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/DemoAssets/Models/PushButton.fbx using Guid(7ab6f3b0fd1a6ba41b2a47766c16613f) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '8d24afcf971a822ec09c035ace5812cf') in 0.0185757 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=b9ff60ceb239d1a173ddfab7b5e56321 DependenciesID=ce27b4e76b13fc19afd2b915a596ecfc StaticDependenciesID=3b6e03648a8a4d82d15c8abe73a5d638 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 18
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000025 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/DemoAssets/Scripts
+  importAddress: Guid(89c7da9a19d09c8419df6ac7f38d429e) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/DemoAssets/Scripts using Guid(89c7da9a19d09c8419df6ac7f38d429e) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '2e178c8c148d637f610b09377b740c64') in 0.004152 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=48ee2eab3a427c918c73aa75c34bf95e DependenciesID=bd5295061943161e8269deb2c1f445bd StaticDependenciesID=de5e1a38eae608483b55e7ee6c91ff47 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000019 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Scripts/PlatformUnderstanding.cs
+  importAddress: Guid(3ce213c1f32595b4888e78a36e017d3e) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Scripts/PlatformUnderstanding.cs using Guid(3ce213c1f32595b4888e78a36e017d3e) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '37c32617efca33c5b234dec76613b21e') in 0.0064259 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=a4e0ae8dff0d22f3db077ecdd6d34c83 DependenciesID=b189521abc75d1f94b126730e8dd789d StaticDependenciesID=446c4b5ce9d40cdd2bc9cff13712a474 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 0
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000016 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/HandsDemoSceneAssets/Models/Primitives/Cone.fbx
+  importAddress: Guid(30ab630b2b7264c1c85cca8ce81b06c3) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/HandsDemoSceneAssets/Models/Primitives/Cone.fbx using Guid(30ab630b2b7264c1c85cca8ce81b06c3) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '07656cf6c03fd46e0e03c22dde01eedb') in 0.0135778 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=8496e051aa820d377e162b7cb1dd75b2 DependenciesID=9efb738924c59e04a1ad2244a391982d StaticDependenciesID=46fe2b6ef687d831f59a191423c90d06 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 8
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000022 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Shaders
+  importAddress: Guid(388cb625f9bdf7444b7b2df5b64a84c6) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Shaders using Guid(388cb625f9bdf7444b7b2df5b64a84c6) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '510b1885af4e9ab680c660a6ee732981') in 0.0038362 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=124dc8e6de196c1a947ca9bc85ef529d DependenciesID=5823db704795a451fabe869d0acdd86d StaticDependenciesID=1bd5cba01ff9d081310c753b585d2bda 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000030 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/XR Device Simulator/UI/Mouse/MouseR.png
+  importAddress: Guid(14e910c1fb9c7514a8106ffd25f1d892) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/XR Device Simulator/UI/Mouse/MouseR.png using Guid(14e910c1fb9c7514a8106ffd25f1d892) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'f5fe58175a1d960f34769f7afb11e9cd') in 0.0131894 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=e23ddef120edd1410b8043bf09d9964f DependenciesID=1ab0cfcf6e54dee21d28c1ede1736673 StaticDependenciesID=6e47a4b460b1f8f5e8fdb9c279a21782 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 3
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000022 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Scripts/ToggleColorToggler.cs
+  importAddress: Guid(cb280e627cedda749b93045b8dd8d327) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Scripts/ToggleColorToggler.cs using Guid(cb280e627cedda749b93045b8dd8d327) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '06e70b43886e4067a514893fad360cd2') in 0.0069768 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=7bdd6439a8d8e8630ccab15264f8a904 DependenciesID=2e01b5d992d7a3936a51afeb37f6d4d9 StaticDependenciesID=e11337909835e03af36a2a62585c43c4 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 0
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000017 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Prefabs/Capacitor.prefab
+  importAddress: Guid(f39b609f137c4877b3b0097b549ba99d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Prefabs/Capacitor.prefab using Guid(f39b609f137c4877b3b0097b549ba99d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '48c364126815567fce72ed9364b5ec9f') in 0.0160451 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=658bbb3395abc37719386d0215ebdb42 DependenciesID=ff5a88b6a5f4c6305e87f51d2b978320 StaticDependenciesID=eb5b8072187291cae17e433196f820da 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 9
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000019 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/HandsDemoSceneAssets/Scripts/PokeBlendShapeAnimator.cs
+  importAddress: Guid(78373ff495dc8234887e0cbdc7140022) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/HandsDemoSceneAssets/Scripts/PokeBlendShapeAnimator.cs using Guid(78373ff495dc8234887e0cbdc7140022) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '332391917a374967585b26a93445fed6') in 0.0054698 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=c9edd9743fcaec6b6539cabdb84f5091 DependenciesID=8daef91932f53be03fd5f98417574ac6 StaticDependenciesID=2d9d853e40983cf2539036e40be25d69 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 0
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000036 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/XR Interaction Simulator/Hand Expressions/Thumb Expression Capture.asset
+  importAddress: Guid(b8da6254ca32341d6b80019659732616) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/XR Interaction Simulator/Hand Expressions/Thumb Expression Capture.asset using Guid(b8da6254ca32341d6b80019659732616) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '21a7928fc4945ddd3ef0854095d7dd3e') in 0.0058344 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=80284eff60e8daceba85314c6c7af16c DependenciesID=6ae00f36af5796c539dfd70f5106ec02 StaticDependenciesID=103e8c7f153508a52792007a348912eb 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 2
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000017 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Prefabs/Interactors
+  importAddress: Guid(f585a443d5224c19adcc94a236a4b2d6) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Prefabs/Interactors using Guid(f585a443d5224c19adcc94a236a4b2d6) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'e3071a86b2864e70adcaa34892284fb2') in 0.0058286 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=da917dc69e8ebf81442f0ef53e8db503 DependenciesID=c3cbdf703c629bbe4f6c7d29e3fe3846 StaticDependenciesID=42c74d090024de44b79cd987655b1058 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000013 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Presets/XRI Default Right Grab Move.preset
+  importAddress: Guid(fdc4f514b7b1e9c4eb39713ad9dd4eba) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Presets/XRI Default Right Grab Move.preset using Guid(fdc4f514b7b1e9c4eb39713ad9dd4eba) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '410ed8245978627432eb39cc16258404') in 0.0072483 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=ef22dd989e2b7251f1d54c053d5a7c4a DependenciesID=fd45a9a9a2f6d8e5dbe0d44acf8a00a6 StaticDependenciesID=9bc00ce6597b9871897f35a37d274452 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 3
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000018 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Prefabs/Interactors/Poke Interactor.prefab
+  importAddress: Guid(27024f5809f4a4347b9cd7f26a1bdf93) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Prefabs/Interactors/Poke Interactor.prefab using Guid(27024f5809f4a4347b9cd7f26a1bdf93) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '49ba6469b492b59dc235ae7a9b0d89a3') in 0.012688 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=f84281e69640bd39254dc0e6bfcd46d7 DependenciesID=34abfc4b55baa87077eedd5db39788ef StaticDependenciesID=bde13c92baf553eb4dc8c7f5e7026917 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 12
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000027 seconds.
+  path: Assets/Resources Vol.2 - Electronics
+  importAddress: Guid(83d13ad0d28a505f28a611814676a510) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics using Guid(83d13ad0d28a505f28a611814676a510) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '91b000141652b2069828b0192dc33fc5') in 0.004531 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=47ce29e7f64b7423a88d1fcdf2451993 DependenciesID=b0280ad0acedb54a0b8d232475d886d6 StaticDependenciesID=8793f8523c80c9044112b53fd0bb3581 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000021 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Textures/Potentiometer/Potentiometer_BaseMap.png
+  importAddress: Guid(4256e459974e4d07832e00e2fcc98a5d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Textures/Potentiometer/Potentiometer_BaseMap.png using Guid(4256e459974e4d07832e00e2fcc98a5d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'fcec60d5df08f3019fa7026b67abdf48') in 0.0148135 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=09a2ec7be2076a077b32f879dc7b78b4 DependenciesID=60c1bf2fbf63237b16fadd91d2073aaf StaticDependenciesID=0681f9074389c062838ed624a33b9cdd 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000024 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Materials/Bareboard.mat
+  importAddress: Guid(87348d59526c47c997637d047f59de2a) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Materials/Bareboard.mat using Guid(87348d59526c47c997637d047f59de2a) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '30a5d26c3c8d04025737ee1fef22ac6b') in 0.0580707 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=73926cdff8abc8a1b29bf6502ba259b7 DependenciesID=cdc6205bb75aede605acf6a3735ccdb2 StaticDependenciesID=ea75811060924db3a33f7c853757bb2c 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 5
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000022 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/Prefabs/HandInteractorAffordances.prefab
+  importAddress: Guid(67c52e745f2766644ba16bfb165e2659) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/Prefabs/HandInteractorAffordances.prefab using Guid(67c52e745f2766644ba16bfb165e2659) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '03140ad5f858ea43fcb4f651cb9a4afa') in 0.0123819 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=5345eddd4274c9dfcf1e0c2a4786353c DependenciesID=7bdb4b8b58371e463b97720189bb2a02 StaticDependenciesID=9dc3df80a6d3e48c0e71e60e83ac5e03 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 11
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000035 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Scripts/RotationAxisLockGrabTransformer.cs
+  importAddress: Guid(4dd2e41114c62b44fbd334ca5b314352) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Scripts/RotationAxisLockGrabTransformer.cs using Guid(4dd2e41114c62b44fbd334ca5b314352) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '808827ce2909a0d18aa5edb0cc59e2d7') in 0.0057466 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=44596106f2684a23c36a7771b483c80d DependenciesID=e1298f129ead28554c214ac12a0ad204 StaticDependenciesID=d4d5a0229dfeab00eecb0214b201f2ec 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 0
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000022 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Prefabs/Wire.prefab
+  importAddress: Guid(db20fbd8a80747a4b3d141623e1b2c5b) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Prefabs/Wire.prefab using Guid(db20fbd8a80747a4b3d141623e1b2c5b) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '9d395dff7cc969c8cbc848d7ff52d10c') in 0.0112448 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=94c697e6aa02b49e81d934c97fe998ee DependenciesID=2658b832b65188ccd289d2dc8f6cbfce StaticDependenciesID=11571d2a42af06639c8dadb0705805fe 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 9
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000019 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Textures/Bareboard/Bareboard_BaseMap.png
+  importAddress: Guid(d31c193e1eef455fbc7ac3029d166e51) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Textures/Bareboard/Bareboard_BaseMap.png using Guid(d31c193e1eef455fbc7ac3029d166e51) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'b4b755bbd0cc926f850c866953ebe0ad') in 0.014187 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=c1ad4b22ad664da229b2e2d933a25638 DependenciesID=bf2fb9ac981204a88c57ac929b2a0e7b StaticDependenciesID=8b0215bd338111bb3e4a4ab032e591b5 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000022 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Prefabs/Antenna.prefab
+  importAddress: Guid(46732eb4b3824a7a85063c7e09e2d4c4) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Prefabs/Antenna.prefab using Guid(46732eb4b3824a7a85063c7e09e2d4c4) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'aaba024de8700336945dc9695e5a6430') in 0.0140047 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=dad66afbe375c8e26f6a5a0402e64e77 DependenciesID=2ca145d6e414b0026a7bfcaf721e958e StaticDependenciesID=5036e2224486c512590ea03d5c960f3a 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 9
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000029 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Scenes/Demo.unity
+  importAddress: Guid(289c2787541e412081ec8b7f02368576) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Scenes/Demo.unity using Guid(289c2787541e412081ec8b7f02368576) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'c0f8447f0c06576aa0b288d1c36a4f19') in 0.0128031 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=ce77b7221f766416f7a6de667e509658 DependenciesID=7ee537db87222a4c69ba5d55f0f3367c StaticDependenciesID=88e3ee0533001bda2cadcbd1b0e409d0 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000021 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Textures/Controller Board/Controller Board_Roughness.png
+  importAddress: Guid(9803c032efef41eba1835b8b97e30eb9) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Textures/Controller Board/Controller Board_Roughness.png using Guid(9803c032efef41eba1835b8b97e30eb9) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'a14da92d8e3b7666d24b292b64ffcfd6') in 0.0142501 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=377e0d779e11b23e2b28c181aa9df537 DependenciesID=dcd0f910c1316fc14d772475a27a925c StaticDependenciesID=1ee40bee5531fe35de3ba5b4fab7007b 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000018 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Materials/Led C.mat
+  importAddress: Guid(873983cb182844908460db003ac4f287) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Materials/Led C.mat using Guid(873983cb182844908460db003ac4f287) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '5d9793afa64a1c39d3d8949959de2d10') in 0.0252245 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=ddb81d09c9dcb11000023ab77a8c7fff DependenciesID=fa7fc203a3c36e91739dda3434bf4909 StaticDependenciesID=92193cba219035519d977f3655011973 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 5
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000026 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/Materials/Unity_Hand_Dark.mat
+  importAddress: Guid(c1c1d86181c00bf4dabbad3ca0b191e7) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/Materials/Unity_Hand_Dark.mat using Guid(c1c1d86181c00bf4dabbad3ca0b191e7) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'e4794c2e55860b46519893a75fca142c') in 0.0218029 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=850e8474fbc38b108e1f24b59de9dd52 DependenciesID=868c5fcf2bb4eec0b36695d04f7cc69d StaticDependenciesID=a86c063fbfe7eaed737a55ffc31a3c0e 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 9
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000031 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Models/Button.fbx
+  importAddress: Guid(03573c5a5f9c45029ae0cc13536551c3) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Models/Button.fbx using Guid(03573c5a5f9c45029ae0cc13536551c3) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '21d4ecd168e84621babcaf4945a90473') in 0.0145557 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=22e02dfd02e9de5fc4b797d33427ae7e DependenciesID=ef69408a07d2b9d4fe056c618e390640 StaticDependenciesID=40b1f645b776c96d9eea1948d32aab36 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 14
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000018 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Textures/Plywood/Plywood_BaseMap.png
+  importAddress: Guid(967b2de74ebc4ea7a90a12e571f06cd1) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Textures/Plywood/Plywood_BaseMap.png using Guid(967b2de74ebc4ea7a90a12e571f06cd1) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '6295892c3834ab23caf16e74b25c4719') in 0.0128188 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=c96aeefbcb7f69fa3d3c97f89c099672 DependenciesID=f9d125cbacb7e6186307312b6c17ab8d StaticDependenciesID=fb4f9ef070fbd1645505ff6c859dfc97 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000022 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Textures/Microphone/Microphone_BaseMap.png
+  importAddress: Guid(a806cc1ad956476c96e3a484fe5e33a1) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Textures/Microphone/Microphone_BaseMap.png using Guid(a806cc1ad956476c96e3a484fe5e33a1) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '14955a49319cd21cd986e7902f6f4b4a') in 0.0117903 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=12fa6c411ac1c2cadde356e3f5f487f3 DependenciesID=3bd6a5ed1048285f6ffe212a05352683 StaticDependenciesID=943167e3caa1a8e2581d8a9035fce186 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000020 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/Prefabs/HandMenuRig.prefab
+  importAddress: Guid(58011bca9681c484080084eccc4cb150) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/Prefabs/HandMenuRig.prefab using Guid(58011bca9681c484080084eccc4cb150) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '6fde25da25ccc72b474d0d0da6e2e147') in 0.0119206 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=52997bfdb8db9207ec928789c56133a4 DependenciesID=e90a2f7929460109befb353d941b1ee7 StaticDependenciesID=bbb6d0c21590b418d2bbaae85cd82249 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 22
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000031 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Textures/Potentiometer/Potentiometer_Normal.png
+  importAddress: Guid(43afe73180804a2484872c2db89d53a0) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Textures/Potentiometer/Potentiometer_Normal.png using Guid(43afe73180804a2484872c2db89d53a0) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '59f66a334596bd14e8c8cab7424096d8') in 0.0108912 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=4d814af3752e23f7c7556717bb3635d4 DependenciesID=90b559c5b1188e62d59de3797ab5a4b8 StaticDependenciesID=063cf613174a1f2a331f34d01fa71361 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000017 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Textures/Circuit Board A/Circuit Board A_AO.png
+  importAddress: Guid(31c502653af54e53857cc888c9ae03cc) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Textures/Circuit Board A/Circuit Board A_AO.png using Guid(31c502653af54e53857cc888c9ae03cc) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '0f562ab7f1097098b61f7af062a1712a') in 0.0120679 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=8f3907a8f5e0517b459efc72ef87ffb5 DependenciesID=3531155fdb0d1629f20351c5ee037575 StaticDependenciesID=e8056f2e12cd76662523a3410ea4445c 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000016 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Textures/Solderingpad/Solderpad_Roughness.png
+  importAddress: Guid(f6fe22857caf4583bd50fe98afd087aa) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Textures/Solderingpad/Solderpad_Roughness.png using Guid(f6fe22857caf4583bd50fe98afd087aa) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'f28d0bd35bda41de8abc4fb382dd2eec') in 0.012425 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=87084fcf5c57eb163ff1b465fd97e6dc DependenciesID=9dbd9c3b73814f970c96a6b0a045d234 StaticDependenciesID=4aaa2b813cbdf85043995ef5ba1d6612 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000018 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Prefabs/Battery 9v.prefab
+  importAddress: Guid(e2472e33deab4d4c85b34d70c473ce4a) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Prefabs/Battery 9v.prefab using Guid(e2472e33deab4d4c85b34d70c473ce4a) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '1ba9c07f86ca5fea181865698c9e8435') in 0.0097355 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=22dd1cf1fa78d1d4f51020494924b336 DependenciesID=95aa3df5f9a6e5911c7595deff1c91f7 StaticDependenciesID=d699d7721044e9e83dc8ba6a4c88ac84 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 9
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000030 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Textures/Wire A
+  importAddress: Guid(c88f97bed34842bbac3369620e92cf6f) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Textures/Wire A using Guid(c88f97bed34842bbac3369620e92cf6f) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '57288daa4a744cc005ed07952fffb945') in 0.0045116 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=9f8477ff68215a600747241cbc90c440 DependenciesID=b40cd8fb8103662fd18b3399462ed17d StaticDependenciesID=904f149a63a97e594e51974506262cbe 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000019 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Textures/Battery Circle
+  importAddress: Guid(2682ef01853e40c98196b84d6ac8015b) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Textures/Battery Circle using Guid(2682ef01853e40c98196b84d6ac8015b) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'c17760113f715af2206f832d8d38f1e5') in 0.0055332 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=afe31b8a9945e40c41e6a7e1fa125d0a DependenciesID=26f68b0f1fe70db5a798cb126abcb2bd StaticDependenciesID=0b46dbd5b5eb1e64c745c2af9a492543 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000024 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Materials/Wire A.mat
+  importAddress: Guid(6502e30bcf22422b95dd8c5b37c4f4ee) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Materials/Wire A.mat using Guid(6502e30bcf22422b95dd8c5b37c4f4ee) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'b37ca653bca644ea9f94871ab05f2d51') in 0.0322954 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=5d848cd46ff20ac37501f47649b5fa94 DependenciesID=13ff2d8e3677cee8e20283b1eaa848b3 StaticDependenciesID=b9ccff05b08719b163abcd182c2e212e 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 5
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000038 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Textures/Switch/Switch_BaseMap.png
+  importAddress: Guid(e0e6afc657704ee6867922787f55b3a3) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Textures/Switch/Switch_BaseMap.png using Guid(e0e6afc657704ee6867922787f55b3a3) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '6ecedeadf039322bd6b72efa3a7dbeba') in 0.0160175 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=8c5a897da72ed5be7ab76cf071bde6c4 DependenciesID=8eacd4505cb17a3ba6b594f660ad3156 StaticDependenciesID=2f0ea02925a9642a0fcf5ff0b5564aa3 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000036 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Textures/Battery 9v/Battery 9v_AO.png
+  importAddress: Guid(b8f739e1a6f7439d910ecd208b2c5869) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Textures/Battery 9v/Battery 9v_AO.png using Guid(b8f739e1a6f7439d910ecd208b2c5869) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'a88a21a6edbf86800e143a635e4ced90') in 0.011241 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=4d58e6c040e2c7f6be21bf5414cfafad DependenciesID=ebd7472021c13888321e362f72c27c4a StaticDependenciesID=1669ea329236daed9f6150fe14dbc0a6 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000018 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Textures/Relay
+  importAddress: Guid(3546cfcb1f0242be82131b55a7b3da6e) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Textures/Relay using Guid(3546cfcb1f0242be82131b55a7b3da6e) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '4344d36114e2d8d4f6b9dce3ff827abd') in 0.0043766 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=b126e7e7fa1ff40a36092d583a8f140f DependenciesID=826b302e64c7ebacbacd1721ce1d1683 StaticDependenciesID=6f62c906a263ea8a352fc415f9f315cc 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000021 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Materials/Microchip A.mat
+  importAddress: Guid(64c112e2a243491e9de548c95e2e8f02) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Materials/Microchip A.mat using Guid(64c112e2a243491e9de548c95e2e8f02) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '5c610e24a20219ad769b69a1b3426e5a') in 0.0207282 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=df172e6ccc546de14ad9b768b9dabcba DependenciesID=e93dff8deaf1b080122565cc3c9996f8 StaticDependenciesID=9e9f44efcf14e25852b5835db19c2794 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 5
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000023 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Textures/Controller Board/Controller Board_Mixed_AO.png
+  importAddress: Guid(40eae4c0e1da408cbc4ce3e573b98e89) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Textures/Controller Board/Controller Board_Mixed_AO.png using Guid(40eae4c0e1da408cbc4ce3e573b98e89) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'd8080b2c191845310ac17f00234ced44') in 0.0119252 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=c4548513f675961c56462734fcfcb175 DependenciesID=47291fb95179039b7f3ea0ebb92d84c5 StaticDependenciesID=e0a0132eb1374322504b0a220e5ac104 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000029 seconds.
+  path: Assets/Editor/ExplorerSceneSetup.cs
+  importAddress: Guid(0aec50409fc0f0243a53b581b24b1bf3) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Editor/ExplorerSceneSetup.cs using Guid(0aec50409fc0f0243a53b581b24b1bf3) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '2296a6f4fcf4046b945f841f196f904a') in 0.0049315 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=bc9fa9349ae7cc3fcfc5592460052554 DependenciesID=ef47ee67a9e4eb792dcc9d9b3226c7ac StaticDependenciesID=3ac047ea18d0158e7bc740f8767abd5a 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 0
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000015 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/HandsDemoSceneAssets/Models/Chess
+  importAddress: Guid(e6b8fa9195b866c48b828c4de654fdd1) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Hands Interaction Demo/HandsDemoSceneAssets/Models/Chess using Guid(e6b8fa9195b866c48b828c4de654fdd1) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '3b9c77cd5ad7e47f5ee3c0ee44c5250c') in 0.0050819 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=eed5e2a77b0205505c78739dc9f5d59e DependenciesID=7b3140bc4c6a836901cf06fd487d87bf StaticDependenciesID=77ee6d433bbebb743aacd36f78ece109 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000017 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Models/Stepper Motor.fbx
+  importAddress: Guid(f939c5faa2fe45179d2f53f6909f1404) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Models/Stepper Motor.fbx using Guid(f939c5faa2fe45179d2f53f6909f1404) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '3b5b5055431531c1c0159e48eb4f3819') in 0.0106686 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=eae7341b36eacbd0bf55e77df46b5b00 DependenciesID=973377d146e7508809a34e44f1838faa StaticDependenciesID=646d3c06bff6c09f8b52b831fc358b3b 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 7
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000019 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Scenes/Demo_Profiles/PP Profile 1.asset
+  importAddress: Guid(99e6dcb49dfd44c088ac1a9017c1f7f8) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Scenes/Demo_Profiles/PP Profile 1.asset using Guid(99e6dcb49dfd44c088ac1a9017c1f7f8) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'f3ad2d844e321085fa4117bd733c7c65') in 0.0063372 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=c735ed49ee96e59bca72a72821a16f37 DependenciesID=98ac2087ee7bd34f0be3e0405a42483c StaticDependenciesID=ffb2ab29a39eb37a946bbedccd8ec037 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000022 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Textures/Stepper Motor/Stepper Motor_Normal.png
+  importAddress: Guid(53f2d1e92baf4fffa403b9189759dec9) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Textures/Stepper Motor/Stepper Motor_Normal.png using Guid(53f2d1e92baf4fffa403b9189759dec9) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '930611e96cec7b08a046ab0f32867852') in 0.0212993 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=0ee99a7f658b333ef272f6d8b235517c DependenciesID=079baa84b738bd92c35b6b5c84b69775 StaticDependenciesID=47b63ecf051e3f130d47c45a2c66e6e8 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000043 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Textures/Microphone/Microphone_Roughness.png
+  importAddress: Guid(0572d24ebb304d0d8aebc4687be590df) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Textures/Microphone/Microphone_Roughness.png using Guid(0572d24ebb304d0d8aebc4687be590df) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'e7ad9a160ee0c89df26778b23ca014d1') in 0.0157191 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=f9767d16b021121c2a5994aad899a499 DependenciesID=e7403598953a2deeef76a5f324a5a44a StaticDependenciesID=5c851e916d51203f9a037f3727f5c378 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000024 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Textures/Plywood/Plywood_Normal.png
+  importAddress: Guid(56c366e6924e49eca995d65e254dff0e) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Textures/Plywood/Plywood_Normal.png using Guid(56c366e6924e49eca995d65e254dff0e) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '79d4d70a8a2abe1ffdad823a59cd420b') in 0.0128224 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=c4bea0096a9f5cdfbe12f5c944d56d43 DependenciesID=aa89bb5e420ed177744738875b161ac3 StaticDependenciesID=4e4ef7f766b34a02fb57ec3ddd7ce16d 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000017 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Textures/Coil/Coil_Roughness.png
+  importAddress: Guid(63d0bf466f7c4fd783f7e9e9dcf02660) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Textures/Coil/Coil_Roughness.png using Guid(63d0bf466f7c4fd783f7e9e9dcf02660) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'b54725a4138691b56af32c878d018259') in 0.01254 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=c07c7c2e467bec16f757720e17e19ce4 DependenciesID=b7a3756613f3374b91e9db1d62c473e5 StaticDependenciesID=c1619295d6ac8a5ecc58dd874aade596 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000027 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Textures/Relay/Relay_Normal.png
+  importAddress: Guid(604d85d3a9184e6e92cfe8c11edfd964) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Textures/Relay/Relay_Normal.png using Guid(604d85d3a9184e6e92cfe8c11edfd964) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '6e54133a2a62465cfc6c3e0f7150ae27') in 0.0098079 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=a897c885639149c0c3608c1c58ebf648 DependenciesID=68dea63e05f8072d55525acf0c59a7e6 StaticDependenciesID=e67a362889391884e998ae937ce97b7d 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000034 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Textures/Microphone/Microphone_Normal.png
+  importAddress: Guid(370ffd5f10054d398aa476b11ae3db56) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Textures/Microphone/Microphone_Normal.png using Guid(370ffd5f10054d398aa476b11ae3db56) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '84c206f23191bc60dc8a5fe01ce1f6fa') in 0.0128512 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=4f299d49d0cc581565371741fa288ed8 DependenciesID=9ae9ce554df6133d4dae62a585cc27af StaticDependenciesID=ddf30ecb7aeb5063c6ad40abeaa87cc6 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000019 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Textures/Wire A/Wire A_Normal.png
+  importAddress: Guid(fc65d06376884bac820a162850a949da) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Textures/Wire A/Wire A_Normal.png using Guid(fc65d06376884bac820a162850a949da) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '5740431aa737fc4ec09fe2c5c79ba93c') in 0.0107956 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=ac4dd35642c7da15622b151f23b8c98f DependenciesID=0f8590132fe1174a96fdc19f9129607f StaticDependenciesID=50d1cedd8fbe9e50f81dea02646b7f50 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000019 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Textures/Transistor A/Transistor A_BaseMap.png
+  importAddress: Guid(6a4edada07a44504a651c314ed76a3f5) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Textures/Transistor A/Transistor A_BaseMap.png using Guid(6a4edada07a44504a651c314ed76a3f5) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '9c1f833ccfb936dcdc1eeb0770d90240') in 0.0106785 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=45f6b490c6574970502c6e29b4359229 DependenciesID=ab50d1ddea5af90f25e27abf243b8fc0 StaticDependenciesID=49922a4eb38977202f4bc06b316b8e6c 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000019 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Models/Led Matrix.fbx
+  importAddress: Guid(c8381201972b4064b9b90d79989c0eb5) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Models/Led Matrix.fbx using Guid(c8381201972b4064b9b90d79989c0eb5) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '8f7c9bcdc339dda1bff5d8f33709cedd') in 0.0137648 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=4844d5377d34aac759573d59ad46ca3b DependenciesID=3621598ada573b74944cd58b53ff4db2 StaticDependenciesID=a1689152103865835139f0b62de415ba 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 7
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000028 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Textures/Transistor A/Transistor A_Roughness.png
+  importAddress: Guid(e784f01208054f69a1493fc8c226534d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Textures/Transistor A/Transistor A_Roughness.png using Guid(e784f01208054f69a1493fc8c226534d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'b9a277a12d836e9ee748520904c3a96f') in 0.0139725 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=afa81a17e451ddf5e36c60f4ad06fdc2 DependenciesID=491c5be2f91427c03018ea4ee28824f9 StaticDependenciesID=1268cecdc151e98bdabdaa94ddd5658d 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000019 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Textures/Led/Led Green_BaseMap.png
+  importAddress: Guid(ce6ad00396fe48c183f785be964051eb) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Textures/Led/Led Green_BaseMap.png using Guid(ce6ad00396fe48c183f785be964051eb) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '7a3023ec3f1b2be277c59d5ddc8df08a') in 0.0118353 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=28c80a6df525614c828a7633fd2f1400 DependenciesID=4314408857d7821dc98dbb221712801f StaticDependenciesID=902b925d90f0360dfa6f843f12616e1e 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000019 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Models/Plywood.fbx
+  importAddress: Guid(499f776fd6f341eaa8dfa424996e50c7) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Models/Plywood.fbx using Guid(499f776fd6f341eaa8dfa424996e50c7) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '3705752a7fa5727e2f8d7d420da02e79') in 0.0100737 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=6cf50a496a5c3fb19db0e18ac3f9d34c DependenciesID=dd589ad483592f3ea93db195f87b0a23 StaticDependenciesID=19d3276bb82f3836c3e5b733ab4b89ef 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 7
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000015 seconds.
+  path: Assets/Samples/XR Hands/1.7.2/HandVisualizer/Prefabs/VelocityPrefab.prefab
+  importAddress: Guid(629fd7882ec6bfc499a5fcf20035282b) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Hands/1.7.2/HandVisualizer/Prefabs/VelocityPrefab.prefab using Guid(629fd7882ec6bfc499a5fcf20035282b) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '7ded0996cbaa43e80500f8a9044a5a2c') in 0.0135328 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=4120cea1cf7dcd5abb06a31d3ca5dc01 DependenciesID=d2bd70311700904d7a7ab8c3a20be8f7 StaticDependenciesID=f9a3bb934b618b80b998102fe09d01f2 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 5
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000020 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Models/Antenna.fbx
+  importAddress: Guid(c42cc66f4a5e44598a0ae677cd6e9a0c) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Models/Antenna.fbx using Guid(c42cc66f4a5e44598a0ae677cd6e9a0c) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'c294625399f2bd11ef533d828ea49de2') in 0.0134894 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=9cee1f1ea42cd959ec98d7b5d65a9d82 DependenciesID=c59750a04e76d758717ed03ae74ffd1e StaticDependenciesID=add1bb46bdd07f0c849a67426edfc923 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 7
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000027 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/XR Device Simulator/UI/Controller/ControllerOverlayLinesLeft.png
+  importAddress: Guid(cd4fe4c19a40743a6896069a50a394ec) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/XR Device Simulator/UI/Controller/ControllerOverlayLinesLeft.png using Guid(cd4fe4c19a40743a6896069a50a394ec) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '7e69b4c619fa5853d442f1f168b5c002') in 0.0127532 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=d3cd421cbb6f26ac9e3c2fb4906d9530 DependenciesID=8f867023898ec947769bcb45c3d5c000 StaticDependenciesID=01942d3c819e5b50599d89d1ad49aec3 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 3
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000019 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Textures/Solderingpad
+  importAddress: Guid(460e7ab5e7d840799b7873f8669b71d0) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Textures/Solderingpad using Guid(460e7ab5e7d840799b7873f8669b71d0) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'c395d7a8d8c04f727b8de8dde33d2d65') in 0.0050191 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=63c44b0d04af50522e196552e88957f2 DependenciesID=88513b0a1c85662e211099888137fd53 StaticDependenciesID=a7bc77da1bf6ad0a07a2f3dcad257422 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000017 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/XR Interaction Simulator/Hand Expressions/Grab Expression Capture.asset
+  importAddress: Guid(2c7c6caedfd0a43e3a614236a83aa148) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/XR Interaction Simulator/Hand Expressions/Grab Expression Capture.asset using Guid(2c7c6caedfd0a43e3a614236a83aa148) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '7e07f0ada93db26aa214f50118ca6cb5') in 0.0057345 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=79ff933b942c748cedbf9846c9db0af3 DependenciesID=42790c3e04b2545ed35bb4996f0360e3 StaticDependenciesID=2e80379538ab3104ffb8cc697e4c20c3 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 2
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000018 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Prefabs/Controllers
+  importAddress: Guid(8cb8501f33d08a04fabf074fd81eaf76) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Prefabs/Controllers using Guid(8cb8501f33d08a04fabf074fd81eaf76) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'ba2164fc500792546d174e99bf27be7b') in 0.0043013 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=061f9dabd2b1952d422fefea20771fbd DependenciesID=a5e9834205f7d7838aba7e6d0606309c StaticDependenciesID=056f5e2e8160f73cfbcb6ca3b7f96311 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000030 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/XR Interaction Simulator/UI/Headset/HeadsetOutline.png
+  importAddress: Guid(f9cb67e576d274c29bfa90e7bd16ba32) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/XR Interaction Simulator/UI/Headset/HeadsetOutline.png using Guid(f9cb67e576d274c29bfa90e7bd16ba32) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'a3459e5f5bf0249da80b67b84e467692') in 0.0155593 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=044cb16fcc99295cf1b906f449bf5706 DependenciesID=170f2812d4f1d0674d60528d2fe4a88f StaticDependenciesID=abd478db2fd291228e3d412caac59ea0 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 3
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000018 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Shaders/UI-NoZTest.shader
+  importAddress: Guid(a661e7516de55c047905f40ca76fe701) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/Starter Assets/Shaders/UI-NoZTest.shader using Guid(a661e7516de55c047905f40ca76fe701) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'b54875975bcf3cad9ee21dab7d738097') in 0.0065631 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=7606e18c2be5ba1b13b56adc4e4325ef DependenciesID=3f790f13cfdefb05a987f0bf6e76976e StaticDependenciesID=04bbfc527cdad680f869de73e9bec003 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000015 seconds.
+  path: Assets/Samples/XR Interaction Toolkit/3.4.1/XR Device Simulator
+  importAddress: Guid(ad321df8db299a0498cd6c631548717a) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Samples/XR Interaction Toolkit/3.4.1/XR Device Simulator using Guid(ad321df8db299a0498cd6c631548717a) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: 'e04256c3ee9bf4738631ba5002c2bb20') in 0.0053173 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=de9bad3cbf50c97bcc5a31c2797b3628 DependenciesID=750a67fd46e727c0fee57d6ca82b521d StaticDependenciesID=7ba22c35820858b06f0cadc082751aba 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 1
+
+========================================================================
+Received Import Request.
+  Time since last request: 0.000023 seconds.
+  path: Assets/Resources Vol.2 - Electronics/Models/Controller Board.fbx
+  importAddress: Guid(72e402d60e6847dcab2b906cec91ee1d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+Start importing Assets/Resources Vol.2 - Electronics/Models/Controller Board.fbx using Guid(72e402d60e6847dcab2b906cec91ee1d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) (ScriptedImporter) -> (Import Result ID: '9d35addbc7baf00a06a56b79a58141e8') in 0.0117972 seconds [static and dynamic dependencies]. Details - ImportResultOutputID=414b20dff3720b22d2b4e6ec0f2730b4 DependenciesID=678d45e082909ba7d64fbdb7940f997c StaticDependenciesID=4508a968e1a8b90a6756ea6218a69050 
+Number of updated asset objects reloaded before import = 0Number of asset objects unloaded after import = 7
 

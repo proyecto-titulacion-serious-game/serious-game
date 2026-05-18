@@ -107,6 +107,7 @@
     <Compile Include="Assets\KAT\SDK\WalkCExtraData.cs" />
     <Compile Include="Assets\KAT\SDK\KATAlertDlgDemo.cs" />
     <Compile Include="Assets\Scripts\Gameplay\LevelType.cs" />
+    <Compile Include="Assets\TutorialInfo\Scripts\Readme.cs" />
     <Compile Include="Assets\Scripts\Gameplay\ComponentSlot.cs" />
     <Compile Include="Assets\UnityTechnologies\StarterAssets\Mobile\Scripts\VirtualInputs\UIVirtualButton.cs" />
     <Compile Include="Assets\Scripts\Gameplay\MultimeterDebugHelper.cs" />

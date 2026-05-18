@@ -49,6 +49,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\Editor\ExplorerSceneSetup.cs" />
+    <Compile Include="Assets\TutorialInfo\Scripts\Editor\ReadmeEditor.cs" />
     <Compile Include="Assets\Editor\MultimeterPrefabGenerator.cs" />
     <Compile Include="Assets\Editor\CircuitNodeSetupTool.cs" />
     <Compile Include="Assets\Editor\URPMaterialConverter.cs" />
