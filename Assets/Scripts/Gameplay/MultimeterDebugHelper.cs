@@ -1,239 +1,284 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Panel de prueba del multímetro — funciona en Play Mode sin VR.
+/// Panel de diagnóstico del multímetro — no requiere VR ni teclado.
+/// Se auto-testea 1 segundo después de Start para dar tiempo al GameManager.
 ///
-/// SETUP: Añadir este script a cualquier GameObject activo en la escena
-///        (p.ej. el GameManager_System o un GO vacío "DebugTools").
+/// SETUP: Añadir este script a cualquier GameObject activo (p.ej. GameManager_System).
 ///
-/// TECLAS (Game View activo):
-///   1 → Asigna punta ROJA  al nodo + (VoltageSource.nodeA)
-///   2 → Asigna punta NEGRA al nodo - (VoltageSource.nodeB)
-///   0 → Reinicia ambas puntas
-///   S → Fuerza re-simulación del circuito activo
-///   R → Reintenta buscar el CircuitManager (útil si la zona se activó tarde)
-///   I → Imprime diagnóstico detallado en la Console
+/// TECLAS (Game View debe estar enfocado):
+///   1 / 2  → asignar sonda roja / negra manualmente
+///   0      → reset sondas
+///   S      → forzar simulación del CM
+///   E      → emergencia: escribir voltaje directamente en los nodos (bypasa CM)
+///   R      → rebuscar CircuitManager
+///   I      → imprimir diagnóstico completo en Console
 /// </summary>
 public class MultimeterDebugHelper : MonoBehaviour
 {
-    [Header("Debug UI")]
-    [Tooltip("Mostrar panel en pantalla. Desactivar para builds de producción.")]
+    [Header("Panel")]
     public bool showGui = true;
 
-    // ─────────────────────────────────────────────
-    //  Estado interno
-    // ─────────────────────────────────────────────
-    Multimeter      _multimeter;
-    CircuitManager  _circuit;
-    ElectricalNode  _nodePos;   // VoltageSource.nodeA  (+)
-    ElectricalNode  _nodeNeg;   // VoltageSource.nodeB  (–)
-    float           _retryTimer;
-    string          _lastStatus = "Iniciando…";
+    // ─────────── referencias ───────────
+    Multimeter     _mm;
+    CircuitManager _cm;
+    VoltageSource  _vs;
+    ElectricalNode _nPos, _nNeg;
 
-    // ─────────────────────────────────────────────
-    //  Unity Lifecycle
+    // ─────────── mensajes GUI ───────────
+    string _statusLine  = "Iniciando…";
+    string _simLine     = "";
+    string _probeLine   = "";
+    Color  _statusColor = Color.yellow;
+
     // ─────────────────────────────────────────────
     void Start()
     {
-        _multimeter = FindAnyObjectByType<Multimeter>();
-        if (_multimeter == null)
-            _lastStatus = "ERROR: No hay Multimeter en escena.";
-        TryFindCircuit();
+        _mm = FindAnyObjectByType<Multimeter>();
+        StartCoroutine(AutoTestRoutine());
     }
 
+    // Espera 1s para que GameManager.Start() haya corrido LoadLevel(0)
+    IEnumerator AutoTestRoutine()
+    {
+        yield return new WaitForSeconds(1f);
+        Log("Auto-test después de 1s…");
+        TryFindCircuit();
+        if (_cm != null)
+        {
+            ForceSimulate();
+            AssignProbes();
+        }
+    }
+
+    // ─────────────────────────────────────────────
     void Update()
     {
-        if (_multimeter == null) return;
-
-        // Re-intentar búsqueda cada segundo mientras no haya nodos
-        if (_nodePos == null)
-        {
-            _retryTimer += Time.deltaTime;
-            if (_retryTimer >= 1f) { _retryTimer = 0f; TryFindCircuit(); }
-        }
-
-        if (Input.GetKeyDown(KeyCode.Alpha1)) AssignProbe(red: true);
-        if (Input.GetKeyDown(KeyCode.Alpha2)) AssignProbe(red: false);
-        if (Input.GetKeyDown(KeyCode.Alpha0)) ResetAll();
+        if (_mm == null) return;
+        if (Input.GetKeyDown(KeyCode.Alpha1)) AssignProbeManual(red: true);
+        if (Input.GetKeyDown(KeyCode.Alpha2)) AssignProbeManual(red: false);
+        if (Input.GetKeyDown(KeyCode.Alpha0)) { _mm.ResetProbes(); Log("Probes reset."); }
         if (Input.GetKeyDown(KeyCode.S))      ForceSimulate();
-        if (Input.GetKeyDown(KeyCode.R))      TryFindCircuit();
+        if (Input.GetKeyDown(KeyCode.E))      EmergencySetVoltage();
+        if (Input.GetKeyDown(KeyCode.R))      { TryFindCircuit(); ForceSimulate(); AssignProbes(); }
         if (Input.GetKeyDown(KeyCode.I))      PrintDiagnostic();
     }
 
     // ─────────────────────────────────────────────
     //  Búsqueda de circuito
     // ─────────────────────────────────────────────
-
-    /// <summary>
-    /// Busca el CircuitManager que tenga una VoltageSource con nodos asignados.
-    /// Incluye objetos inactivos para cubrir el caso en que la zona empieza desactivada.
-    /// Prioriza el CM que GameManager.circuit referencia actualmente.
-    /// </summary>
     void TryFindCircuit()
     {
-        _circuit = null; _nodePos = null; _nodeNeg = null;
+        _cm = null; _vs = null; _nPos = null; _nNeg = null;
 
-        // Construir lista: primero el CM que usa GameManager, luego el resto
-        var ordered = new List<CircuitManager>();
+        // Lista ordenada: primero el CM de GameManager, luego el resto (incluye inactivos)
+        var seen  = new HashSet<CircuitManager>();
+        var order = new List<CircuitManager>();
+
         var gm = FindAnyObjectByType<GameManager>();
-        if (gm?.circuit != null) ordered.Add(gm.circuit);
+        if (gm?.circuit != null) { order.Add(gm.circuit); seen.Add(gm.circuit); }
 
-        foreach (var cm in FindObjectsByType<CircuitManager>(FindObjectsInactive.Include))
-            if (!ordered.Contains(cm)) ordered.Add(cm);
+        foreach (var c in FindObjectsByType<CircuitManager>(FindObjectsInactive.Include))
+            if (seen.Add(c)) order.Add(c);
 
-        foreach (var cm in ordered)
+        foreach (var cm in order)
         {
-            // Asegurar que el CM tiene componentes (puede estar recién activado)
+            // Asegurar que tenga componentes
             if (cm.components.Count == 0) cm.AutoDetectComponents();
 
             var vs = cm.FindCircuitComponent<VoltageSource>();
-            if (vs == null || vs.nodeA == null || vs.nodeB == null) continue;
+            if (vs == null) continue;
 
-            _circuit = cm;
-            _nodePos  = vs.nodeA;
-            _nodeNeg  = vs.nodeB;
+            // VoltageSource con nodos asignados — usar aunque sean 0V por ahora
+            _cm  = cm;
+            _vs  = vs;
+            _nPos = vs.nodeA;
+            _nNeg = vs.nodeB;
 
-            _lastStatus = $"CM: {cm.name}  |  Fuente: {vs.voltage:F1}V\n" +
-                          $"Nodo+: {_nodePos.name}  Nodo–: {_nodeNeg.name}\n" +
-                          "Listo — [1] Rojo  [2] Negro  [S] Simular";
+            _statusLine  = $"CM: '{cm.name}'  comps={cm.components.Count}  Vs={vs.voltage:F1}V";
+            _statusColor = _nPos != null ? Color.cyan : Color.yellow;
 
-            Debug.Log($"[DebugHelper] Circuito OK → '{cm.name}', " +
-                      $"VoltageSource={vs.voltage}V, " +
-                      $"nodeA='{vs.nodeA.name}', nodeB='{vs.nodeB.name}'");
+            if (_nPos == null || _nNeg == null)
+                _statusLine += "\n¡VoltageSource sin nodeA/nodeB asignados en Inspector!";
+
+            Log($"CircuitManager encontrado: '{cm.name}', comps={cm.components.Count}, " +
+                $"VS.voltage={vs.voltage}V, nodeA={vs.nodeA?.name ?? "NULL"}, nodeB={vs.nodeB?.name ?? "NULL"}");
             return;
         }
 
-        _lastStatus = "Sin CM con VoltageSource+nodos. Reintentando…";
-        Debug.LogWarning("[DebugHelper] No se encontró CircuitManager con VoltageSource y nodos asignados.");
+        _statusLine  = "ERROR: Ningún CM tiene VoltageSource. Verifica la escena.";
+        _statusColor = Color.red;
+        Log("No se encontró CircuitManager con VoltageSource.");
     }
 
     // ─────────────────────────────────────────────
-    //  Acciones
+    //  Simulación
     // ─────────────────────────────────────────────
-
     void ForceSimulate()
     {
-        if (_circuit == null) { TryFindCircuit(); return; }
-        if (_circuit.components.Count == 0) _circuit.AutoDetectComponents();
-        _circuit.ForceSimulate();
-        string v = _nodePos != null ? $"{_nodePos.voltage:F2}V" : "—";
-        Debug.Log($"[DebugHelper] Re-simulado → nodo+={v}");
+        if (_cm == null) { TryFindCircuit(); if (_cm == null) return; }
+        if (_cm.components.Count == 0) _cm.AutoDetectComponents();
+        _cm.ForceSimulate();
+
+        float vPos = _nPos != null ? _nPos.voltage : float.NaN;
+        float vNeg = _nNeg != null ? _nNeg.voltage : float.NaN;
+        _simLine = $"Post-sim: CM.sourceV={_cm.sourceVoltage:F2}V | nodo+={vPos:F3}V | nodo–={vNeg:F3}V";
+
+        bool nodesLit = _nPos != null && _nPos.voltage > 0.01f;
+        Log($"ForceSimulate → sourceV={_cm.sourceVoltage:F2}V  nodo+={vPos:F3}V  nodo–={vNeg:F3}V  " +
+            (nodesLit ? "✓ VOLTAJE OK" : "✗ nodos siguen en 0, prueba E=emergencia"));
     }
 
-    void AssignProbe(bool red)
+    // ─────────────────────────────────────────────
+    //  Asignación de sondas
+    // ─────────────────────────────────────────────
+    void AssignProbes()
     {
-        // Si los nodos aún no tienen voltaje, forzar simulación primero
-        if (_nodePos != null && _nodePos.voltage == 0f) ForceSimulate();
+        if (_mm == null || _nPos == null || _nNeg == null) return;
+        _mm.SetRedNode(_nPos);
+        _mm.SetBlackNode(_nNeg);
+        UpdateProbeLine();
+        Log($"Sondas auto-asignadas → roja='{_nPos.name}'={_nPos.voltage:F3}V  negra='{_nNeg.name}'={_nNeg.voltage:F3}V  medición={_mm.measuredVoltage:F3}V");
+    }
 
-        ElectricalNode node = red ? _nodePos : _nodeNeg;
-        if (node == null)
+    void AssignProbeManual(bool red)
+    {
+        ElectricalNode node = red ? _nPos : _nNeg;
+        if (node == null) { Log($"Nodo {(red?"+":" –")} es NULL. Presiona R primero."); return; }
+        if (red) _mm.SetRedNode(node); else _mm.SetBlackNode(node);
+        UpdateProbeLine();
+        Log($"Sonda {(red?"ROJA":"NEGRA")} asignada → '{node.name}'={node.voltage:F3}V");
+    }
+
+    void UpdateProbeLine()
+    {
+        if (_mm == null) return;
+        string r = _mm.probeA != null ? $"'{_mm.probeA.name}'={_mm.probeA.voltage:F2}V" : "—";
+        string b = _mm.probeB != null ? $"'{_mm.probeB.name}'={_mm.probeB.voltage:F2}V" : "—";
+        _probeLine = $"Roja={r}  Negra={b}  →  {_mm.measuredVoltage:F3} V";
+    }
+
+    // ─────────────────────────────────────────────
+    //  Emergencia: escribir voltaje directo en nodos
+    // ─────────────────────────────────────────────
+    void EmergencySetVoltage()
+    {
+        if (_vs == null || _nPos == null || _nNeg == null)
         {
-            Debug.LogWarning($"[DebugHelper] Nodo {(red ? "+" : "–")} es null. Presiona R para buscar el CM.");
+            Log("EMERGENCIA: _vs o nodos son null. Presiona R.");
             return;
         }
-
-        if (red) _multimeter.SetRedNode(node);
-        else     _multimeter.SetBlackNode(node);
-
-        Debug.Log($"[DebugHelper] Punta {(red ? "ROJA(+)" : "NEGRA(–)")} asignada → " +
-                  $"'{node.name}' = {node.voltage:F2}V");
+        _nPos.voltage = _vs.voltage;
+        _nNeg.voltage = 0f;
+        _nPos.current = _vs.voltage / 60f;
+        _nNeg.current = _vs.voltage / 60f;
+        AssignProbes();
+        Log($"EMERGENCIA: nodo+ forzado a {_vs.voltage}V, medición={_mm?.measuredVoltage:F3}V");
     }
 
-    void ResetAll()
-    {
-        _multimeter.ResetProbes();
-        Debug.Log("[DebugHelper] Puntas reiniciadas.");
-    }
-
+    // ─────────────────────────────────────────────
+    //  Diagnóstico
+    // ─────────────────────────────────────────────
     void PrintDiagnostic()
     {
-        if (_multimeter == null) { Debug.LogWarning("[DebugHelper] Sin Multimeter."); return; }
         Debug.Log(
-            $"[DebugHelper] === DIAGNÓSTICO ===\n" +
-            $"  Multimeter:      {_multimeter.gameObject.name}\n" +
-            $"  isReading:       {_multimeter.isReading}\n" +
-            $"  measuredVoltage: {_multimeter.measuredVoltage:F3} V\n" +
-            $"  measuredCurrent: {_multimeter.measuredCurrent * 1000f:F2} mA\n" +
-            $"  CircuitManager:  {(_circuit != null ? _circuit.name : "NULL")}\n" +
-            $"  Componentes:     {_circuit?.components?.Count ?? 0}\n" +
-            $"  sourceVoltage:   {_circuit?.sourceVoltage:F2} V\n" +
-            $"  shortCircuit:    {_circuit?.isShortCircuited}\n" +
-            $"  Nodo+:           {(_nodePos != null ? $"{_nodePos.name} = {_nodePos.voltage:F3}V" : "NULL")}\n" +
-            $"  Nodo–:           {(_nodeNeg != null ? $"{_nodeNeg.name} = {_nodeNeg.voltage:F3}V" : "NULL")}"
+            $"[DebugHelper] ══════ DIAGNÓSTICO COMPLETO ══════\n" +
+            $"  Multimeter:       {(_mm != null ? _mm.name : "NULL")}\n" +
+            $"  isReading:        {_mm?.isReading}\n" +
+            $"  measuredVoltage:  {_mm?.measuredVoltage:F4} V\n" +
+            $"  CircuitManager:   {(_cm != null ? $"'{_cm.name}' comps={_cm.components.Count}" : "NULL")}\n" +
+            $"  CM.sourceVoltage: {_cm?.sourceVoltage:F3} V\n" +
+            $"  CM.topology:      {_cm?.topology}\n" +
+            $"  CM.shortCircuit:  {_cm?.isShortCircuited}\n" +
+            $"  VoltageSource:    {(_vs != null ? $"'{_vs.name}' voltage.field={_vs.voltage}V" : "NULL")}\n" +
+            $"  nodo+:            {(_nPos != null ? $"'{_nPos.name}' voltage={_nPos.voltage:F4}V" : "NULL")}\n" +
+            $"  nodo–:            {(_nNeg != null ? $"'{_nNeg.name}' voltage={_nNeg.voltage:F4}V" : "NULL")}\n" +
+            $"  probeRed:         {(_mm?.probeA != null ? $"'{_mm.probeA.name}'={_mm.probeA.voltage:F4}V" : "NULL")}\n" +
+            $"  probeBlack:       {(_mm?.probeB != null ? $"'{_mm.probeB.name}'={_mm.probeB.voltage:F4}V" : "NULL")}"
         );
     }
 
+    void Log(string msg) => Debug.Log($"[DebugHelper] {msg}");
+
     // ─────────────────────────────────────────────
-    //  Panel en pantalla
+    //  GUI
     // ─────────────────────────────────────────────
     void OnGUI()
     {
-        if (!showGui || _multimeter == null) return;
+        if (!showGui || _mm == null) return;
 
-        const float W = 340f, H = 220f, PAD = 8f;
-        var area = new Rect(PAD, PAD, W, H);
+        const float W = 370f, PAD = 8f;
+        float h = 240f;
+        var bg = new Rect(PAD, PAD, W, h);
 
-        // Fondo semitransparente
-        GUI.color = new Color(0f, 0f, 0f, 0.72f);
-        GUI.DrawTexture(area, Texture2D.whiteTexture);
+        GUI.color = new Color(0f, 0f, 0f, 0.78f);
+        GUI.DrawTexture(bg, Texture2D.whiteTexture);
         GUI.color = Color.white;
 
-        GUILayout.BeginArea(new Rect(PAD + 6, PAD + 6, W - 12, H - 12));
+        GUILayout.BeginArea(new Rect(PAD + 6, PAD + 4, W - 12, h - 8));
 
-        GUIStyle title = new GUIStyle(GUI.skin.label)
-            { fontStyle = FontStyle.Bold, fontSize = 13, normal = { textColor = Color.cyan } };
-        GUIStyle val = new GUIStyle(GUI.skin.label)
-            { fontSize = 12, normal = { textColor = Color.white } };
-        GUIStyle warn = new GUIStyle(GUI.skin.label)
-            { fontSize = 11, normal = { textColor = Color.yellow } };
+        Style(13, Color.cyan, FontStyle.Bold, out var sTitle);
+        Style(11, Color.white, FontStyle.Normal, out var sNorm);
+        Style(11, Color.yellow, FontStyle.Normal, out var sWarn);
+        Style(11, Color.green, FontStyle.Normal, out var sGood);
+        Style(10, new Color(.6f,.6f,.6f), FontStyle.Normal, out var sHint);
 
-        GUILayout.Label("MULTÍMETRO DEBUG", title);
+        GUILayout.Label("▶ MULTÍMETRO DEBUG", sTitle);
         GUILayout.Space(2);
 
-        // Estado medición
-        bool reading = _multimeter.isReading;
-        float voltage = _multimeter.measuredVoltage;
-        float current = _multimeter.measuredCurrent * 1000f;
-
-        GUI.color = reading ? Color.green : Color.gray;
-        GUILayout.Label(reading
-            ? $"MIDIENDO  →  {FormatV(voltage)}  /  {current:F1} mA"
-            : "SIN CONTACTO (ambas puntas sin asignar)", val);
+        // Línea de CM / estado
+        GUI.color = _statusColor;
+        GUILayout.Label(_statusLine, sNorm);
         GUI.color = Color.white;
 
-        GUILayout.Space(4);
+        // Línea post-simulación
+        if (!string.IsNullOrEmpty(_simLine))
+        {
+            bool ok = _nPos != null && _nPos.voltage > 0.01f;
+            GUILayout.Label(_simLine, ok ? sGood : sWarn);
+        }
 
-        // Nodos actuales
-        float vPos = _nodePos != null ? _nodePos.voltage : float.NaN;
-        float vNeg = _nodeNeg != null ? _nodeNeg.voltage : float.NaN;
+        GUILayout.Space(3);
 
-        bool nodesOk = _nodePos != null && _nodeNeg != null;
-        GUI.color = nodesOk ? (vPos > 0.01f ? Color.white : Color.yellow) : Color.red;
-        GUILayout.Label(nodesOk
-            ? $"Nodo+: {_nodePos.name} = {vPos:F2}V  |  Nodo–: {_nodeNeg.name} = {vNeg:F2}V"
-            : "Nodo+ / Nodo– sin asignar — presiona [R]", warn);
+        // Medición actual
+        bool reading = _mm.isReading;
+        GUI.color = reading ? Color.green : new Color(.9f,.4f,.4f);
+        GUILayout.Label(
+            reading
+                ? $"MIDIENDO → {Fv(_mm.measuredVoltage)}  /  {_mm.measuredCurrent*1000f:F1} mA"
+                : "SIN CONTACTO — sondas no asignadas",
+            sNorm);
         GUI.color = Color.white;
 
+        // Sondas
+        if (!string.IsNullOrEmpty(_probeLine))
+            GUILayout.Label(_probeLine, sNorm);
+
+        GUILayout.Space(3);
+
+        // Nodos crudos
+        float vr = _nPos?.voltage ?? float.NaN;
+        float vb = _nNeg?.voltage ?? float.NaN;
+        bool nodesLit = _nPos != null && _nPos.voltage > 0.01f;
+        GUILayout.Label(
+            _nPos != null
+                ? $"Nodo+: {_nPos.name}={vr:F2}V   Nodo–: {_nNeg?.name ?? "null"}={vb:F2}V"
+                : "Nodo+ null — VoltageSource sin nodeA",
+            nodesLit ? sGood : sWarn);
+
         GUILayout.Space(4);
-
-        // Prueba rápida de las sondas
-        float redV  = _multimeter.probeA != null ? _multimeter.probeA.voltage : float.NaN;
-        float blackV = _multimeter.probeB != null ? _multimeter.probeB.voltage : float.NaN;
-        GUILayout.Label(
-            $"Sonda roja:  {(_multimeter.probeA != null ? $"{_multimeter.probeA.name} = {redV:F2}V" : "—")}",
-            val);
-        GUILayout.Label(
-            $"Sonda negra: {(_multimeter.probeB != null ? $"{_multimeter.probeB.name} = {blackV:F2}V" : "—")}",
-            val);
-
-        GUILayout.Space(6);
-        GUILayout.Label("[1] Rojo(+)  [2] Negro(–)  [0] Reset  [S] Simular  [R] Rebuscar  [I] Info",
-            new GUIStyle(GUI.skin.label) { fontSize = 10, normal = { textColor = new Color(0.7f,0.7f,0.7f) } });
+        GUILayout.Label("[1]Rojo  [2]Negro  [0]Reset  [S]Simular  [E]Emergencia  [R]Rebuscar  [I]Info", sHint);
 
         GUILayout.EndArea();
     }
 
-    static string FormatV(float v) =>
-        Mathf.Abs(v) >= 1f ? $"{v:F2} V" : $"{v * 1000f:F1} mV";
+    static string Fv(float v) => Mathf.Abs(v) >= 1f ? $"{v:F2} V" : $"{v*1000f:F1} mV";
+
+    static void Style(int size, Color col, FontStyle fs, out GUIStyle s)
+    {
+        s = new GUIStyle(GUI.skin.label) { fontSize = size, fontStyle = fs };
+        s.normal.textColor = col;
+    }
 }
