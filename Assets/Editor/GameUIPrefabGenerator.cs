@@ -1,4 +1,4 @@
-using UnityEditor;
+﻿using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -123,13 +123,13 @@ public static class GameUIPrefabGenerator
             "Instrucción principal", 8f, Color.white,
             new Vector2(0f, 22f), new Vector2(258f, 36f),
             TextAlignmentOptions.Center);
-        txtInstruccion.enableWordWrapping = true;
+        txtInstruccion.textWrappingMode = TextWrappingModes.Normal;
 
         var txtSubInstruccion = CreateTMP(panelInstr, "TMP_SubInstruccion",
             "Detalle adicional", 6.5f, new Color(0.85f, 0.85f, 0.6f),
             new Vector2(0f, 3f), new Vector2(258f, 26f),
             TextAlignmentOptions.Center);
-        txtSubInstruccion.enableWordWrapping = true;
+        txtSubInstruccion.textWrappingMode = TextWrappingModes.Normal;
 
         var txtPaso = CreateTMP(panelInstr, "TMP_Paso",
             "Paso 1 de 4", 6f, new Color(0.5f, 0.8f, 1f),
@@ -186,7 +186,7 @@ public static class GameUIPrefabGenerator
             new Color(0.3f, 1f, 0.5f),
             new Vector2(20f, 0f), new Vector2(200f, 70f),
             TextAlignmentOptions.Center);
-        txtNotificacion.enableWordWrapping = true;
+        txtNotificacion.textWrappingMode = TextWrappingModes.Normal;
 
         var iconoGO = new GameObject("Image_Icono");
         iconoGO.transform.SetParent(panelNotif.transform, false);
@@ -363,7 +363,7 @@ public static class GameUIPrefabGenerator
         tmp.fontSize          = fontSize;
         tmp.color             = color;
         tmp.alignment         = alignment;
-        tmp.enableWordWrapping = false;
+        tmp.textWrappingMode = TextWrappingModes.NoWrap;
 
         var rt              = go.GetComponent<RectTransform>();
         rt.anchoredPosition = anchoredPos;

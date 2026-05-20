@@ -44,7 +44,8 @@ public class CircuitManager : MonoBehaviour
     // ─────────────────────────────────────────────
     //  Estado interno
     // ─────────────────────────────────────────────
-    private bool _dirty = true;   // Arrancar con simulación inicial
+    private bool _dirty   = true;   // Arrancar con simulación inicial
+    private bool _started = false;  // true una vez que Start() haya corrido
 
     // ─────────────────────────────────────────────
     //  Unity Lifecycle
@@ -57,11 +58,21 @@ public class CircuitManager : MonoBehaviour
 
     void OnEnable()
     {
-        // Simular inmediatamente al activar la zona, sin esperar el primer tick de InvokeRepeating.
-        // Cubre el caso en que GameManager activa la zona y luego llama ForceSimulate,
-        // pero el CM aún no tenía Start() corriendo (zona iniciaba desactivada).
+        // Simular inmediatamente al activar la zona.
         if (components.Count == 0) AutoDetectComponents();
         if (components.Count > 0) ForceSimulate();
+
+        // Reanudar el ticker de simulación si Start() ya corrió.
+        // Sin esto, SetActive(false) + SetActive(true) dejaba InvokeRepeating muerto.
+        if (_started)
+            InvokeRepeating(nameof(SimulateIfDirty), simulationInterval, simulationInterval);
+    }
+
+    void OnDisable()
+    {
+        // Detener el ticker para que la zona desactivada no siga simulando
+        // ni disparando OnCircuitChanged con datos obsoletos.
+        CancelInvoke(nameof(SimulateIfDirty));
     }
 
     public void AutoDetectComponents()
@@ -92,7 +103,8 @@ public class CircuitManager : MonoBehaviour
     void Start()
     {
         AutoDetectComponents();
-        InvokeRepeating(nameof(SimulateIfDirty), 0f, simulationInterval);
+        InvokeRepeating(nameof(SimulateIfDirty), simulationInterval, simulationInterval);
+        _started = true;
     }
 
     void OnDestroy()
@@ -204,7 +216,7 @@ public class CircuitManager : MonoBehaviour
         VoltageSource source = GetFirstSource();
         if (source == null) return;
 
-        _sourceVoltage = source.voltage;
+        _sourceVoltage = source.GetEffectiveVoltage();
         float totalR = 0f;
 
         // Sumar resistencia total (excepto la fuente)
@@ -262,7 +274,7 @@ public class CircuitManager : MonoBehaviour
         VoltageSource source = GetFirstSource();
         if (source == null) return;
 
-        _sourceVoltage = source.voltage;
+        _sourceVoltage = source.GetEffectiveVoltage();
         if (source.nodeA != null) source.nodeA.voltage = _sourceVoltage;
         if (source.nodeB != null) source.nodeB.voltage = 0f;
 
@@ -292,7 +304,7 @@ public class CircuitManager : MonoBehaviour
     {
         VoltageSource source = GetFirstSource();
         if (source == null) return;
-        _sourceVoltage = source.voltage;
+        _sourceVoltage = source.GetEffectiveVoltage();
 
         float seriesR           = 0f;
         float parallelConductance = 0f;

@@ -1,4 +1,4 @@
-using UnityEditor;
+﻿using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -154,7 +154,7 @@ public static class IntegratedDemoSetup
         const string LABEL = "TechnicianWorkstation + HUD";
 
         // Si ya tiene el script → skip
-        if (Object.FindFirstObjectByType<TechnicianWorkstation>() != null)
+        if (Object.FindAnyObjectByType<TechnicianWorkstation>() != null)
         { Debug.Log($"[Setup] {LABEL}: ya existe."); return false; }
 
         // Buscar el host del Técnico
@@ -168,7 +168,7 @@ public static class IntegratedDemoSetup
         var ws = host.AddComponent<TechnicianWorkstation>();
 
         // Conectar referencias por búsqueda de nombre
-        var gm = Object.FindFirstObjectByType<GameManager>();
+        var gm = Object.FindAnyObjectByType<GameManager>();
         if (gm != null) ws.gameManager = gm;
 
         var trayGO = GameObject.Find("SendingTray");
@@ -409,7 +409,7 @@ public static class IntegratedDemoSetup
     {
         const string LABEL = "GameManager → reto4Zone";
 
-        var gm    = Object.FindFirstObjectByType<GameManager>();
+        var gm    = Object.FindAnyObjectByType<GameManager>();
         var reto4 = GameObject.Find("Reto 4");
 
         if (gm == null || reto4 == null)
@@ -520,7 +520,7 @@ public static class IntegratedDemoSetup
         tmp.fontSize  = fontSize;
         tmp.color     = color;
         tmp.alignment = TextAlignmentOptions.Center;
-        tmp.enableWordWrapping = true;
+        tmp.textWrappingMode = TextWrappingModes.Normal;
         var rt        = go.GetComponent<RectTransform>();
         rt.anchoredPosition = pos;
         rt.sizeDelta        = size;

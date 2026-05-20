@@ -77,15 +77,22 @@ public class GameManager : MonoBehaviour
     /// <summary>Disparado justo antes de cargar el siguiente reto.</summary>
     public static event Action<LevelType, bool> OnZoneTransitionStart;
 
+    /// <summary>
+    /// Permite que sistemas externos (e.g. FaultManager) disparen OnFaultDetected.
+    /// Los eventos estáticos solo pueden invocarse desde dentro de su clase.
+    /// </summary>
+    public static void RaiseFaultDetected(string description) =>
+        OnFaultDetected?.Invoke(description);
+
     // ─────────────────────────────────────────────
     //  Constantes de configuración de retos
     // ─────────────────────────────────────────────
-    private const float RETO1_FAULTY_RESISTANCE  = 10f;
-    private const float RETO1_CORRECT_RESISTANCE = 100f;
+    private const float RETO1_FAULTY_RESISTANCE  = 10f;    // 10Ω → 150mA → overload (rojo)
+    private const float RETO1_CORRECT_RESISTANCE = 850f;   // 850Ω → 10mA → correcto (verde); consistente con DiagnosticSystem
     private const float RETO1_LED_RESISTANCE     = 50f;
     private const float RETO1_SOURCE_VOLTAGE     = 9f;
     private const float RETO1_TARGET_VOLTAGE     = 9f;
-    private const float RETO1_TOLERANCE          = 0.5f;
+    // Tolerancia: usa Resistor.tolerancePercent (5%) — ver CheckReto1()
 
     private const float RETO2_BROKEN_RESISTANCE  = 9999f;
     private const float RETO2_NORMAL_RESISTANCE  = 50f;
@@ -134,12 +141,21 @@ public class GameManager : MonoBehaviour
     //  API Pública
     // ─────────────────────────────────────────────
 
-    /// <summary>Registra que se realizó una reparación y resimula el circuito.</summary>
+    /// <summary>
+    /// Registra que se realizó una reparación.
+    /// Limpia la lista de componentes para que el rescan incluya el reemplazo instalado
+    /// y excluya el componente defectuoso que el Explorador sacó de la zona.
+    /// </summary>
     public void RegisterRepairAction()
     {
         _repairPerformed = true;
-        circuit?.MarkDirty();
-        Debug.Log("[GameManager] Reparación registrada.");
+        if (circuit != null)
+        {
+            circuit.components.Clear();   // descarta caché que aún apunta al componente viejo
+            circuit.AutoDetectComponents(); // rescana: encuentra el reemplazo (hijo de la zona)
+            circuit.MarkDirty();            // provoca resimulación → dispara OnCircuitChanged → CheckReto
+        }
+        Debug.Log("[GameManager] Reparación registrada — componentes reescaneados.");
     }
 
     /// <summary>Registra un intento incorrecto del Técnico.</summary>
@@ -363,8 +379,9 @@ public class GameManager : MonoBehaviour
         {
             if (comp is Resistor r)
             {
-                bool valorCorrecto = Mathf.Abs(r.resistance - RETO1_CORRECT_RESISTANCE)
-                                     <= RETO1_TOLERANCE;
+                // Usar la misma tolerancia que Resistor.IsValueCorrect (5% del valor correcto)
+                float margin = RETO1_CORRECT_RESISTANCE * (r.tolerancePercent / 100f);
+                bool  valorCorrecto = Mathf.Abs(r.resistance - RETO1_CORRECT_RESISTANCE) <= margin;
 
                 if (!r.hasFault && valorCorrecto)
                 {
@@ -378,6 +395,15 @@ public class GameManager : MonoBehaviour
                         $"Valor incorrecto: {r.resistance:F0} Ω\n" +
                         $"Recalcula usando V = I × R\n" +
                         $"R = (Vfuente - VLED) / I = ?");
+                }
+                else if (r.hasFault)
+                {
+                    // El Explorador instaló la resistencia pero con valor incorrecto.
+                    // ComponentDeliverySystem ya registró el intento — solo damos feedback visual.
+                    OnFaultDetected?.Invoke(
+                        $"Valor incorrecto instalado: {r.resistance:F0} Ω\n" +
+                        $"Correcto: {RETO1_CORRECT_RESISTANCE:F0} Ω\n" +
+                        $"Recalcula y vuelve a enviar.");
                 }
                 return; // Solo hay un resistor en Reto 1
             }
@@ -553,6 +579,7 @@ public class GameManager : MonoBehaviour
 
     void CompleteLevel(bool success)
     {
+        if (_levelCompleted) return;
         _levelCompleted = true;
         OnLevelCompleted?.Invoke(_currentLevel, success);
         OnZoneTransitionStart?.Invoke(_currentLevel, success);
@@ -582,7 +609,8 @@ public class GameManager : MonoBehaviour
     public bool IsVoltageCorrect()
     {
         if (multimeter == null) return false;
-        return Mathf.Abs(multimeter.measuredVoltage - RETO1_TARGET_VOLTAGE) <= RETO1_TOLERANCE;
+        const float voltageTolerance = 0.5f;   // ±0.5 V aceptable en la medición
+        return Mathf.Abs(multimeter.measuredVoltage - RETO1_TARGET_VOLTAGE) <= voltageTolerance;
     }
 
     void ValidateZones()

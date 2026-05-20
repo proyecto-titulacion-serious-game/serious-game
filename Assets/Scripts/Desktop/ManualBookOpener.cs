@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 /// <summary>
 /// Click en el libro físico sobre la mesa para abrir el manual a pantalla completa.
@@ -45,6 +46,20 @@ public class ManualBookOpener : MonoBehaviour
             manualOverlay.SetActive(false);
 
         SetColor(colorNormal);
+
+        // Auto-conectar botón Cerrar dentro del overlay
+        if (manualOverlay != null)
+        {
+            foreach (var btn in manualOverlay.GetComponentsInChildren<Button>(true))
+            {
+                string n = btn.name.ToLowerInvariant();
+                if (n.Contains("cerrar") || n.Contains("close"))
+                {
+                    btn.onClick.RemoveListener(CloseManual);
+                    btn.onClick.AddListener(CloseManual);
+                }
+            }
+        }
     }
 
     void Update()

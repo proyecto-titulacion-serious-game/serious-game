@@ -1,67 +1,76 @@
 #if UNITY_EDITOR
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
 
 /// <summary>
-/// Construye las 4 zonas de reto en la escena abierta usando modelos del
-/// pack "Resources Vol.2 - Electronics".
-///
+/// Construye las 4 zonas de reto en la escena.
+/// Cables: cilindros primitivos coloreados (estilo protoboard clásico).
+/// Circuitos ~2× más grandes que la versión anterior para mejor ergonomía VR.
 /// Menú: Tools → TITA → Vol.2 Electronics → Construir Retos en Escena
-///
-/// Estructura generada en la escena:
-///   GameZones
-///   ├─ Reto1_Zone   (Serie - Ley de Ohm)
-///   ├─ Reto2_Zone   (Paralelo)
-///   ├─ Reto3_Zone   (Mixto Serie-Paralelo)
-///   └─ Reto4_Zone   (Arduino / Microcontrolador)
-///
-/// Cada zona contiene:
-///   CircuitManager     → simula el circuito
-///   VoltageSource_Obj  → batería 9V (Battery 9v.prefab)
-///   Componentes eléctricos con visual Vol.2 + script eléctrico
-///   ComponentSlot      → punto de instalación del componente reparado
-///   Bareboard          → tablero de fondo
-///
-/// DESPUÉS DE CORRER:
-///   1. Asignar las zonas en GameManager → reto1Zone … reto4Zone
-///   2. Ajustar posiciones en la escena VR
-///   3. Ejecutar Play — los nodos se auto-crean en CircuitManager.EnsureAllNodesExist()
 /// </summary>
 public static class Vol2RetosBuilder
 {
-    const string V2 = "Assets/Resources Vol.2 - Electronics/Prefabs/";
+    const string V2         = "Assets/Resources Vol.2 - Electronics/Prefabs/";
+    const string MAT_FOLDER = "Assets/Materials/Retos";
 
-    // Parámetros de circuito según GameManager
+    const float VOLTAGE      = 9f;
     const float R1_FAULTY    = 10f;
     const float R1_CORRECT   = 100f;
     const float R1_LED_RES   = 50f;
-    const float R1_VOLTAGE   = 9f;
-
     const float R2_BROKEN    = 9999f;
     const float R2_NORMAL    = 50f;
-
     const float R3_FAULTY_R  = 470f;
     const float R3_CORRECT_R = 220f;
 
-    // ─────────────────────────────────────────────
-    //  Menu entry
-    // ─────────────────────────────────────────────
+    // Player scale Y=1 → eye ~1.6 m → tabla cómoda a 0.85 m mundo.
+    const float TABLE_Y = 0.85f;
 
+    // ── circuit/models — FBX reales ───────────────────────────────────
+    const string CM_BASE   = "Assets/circuit/models";
+    const string CM_TEX    = "Assets/circuit/textures/masterTex.png";
+    const string CM_MAT    = "Assets/Materials/Mat_Circuit.mat";
+    const string FBX_RES   = CM_BASE + "/resistorVertical.fbx";
+    const string FBX_LED_G = CM_BASE + "/LEDGreen.fbx";
+    const string FBX_LED_R = CM_BASE + "/LEDRed.fbx";
+    const string FBX_LED_Y = CM_BASE + "/LEDYellow.fbx";
+    const string FBX_CAP   = CM_BASE + "/capacitorBlue.fbx";
+    const string FBX_TRANS = CM_BASE + "/transistor.fbx";
+    const string FBX_WIRE1 = CM_BASE + "/wire1.fbx";
+    const string FBX_WIRE2 = CM_BASE + "/wire2.fbx";
+    const string PFB_WIRE1 = "Assets/circuit/prefabs/wire1.prefab";
+    const string PFB_WIRE2 = "Assets/circuit/prefabs/wire2.prefab";
+
+    // Tamaño objetivo (lado más largo) en metros
+    const float SZ_RES  = 0.12f;
+    const float SZ_LED  = 0.09f;
+    const float SZ_CAP  = 0.13f;
+    const float SZ_TRAN = 0.10f;
+
+    static readonly Color CRed    = new Color(0.90f, 0.15f, 0.15f);
+    static readonly Color CBlack  = new Color(0.08f, 0.08f, 0.08f);
+    static readonly Color CYellow = new Color(0.95f, 0.90f, 0.05f);
+    static readonly Color CGreen  = new Color(0.10f, 0.80f, 0.25f);
+    static readonly Color CGold   = new Color(0.95f, 0.75f, 0.10f);
+    static readonly Color CNode   = new Color(0.20f, 0.90f, 1.00f);
+    static readonly Color CSlot   = new Color(0.95f, 0.55f, 0.10f);
+
+    // ─────────────────────────────────────────────
+    //  Menú principal
+    // ─────────────────────────────────────────────
     [MenuItem("Tools/TITA/Vol.2 Electronics/Construir Retos en Escena")]
     public static void BuildAll()
     {
-        // Convertir materiales Vol.2 a URP primero
-        Vol2DeliveredSetup.ConvertVol2MaterialsToURP();
+        Vol2MaterialFixer.FixAllSilent(out _, out _);
+        EnsureMatFolder();
 
         var zones = GetOrCreateGameZones();
-
         BuildReto1(zones);
         BuildReto2(zones);
         BuildReto3(zones);
         BuildReto4(zones);
 
-        // Conectar al GameManager si existe
         var gm = Object.FindAnyObjectByType<GameManager>();
         if (gm != null)
         {
@@ -70,239 +79,797 @@ public static class Vol2RetosBuilder
             gm.reto3Zone = zones.transform.Find("Reto3_Zone")?.gameObject;
             gm.reto4Zone = zones.transform.Find("Reto4_Zone")?.gameObject;
             EditorUtility.SetDirty(gm);
-            Debug.Log("[RetosBuilder] GameManager.reto1Zone…reto4Zone asignados.");
-        }
-        else
-        {
-            Debug.LogWarning("[RetosBuilder] GameManager no encontrado en la escena. " +
-                             "Asigna manualmente reto1Zone…reto4Zone en el Inspector.");
         }
 
         EditorUtility.DisplayDialog(
             "Retos construidos",
-            "Las 4 zonas de reto fueron creadas en 'GameZones'.\n\n" +
-            "  Reto 1 — Serie (Ley de Ohm): Battery + Potentiometer + Led A\n" +
-            "  Reto 2 — Paralelo: Battery + Led B + Led C (polaridad invertida)\n" +
-            "  Reto 3 — Mixto: Battery + Transistor + Led D + Capacitor\n" +
-            "  Reto 4 — Arduino: Battery + Relay + Controller Board\n\n" +
-            (gm != null
-                ? "✓ GameManager ya conectado.\n"
-                : "⚠ Asigna manualmente las zonas en GameManager.\n") +
-            "\nAjusta las posiciones en la escena VR según sea necesario.",
+            "4 zonas de laboratorio creadas:\n\n" +
+            "  Reto 1 (0, 0.85, -3)   — Serie\n" +
+            "  Reto 2 (4, 0.85, -3)   — Paralelo\n" +
+            "  Reto 3 (-4, 0.85, 0)   — Mixto\n" +
+            "  Reto 4 (0, 0.85, 5)    — Arduino\n\n" +
+            "Mesas a 0.85 m con 4 patas de madera.\n" +
+            "Discos DORADOS = puntos de medición.\n" +
+            "Cubo NARANJA   = slot de reemplazo.",
             "OK");
     }
 
-    // ─────────────────────────────────────────────
-    //  RETO 1 — Serie / Ley de Ohm
-    //  Falla: Potentiometer (Resistor) con valor incorrecto
-    //  Reparación: entregar resistencia correcta (100 Ω)
-    // ─────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────
+    //  RETO 1 — Serie / Ley de Ohm  (layout según Boceto.png)
+    //  Tablero 44 cm × 26 cm · BAT(−14) SW(−6) R?(+1) LED(+13)
+    //  Rail rojo z=−1.6 cm (VCC/señal) · Rail negro z=+1.6 cm (GND)
+    //  NP 1.8 cm diámetro · Slot NARANJA · R dañado 10 Ω → correcto 100 Ω
+    // ─────────────────────────────────────────────────────────────────
     static void BuildReto1(GameObject zonesRoot)
     {
-        var zone = GetOrCreateZone(zonesRoot, "Reto1_Zone", new Vector3(0f, 0f, 2f));
+        var zone = GetOrCreateZone(zonesRoot, "Reto1_Zone", new Vector3(0f, TABLE_Y, -3f));
         zone.SetActive(false);
 
         var cm = EnsureComponent<CircuitManager>(zone);
         cm.topology = CircuitTopology.Series;
 
-        // ── Bareboard (fondo visual) ──────────────────
-        AddVisual(zone, "Bareboard", "Bareboard", new Vector3(0f, 0f, 0f),
-                  new Vector3(0.18f, 0.004f, 0.22f));
+        // Boceto: 44 cm × 26 cm
+        CreatePCBBench(zone, 0.44f, 0.26f);
 
-        // ── Batería (VoltageSource) ───────────────────
-        var battery = AddCircuitComponent<VoltageSource>(zone, "Battery 9v", "Battery_9V",
-                      new Vector3(-0.07f, 0.03f, 0f),
-                      new Vector3(0.04f, 0.07f, 0.03f));
-        battery.voltage = R1_VOLTAGE;
+        float yt     = 0.012f;   // componentes sobre PCB
+        float yw     = 0.007f;   // cables
+        float ny     = 0.006f;   // nodos eléctricos
+        float np     = 0.012f;   // discos NP
 
-        // ── Resistencia defectuosa (Potentiometer) ────
-        var resistorObj = AddCircuitComponentObj(zone, "Potentiometer", "Resistor_Faulty",
-                          new Vector3(0f, 0.025f, 0f),
-                          new Vector3(0.035f, 0.04f, 0.035f));
-        var resistor = EnsureComponent<Resistor>(resistorObj);
-        resistor.resistance       = R1_FAULTY;
-        resistor.faultyResistance = R1_FAULTY;
-        resistor.correctResistance= R1_CORRECT;
-        resistor.hasFault         = true;
+        // Posiciones X del boceto (en metros)
+        float xBat   = -0.14f;
+        float xSwi   = -0.06f;
+        float xR     =  0.01f;
+        float xLed   =  0.13f;
+        // Rails Z (boceto: ±1.6 cm)
+        float zFront = -0.016f;   // cable rojo — VCC / señal
+        float zBack  =  0.016f;   // cable negro — GND
 
-        // Slot para instalar la resistencia correcta
-        AddComponentSlot(resistorObj, ComponentSlotType.Resistor, new Vector3(0f, 0.05f, 0f));
-        AddNodeInteractable(resistorObj);
+        // ── Batería 9 V ───────────────────────────────────────────────
+        var batGO = AddRemovable(zone, "Battery 9v", "Battery_9V",
+                    new Vector3(xBat, yt, 0f), new Vector3(0.025f, 0.045f, 0.018f));
+        var battery = EnsureComponent<VoltageSource>(batGO);
+        battery.voltage = VOLTAGE;
 
-        // ── LED ───────────────────────────────────────
-        var ledObj = AddCircuitComponentObj(zone, "Led A", "LED_Output",
-                     new Vector3(0.07f, 0.025f, 0f),
-                     new Vector3(0.025f, 0.025f, 0.025f));
-        var led = EnsureComponent<LED>(ledObj);
-        led.resistance       = R1_LED_RES;
-        led.polarityInverted = false;
-        AddNodeInteractable(ledObj);
+        // ── Switch (decorativo) ───────────────────────────────────────
+        var swGO = AddFixed(zone, "Switch", "Switch_Series",
+                   new Vector3(xSwi, yt - 0.002f, zFront), new Vector3(0.018f, 0.014f, 0.012f));
+        var sw = swGO.AddComponent<CircuitSwitch>();
+        sw.isOn = false;
 
-        Debug.Log("[RetosBuilder] ✓ Reto 1 (Serie) construido.");
+        // ── Resistor FBX — dañado 10 Ω ───────────────────────────────
+        var rGO = AddCircuitComp(zone, FBX_RES, 0.042f,
+                  new Vector3(xR, yt, 0f), Vector3.zero, "Resistor_Faulty");
+        var resistor = EnsureComponent<Resistor>(rGO);
+        resistor.resistance        = R1_FAULTY;
+        resistor.faultyResistance  = R1_FAULTY;
+        resistor.correctResistance = R1_CORRECT;
+        resistor.hasFault          = true;
+
+        // ── LED verde FBX ─────────────────────────────────────────────
+        var ledGO = AddCircuitComp(zone, FBX_LED_G, 0.035f,
+                    new Vector3(xLed, yt, 0f), Vector3.zero, "LED_Output");
+        var led = EnsureComponent<LED>(ledGO);
+        led.resistance = R1_LED_RES;
+
+        // ── Nodos eléctricos ──────────────────────────────────────────
+        // NP_VCC: entre BAT(−14) y SW(−6) → x = −10 cm
+        var nVCC     = MakeNode(zone, "Node_R1_VCC",     new Vector3(-0.10f, ny, zFront));
+        var nAfterSW = MakeNode(zone, "Node_R1_AfterSW", new Vector3(-0.02f, ny, zFront));
+        // NP_Mid: entre R?(+1) y LED(+13) → x = +7 cm
+        var nMid     = MakeNode(zone, "Node_R1_Mid",     new Vector3(+0.07f, ny, zFront));
+        // NP_GND: en el LED(+13)
+        var nGND     = MakeNode(zone, "Node_R1_GND",     new Vector3(+0.13f, ny, zBack));
+
+        battery.nodeA  = nVCC;     battery.nodeB  = nGND;
+        sw.nodeA       = nVCC;     sw.nodeB       = nAfterSW;
+        resistor.nodeA = nAfterSW; resistor.nodeB = nMid;
+        led.nodeA      = nMid;     led.nodeB      = nGND;
+        MarkDirty(batGO, swGO, rGO, ledGO);
+
+        // ── cable ROJO (rail VCC/señal, zFront) ───────────────────────
+        float sw2 = 0.010f;   // semi-ancho del switch
+        float r2  = 0.022f;   // semi-ancho del resistor
+        Wire(zone, new Vector3(xBat,        yw, zFront), new Vector3(xSwi - sw2, yw, zFront), CRed,    "w1_vcc_a");
+        Wire(zone, new Vector3(xSwi + sw2,  yw, zFront), new Vector3(xR   - r2,  yw, zFront), CRed,    "w1_vcc_b");
+        Wire(zone, new Vector3(xR   + r2,   yw, zFront), new Vector3(xLed,       yw, zFront), CYellow, "w1_sig");
+        // ── cable negro (rail GND, zBack) ────────────────────────────
+        Wire(zone, new Vector3(xBat, yw, zBack), new Vector3(xLed, yw, zBack), CBlack, "w1_gnd");
+        // ── puentes BAT y LED entre ambos rails ───────────────────────
+        Wire(zone, new Vector3(xBat, yw, zFront), new Vector3(xBat, yw, zBack), CBlack, "w1_bat_z");
+        Wire(zone, new Vector3(xLed, yw, zFront), new Vector3(xLed, yw, zBack), CBlack, "w1_led_z");
+
+        // ── NPs: 1.8 cm diámetro, triggerRadius 1.4 cm ───────────────
+        MakeNodePoint(zone, nVCC, new Vector3(-0.10f, np, zFront), CGold, "NP_R1_VCC", 0.018f, 0.014f);
+        MakeNodePoint(zone, nMid, new Vector3(+0.07f, np, zFront), CGold, "NP_R1_Mid", 0.018f, 0.014f);
+        MakeNodePoint(zone, nGND, new Vector3(+0.13f, np, zBack),  CGold, "NP_R1_GND", 0.018f, 0.014f);
+
+        // ── Slot NARANJA (5 cm) bajo el resistor ─────────────────────
+        AddSlot(zone, new Vector3(xR, yt + 0.05f, 0f), ComponentSlotType.Resistor, "Slot_R1_Resistor", 0.05f);
+
+        // ── Cables decorativos wire1/wire2 ────────────────────────────
+        AddDecorWire(zone, PFB_WIRE2, new Vector3(xBat - 0.015f, yt + 0.015f, zFront),             new Vector3(0f,  30f, -40f), 0.18f, "DW_R1_BatPlus");
+        AddDecorWire(zone, PFB_WIRE1, new Vector3(xLed + 0.020f, yt + 0.010f, zBack),              new Vector3(0f, -15f,  35f), 0.18f, "DW_R1_LedGND");
+        AddDecorWire(zone, PFB_WIRE2, new Vector3((xSwi + xR) * 0.5f, yt + 0.008f, zFront - 0.014f), new Vector3(0f,  90f,  20f), 0.15f, "DW_R1_MidSig");
+
+        Debug.Log("[RetosBuilder] ✓ Reto 1 (Serie — Boceto 44×26 cm)");
     }
 
-    // ─────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────
     //  RETO 2 — Paralelo
-    //  Falla: Led C con polaridad invertida
-    //  Reparación: entregar LED con polaridad correcta
-    // ─────────────────────────────────────────────
+    //  Batería → bifurcación → LED_A(correcto, verde) || LED_B(defectuoso, rojo)
+    // ─────────────────────────────────────────────────────────────────
     static void BuildReto2(GameObject zonesRoot)
     {
-        var zone = GetOrCreateZone(zonesRoot, "Reto2_Zone", new Vector3(0f, 0f, 2f));
+        var zone = GetOrCreateZone(zonesRoot, "Reto2_Zone", new Vector3(4f, TABLE_Y, -3f));
         zone.SetActive(false);
 
         var cm = EnsureComponent<CircuitManager>(zone);
         cm.topology = CircuitTopology.Parallel;
 
-        AddVisual(zone, "Bareboard", "Bareboard", new Vector3(0f, 0f, 0f),
-                  new Vector3(0.20f, 0.004f, 0.22f));
+        CreatePCBBench(zone, 1.80f, 1.10f);
 
-        // Batería
-        var battery = AddCircuitComponent<VoltageSource>(zone, "Battery 9v", "Battery_9V",
-                      new Vector3(-0.08f, 0.03f, 0f),
-                      new Vector3(0.04f, 0.07f, 0.03f));
-        battery.voltage = R1_VOLTAGE;
+        float yt = 0.016f;
+        float yw = 0.014f;
+        float ny = 0.010f;
+        float np = 0.025f;
 
-        // LED B — rama correcta
-        var ledBObj = AddCircuitComponentObj(zone, "Led B", "LED_RamaA",
-                      new Vector3(0.02f, 0.025f, 0.04f),
-                      new Vector3(0.025f, 0.025f, 0.025f));
-        var ledB = EnsureComponent<LED>(ledBObj);
-        ledB.resistance       = R2_NORMAL;
-        ledB.polarityInverted = false;
-        AddNodeInteractable(ledBObj);
+        float xBat  = -0.80f;
+        float xJunc =  0.00f;
+        float xLed  =  0.60f;
+        float xGND  =  0.85f;
+        float zA    =  0.45f;
+        float zB    = -0.45f;
 
-        // LED C — rama con polaridad invertida (falla)
-        var ledCObj = AddCircuitComponentObj(zone, "Led C", "LED_RamaB_Faulty",
-                      new Vector3(0.02f, 0.025f, -0.04f),
-                      new Vector3(0.025f, 0.025f, 0.025f));
-        var ledC = EnsureComponent<LED>(ledCObj);
-        ledC.resistance       = R2_BROKEN;
-        ledC.polarityInverted = true;
+        // ── Componentes ───────────────────────────────────────────────
+        var batGO = AddRemovable(zone, "Battery 9v", "Battery_9V",
+                    new Vector3(xBat, yt, 0f), new Vector3(0.075f, 0.150f, 0.055f));
+        var battery = EnsureComponent<VoltageSource>(batGO);
+        battery.voltage = VOLTAGE;
 
-        AddComponentSlot(ledCObj, ComponentSlotType.LED, new Vector3(0f, 0.05f, 0f));
-        AddNodeInteractable(ledCObj);
+        var ledAGO = AddCircuitComp(zone, FBX_LED_G, SZ_LED,
+                     new Vector3(xLed, yt, zA), Vector3.zero, "LED_RamaA");
+        var ledA = EnsureComponent<LED>(ledAGO);
+        ledA.resistance = R2_NORMAL;
 
-        Debug.Log("[RetosBuilder] ✓ Reto 2 (Paralelo) construido.");
+        var ledBGO = AddCircuitComp(zone, FBX_LED_R, SZ_LED,
+                     new Vector3(xLed, yt, zB), Vector3.zero, "LED_RamaB_Faulty");
+        var ledB = EnsureComponent<LED>(ledBGO);
+        ledB.resistance       = R2_BROKEN;
+        ledB.polarityInverted = true;
+
+        // Transistor en la bifurcación (decorativo)
+        AddCircuitComp(zone, FBX_TRANS, SZ_TRAN,
+                       new Vector3(xJunc, yt, 0f), Vector3.zero, "Transistor_Junction");
+
+        // ── Nodos eléctricos ──────────────────────────────────────────
+        var nVCC  = MakeNode(zone, "Node_R2_VCC",  new Vector3(xJunc - 0.15f, ny, 0f));
+        var nGND  = MakeNode(zone, "Node_R2_GND",  new Vector3(xGND,          ny, 0f));
+        var nMidA = MakeNode(zone, "Node_R2_MidA", new Vector3(xLed,          ny, zA));
+        var nMidB = MakeNode(zone, "Node_R2_MidB", new Vector3(xLed,          ny, zB));
+
+        battery.nodeA = nVCC;  battery.nodeB = nGND;
+        ledA.nodeA    = nVCC;  ledA.nodeB    = nMidA;
+        ledB.nodeA    = nVCC;  ledB.nodeB    = nMidB;
+        MarkDirty(batGO, ledAGO, ledBGO);
+
+        // ── Cables ────────────────────────────────────────────────────
+        Wire(zone, new Vector3(xBat,           yw, 0f), new Vector3(xJunc - 0.030f, yw, 0f), CRed,    "w2_vcc");
+        Wire(zone, new Vector3(xJunc + 0.030f, yw, 0f), new Vector3(xLed,          yw, zA),  CYellow, "w2_brA");
+        Wire(zone, new Vector3(xJunc + 0.030f, yw, 0f), new Vector3(xLed,          yw, zB),  CGreen,  "w2_brB");
+        Wire(zone, new Vector3(xLed,           yw, zA), new Vector3(xGND,           yw, 0f),  CBlack,  "w2_gndA");
+        Wire(zone, new Vector3(xLed,           yw, zB), new Vector3(xGND,           yw, 0f),  CBlack,  "w2_gndB");
+        Wire(zone, new Vector3(xGND,           yw, 0f), new Vector3(xBat,           yw, 0f),  CBlack,  "w2_gndRet");
+
+        // ── NodePoints ────────────────────────────────────────────────
+        MakeNodePoint(zone, nVCC,  new Vector3(xJunc - 0.15f, np, 0f), CGold, "NP_R2_VCC");
+        MakeNodePoint(zone, nMidA, new Vector3(xLed,          np, zA), CGold, "NP_R2_MidA");
+        MakeNodePoint(zone, nMidB, new Vector3(xLed,          np, zB), CGold, "NP_R2_MidB");
+        MakeNodePoint(zone, nGND,  new Vector3(xGND,          np, 0f), CGold, "NP_R2_GND");
+
+        AddSlot(zone, new Vector3(xLed, yt + 0.12f, zB), ComponentSlotType.LED, "Slot_R2_LED");
+
+        // ── Cables decorativos ────────────────────────────────────────
+        // Stub saliendo de la batería hacia la bifurcación
+        AddDecorWire(zone, PFB_WIRE2, new Vector3(xBat + 0.05f, yt + 0.04f, 0.05f),  new Vector3(0f, 45f, -35f), 0.40f, "DW_R2_BatOut");
+        // Cable en la bifurcación (entre los dos LEDs)
+        AddDecorWire(zone, PFB_WIRE1, new Vector3(xJunc, yt + 0.05f, 0f),             new Vector3(0f, 0f,  20f),  0.42f, "DW_R2_Junction");
+        // Retorno GND desde LED_A
+        AddDecorWire(zone, PFB_WIRE2, new Vector3((xLed + xGND) * 0.5f, yt + 0.03f, zA * 0.6f), new Vector3(0f, -30f, 15f), 0.38f, "DW_R2_GndA");
+
+        Debug.Log("[RetosBuilder] ✓ Reto 2 (Paralelo)");
     }
 
-    // ─────────────────────────────────────────────
-    //  RETO 3 — Mixto
-    //  Fallas: resistencia incorrecta (Transistor) + Capacitor polaridad invertida
-    //  Reparación: resistencia correcta Y capacitor correcto
-    // ─────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────
+    //  RETO 3 — Mixto (Serie → Paralelo)
+    //  R_Serie → bloque paralelo (LED_Yellow + Capacitor, polaridades invertidas)
+    // ─────────────────────────────────────────────────────────────────
     static void BuildReto3(GameObject zonesRoot)
     {
-        var zone = GetOrCreateZone(zonesRoot, "Reto3_Zone", new Vector3(0f, 0f, 2f));
+        var zone = GetOrCreateZone(zonesRoot, "Reto3_Zone", new Vector3(-4f, TABLE_Y, 0f));
         zone.SetActive(false);
 
         var cm = EnsureComponent<CircuitManager>(zone);
         cm.topology = CircuitTopology.Mixed;
 
-        AddVisual(zone, "Bareboard", "Bareboard", new Vector3(0f, 0f, 0f),
-                  new Vector3(0.22f, 0.004f, 0.22f));
+        CreatePCBBench(zone, 1.40f, 0.90f);
 
-        // Batería
-        var battery = AddCircuitComponent<VoltageSource>(zone, "Battery 9v", "Battery_9V",
-                      new Vector3(-0.09f, 0.03f, 0f),
-                      new Vector3(0.04f, 0.07f, 0.03f));
-        battery.voltage = R1_VOLTAGE;
+        float yt = 0.016f;
+        float yw = 0.014f;
+        float ny = 0.010f;
+        float np = 0.025f;
 
-        // Transistor como Resistor (serie, valor incorrecto)
-        var rObj = AddCircuitComponentObj(zone, "Transistor", "Resistor_Series_Faulty",
-                   new Vector3(-0.02f, 0.025f, 0f),
-                   new Vector3(0.025f, 0.04f, 0.025f));
-        var r = EnsureComponent<Resistor>(rObj);
-        r.resistance        = R3_FAULTY_R;
-        r.faultyResistance  = R3_FAULTY_R;
-        r.correctResistance = R3_CORRECT_R;
-        r.hasFault          = true;
-        AddComponentSlot(rObj, ComponentSlotType.Resistor, new Vector3(0f, 0.055f, 0f));
-        AddNodeInteractable(rObj);
+        float xBat  = -0.70f;
+        float xR    = -0.20f;
+        float xPar  =  0.35f;
+        float xGND  =  0.60f;
+        float zLed  =  0.35f;
+        float zCap  = -0.35f;
 
-        // LED (paralelo, correcto)
-        var ledObj = AddCircuitComponentObj(zone, "Led D", "LED_Paralelo",
-                     new Vector3(0.06f, 0.025f, 0.04f),
-                     new Vector3(0.025f, 0.025f, 0.025f));
-        var led = EnsureComponent<LED>(ledObj);
+        // ── Componentes ───────────────────────────────────────────────
+        var batGO = AddRemovable(zone, "Battery 9v", "Battery_9V",
+                    new Vector3(xBat, yt, 0f), new Vector3(0.075f, 0.150f, 0.055f));
+        var battery = EnsureComponent<VoltageSource>(batGO);
+        battery.voltage = VOLTAGE;
+
+        var rGO = AddCircuitComp(zone, FBX_RES, SZ_RES,
+                  new Vector3(xR, yt, 0f), Vector3.zero, "Resistor_Serie_Faulty");
+        var resistor = EnsureComponent<Resistor>(rGO);
+        resistor.resistance        = R3_FAULTY_R;
+        resistor.faultyResistance  = R3_FAULTY_R;
+        resistor.correctResistance = R3_CORRECT_R;
+        resistor.hasFault          = true;
+
+        var ledGO = AddCircuitComp(zone, FBX_LED_Y, SZ_LED,
+                    new Vector3(xPar, yt, zLed), Vector3.zero, "LED_Paralelo");
+        var led = EnsureComponent<LED>(ledGO);
         led.resistance       = R1_LED_RES;
-        led.polarityInverted = false;
-        AddNodeInteractable(ledObj);
+        led.polarityInverted = true;
 
-        // Capacitor con polaridad invertida (falla)
-        var capObj = AddCircuitComponentObj(zone, "Capacitor", "Capacitor_Invertido",
-                     new Vector3(0.06f, 0.025f, -0.04f),
-                     new Vector3(0.025f, 0.055f, 0.025f));
-        var cap = EnsureComponent<Capacitor>(capObj);
+        var capGO = AddCircuitComp(zone, FBX_CAP, SZ_CAP,
+                    new Vector3(xPar, yt, zCap), Vector3.zero, "Capacitor_Invertido");
+        var cap = EnsureComponent<Capacitor>(capGO);
         cap.polarityInverted = true;
-        AddComponentSlot(capObj, ComponentSlotType.Capacitor, new Vector3(0f, 0.065f, 0f));
-        AddNodeInteractable(capObj);
 
-        Debug.Log("[RetosBuilder] ✓ Reto 3 (Mixto) construido.");
+        // ── Nodos eléctricos ──────────────────────────────────────────
+        var nVCC    = MakeNode(zone, "Node_R3_VCC",    new Vector3(xBat + 0.20f, ny,  0f));
+        var nAfterR = MakeNode(zone, "Node_R3_AfterR", new Vector3(xPar - 0.08f, ny,  0f));
+        var nGND    = MakeNode(zone, "Node_R3_GND",    new Vector3(xGND,         ny,  0f));
+
+        battery.nodeA  = nVCC;    battery.nodeB  = nGND;
+        resistor.nodeA = nVCC;    resistor.nodeB = nAfterR;
+        led.nodeA      = nAfterR; led.nodeB      = nGND;
+        cap.nodeA      = nAfterR; cap.nodeB      = nGND;
+        MarkDirty(batGO, rGO, ledGO, capGO);
+
+        // ── Cables ────────────────────────────────────────────────────
+        Wire(zone, new Vector3(xBat,          yw, 0f), new Vector3(xR - 0.040f,  yw, 0f),    CRed,    "w3_vcc");
+        Wire(zone, new Vector3(xR + 0.040f,   yw, 0f), new Vector3(xPar - 0.08f, yw, 0f),   CYellow, "w3_mid");
+        Wire(zone, new Vector3(xPar - 0.08f,  yw, 0f), new Vector3(xPar,         yw, zLed), CYellow, "w3_led");
+        Wire(zone, new Vector3(xPar - 0.08f,  yw, 0f), new Vector3(xPar,         yw, zCap), CGreen,  "w3_cap");
+        Wire(zone, new Vector3(xPar,          yw, zLed), new Vector3(xGND,        yw, 0f),   CBlack,  "w3_gndL");
+        Wire(zone, new Vector3(xPar,          yw, zCap), new Vector3(xGND,        yw, 0f),   CBlack,  "w3_gndC");
+        Wire(zone, new Vector3(xGND,          yw, 0f),  new Vector3(xBat,         yw, 0f),   CBlack,  "w3_gndRet");
+
+        // ── NodePoints ────────────────────────────────────────────────
+        MakeNodePoint(zone, nVCC,    new Vector3(xBat + 0.20f, np, 0f),    CNode, "NP_R3_VCC");
+        MakeNodePoint(zone, nAfterR, new Vector3(xPar - 0.08f, np, 0f),    CNode, "NP_R3_AfterR");
+        MakeNodePoint(zone, nGND,    new Vector3(xGND,         np, 0f),    CNode, "NP_R3_GND");
+        MakeNodePoint(zone, nAfterR, new Vector3(xPar,         np, zLed),  CNode, "NP_R3_LED_in");
+        MakeNodePoint(zone, nAfterR, new Vector3(xPar,         np, zCap),  CNode, "NP_R3_Cap_in");
+
+        // ── Slots ─────────────────────────────────────────────────────
+        AddSlot(zone, new Vector3(xR,   yt + 0.12f, 0f),   ComponentSlotType.Resistor,  "Slot_R3_Resistor");
+        AddSlot(zone, new Vector3(xPar, yt + 0.12f, zLed), ComponentSlotType.LED,       "Slot_R3_LED");
+        AddSlot(zone, new Vector3(xPar, yt + 0.15f, zCap), ComponentSlotType.Capacitor, "Slot_R3_Cap");
+
+        // ── Cables decorativos ────────────────────────────────────────
+        // Stub batería → resistor
+        AddDecorWire(zone, PFB_WIRE2, new Vector3((xBat + xR) * 0.5f, yt + 0.04f, -0.04f), new Vector3(0f, 10f, -30f), 0.40f, "DW_R3_BatR");
+        // En la bifurcación paralelo (entre LED y cap)
+        AddDecorWire(zone, PFB_WIRE1, new Vector3(xPar + 0.05f, yt + 0.05f, 0f),            new Vector3(0f, 0f,  25f),  0.38f, "DW_R3_ParJunc");
+        // Retorno GND lateral
+        AddDecorWire(zone, PFB_WIRE2, new Vector3(xGND + 0.06f, yt + 0.03f, -0.15f),        new Vector3(0f, -20f, 15f), 0.36f, "DW_R3_GndRet");
+
+        Debug.Log("[RetosBuilder] ✓ Reto 3 (Mixto)");
     }
 
-    // ─────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────
     //  RETO 4 — Arduino / Microcontrolador
-    //  Falla: Controller Board con pin incorrecto
-    //  Reparación: entregar pin correcto
-    // ─────────────────────────────────────────────
+    //  Batería → Transistor/Relay → ArduinoPin(pin incorrecto) → Display
+    // ─────────────────────────────────────────────────────────────────
     static void BuildReto4(GameObject zonesRoot)
     {
-        var zone = GetOrCreateZone(zonesRoot, "Reto4_Zone", new Vector3(0f, 0f, 2f));
+        var zone = GetOrCreateZone(zonesRoot, "Reto4_Zone", new Vector3(0f, TABLE_Y, 5f));
         zone.SetActive(false);
 
         var cm = EnsureComponent<CircuitManager>(zone);
         cm.topology = CircuitTopology.Mixed;
 
-        AddVisual(zone, "Bareboard", "Bareboard", new Vector3(0f, 0f, 0f),
-                  new Vector3(0.22f, 0.004f, 0.25f));
+        CreatePCBBench(zone, 2.20f, 0.60f);
 
-        // Batería
-        var battery = AddCircuitComponent<VoltageSource>(zone, "Battery 9v", "Battery_9V",
-                      new Vector3(-0.09f, 0.03f, 0f),
-                      new Vector3(0.04f, 0.07f, 0.03f));
-        battery.voltage = R1_VOLTAGE;
+        float yt  = 0.016f;
+        float yw  = 0.014f;
+        float ny  = 0.010f;
+        float np  = 0.025f;
 
-        // Relay como Resistor (serie, correcto para no provocar cortocircuito)
-        var rObj = AddCircuitComponentObj(zone, "Relay", "Resistor_Serie",
-                   new Vector3(-0.02f, 0.025f, 0f),
-                   new Vector3(0.035f, 0.04f, 0.025f));
-        var r = EnsureComponent<Resistor>(rObj);
-        r.resistance        = 100f;
-        r.faultyResistance  = 100f;
-        r.correctResistance = 100f;
-        r.hasFault          = false;
-        AddNodeInteractable(rObj);
+        float xBat   = -0.90f;
+        float xRelay = -0.30f;
+        float xBoard =  0.40f;
+        float xDisp  =  0.95f;
+        float zOff   = -0.040f;
 
-        // Controller Board con pin incorrecto
-        var boardObj = AddCircuitComponentObj(zone, "Controller Board", "Arduino_WrongPin",
-                       new Vector3(0.07f, 0.02f, 0f),
-                       new Vector3(0.08f, 0.015f, 0.07f));
-        var pin = EnsureComponent<ArduinoPin>(boardObj);
-        pin.pinNumber        = 4;   // pin incorrecto
+        // ── Componentes ───────────────────────────────────────────────
+        var batGO = AddRemovable(zone, "Battery 9v", "Battery_9V",
+                    new Vector3(xBat, yt, 0f), new Vector3(0.075f, 0.150f, 0.055f));
+        var battery = EnsureComponent<VoltageSource>(batGO);
+        battery.voltage = VOLTAGE;
+
+        // Transistor como relay
+        var relayGO = AddCircuitComp(zone, FBX_TRANS, SZ_TRAN,
+                      new Vector3(xRelay, yt, 0f), Vector3.zero, "Relay_Serie");
+        var relay = EnsureComponent<Resistor>(relayGO);
+        relay.resistance        = 100f;
+        relay.faultyResistance  = 100f;
+        relay.correctResistance = 100f;
+        relay.hasFault          = false;
+
+        // Arduino board: prefab existente
+        var boardGO = AddRemovable(zone, "Controller Board", "Arduino_WrongPin",
+                      new Vector3(xBoard, yt, 0f), new Vector3(0.25f, 0.045f, 0.20f));
+        var pin = EnsureComponent<ArduinoPin>(boardGO);
+        pin.pinNumber        = 4;
         pin.correctPinNumber = 2;
         pin.hasFault         = true;
 
-        // Segment Display como indicador visual del Arduino
-        AddVisual(zone, "Segment Display", "Display",
-                  new Vector3(0.07f, 0.04f, 0.05f),
-                  new Vector3(0.04f, 0.02f, 0.025f));
+        AddVisual(zone, "Segment Display", "Display_Arduino",
+                  new Vector3(xDisp, yt, 0f), new Vector3(0.125f, 0.063f, 0.075f));
 
-        AddComponentSlot(boardObj, ComponentSlotType.ArduinoPin, new Vector3(0f, 0.035f, 0f));
-        AddNodeInteractable(boardObj);
+        // ── Nodos eléctricos ──────────────────────────────────────────
+        var nVCC    = MakeNode(zone, "Node_R4_VCC",    new Vector3(-0.60f, ny, zOff));
+        var nAfterR = MakeNode(zone, "Node_R4_AfterR", new Vector3(+0.05f, ny, zOff));
+        var nGND    = MakeNode(zone, "Node_R4_GND",    new Vector3(+1.00f, ny, zOff));
 
-        Debug.Log("[RetosBuilder] ✓ Reto 4 (Arduino) construido.");
+        battery.nodeA = nVCC;    battery.nodeB  = nGND;
+        relay.nodeA   = nVCC;    relay.nodeB    = nAfterR;
+        pin.nodeA     = nAfterR; pin.nodeB      = nGND;
+        MarkDirty(batGO, relayGO, boardGO);
+
+        // ── Cables ────────────────────────────────────────────────────
+        float zPos = zOff + 0.040f;
+        Wire(zone, new Vector3(xBat,            yw, zOff), new Vector3(xRelay - 0.038f, yw, zOff), CRed,    "w4_vcc");
+        Wire(zone, new Vector3(xRelay + 0.038f, yw, zOff), new Vector3(xBoard - 0.063f, yw, zOff), CYellow, "w4_mid");
+        Wire(zone, new Vector3(xBoard + 0.063f, yw, zOff), new Vector3(xDisp,           yw, zOff), CYellow, "w4_out");
+        Wire(zone, new Vector3(xDisp,           yw, zOff), new Vector3(xDisp,           yw, zPos), CBlack,  "w4_gndZ");
+        Wire(zone, new Vector3(xDisp,           yw, zPos), new Vector3(xBat,            yw, zPos), CBlack,  "w4_gndRet");
+        Wire(zone, new Vector3(xBat,            yw, zPos), new Vector3(xBat,            yw, zOff), CBlack,  "w4_batZ");
+
+        // ── NodePoints ────────────────────────────────────────────────
+        MakeNodePoint(zone, nVCC,    new Vector3(-0.60f, np, zOff),   CNode, "NP_R4_VCC");
+        MakeNodePoint(zone, nAfterR, new Vector3(+0.05f, np, zOff),   CNode, "NP_R4_AfterRelay");
+        MakeNodePoint(zone, nAfterR, new Vector3(xBoard, np, zOff),   CNode, "NP_R4_BoardIn");
+        MakeNodePoint(zone, nGND,    new Vector3(+1.00f, np, zOff),   CNode, "NP_R4_GND");
+
+        AddSlot(zone, new Vector3(xBoard, yt + 0.08f, 0f),
+                ComponentSlotType.ArduinoPin, "Slot_R4_Arduino");
+
+        // ── Cables decorativos ────────────────────────────────────────
+        // Cable saliendo del transistor/relay
+        AddDecorWire(zone, PFB_WIRE2, new Vector3(xRelay, yt + 0.06f, 0.04f),  new Vector3(0f, -10f, -40f), 0.40f, "DW_R4_RelayOut");
+        // Cable de entrada al Arduino board
+        AddDecorWire(zone, PFB_WIRE1, new Vector3(xBoard - 0.08f, yt + 0.05f, 0.06f), new Vector3(0f, 80f, 25f), 0.38f, "DW_R4_BoardIn");
+        // Stub GND en el display
+        AddDecorWire(zone, PFB_WIRE2, new Vector3(xDisp + 0.06f, yt + 0.04f, zPos),   new Vector3(0f, 160f, 20f), 0.36f, "DW_R4_DispGND");
+
+        Debug.Log("[RetosBuilder] ✓ Reto 4 (Arduino/Relay)");
     }
 
     // ─────────────────────────────────────────────
-    //  Helpers de construcción
+    //  HELPERS DE CONSTRUCCIÓN
+    // ─────────────────────────────────────────────
+
+    static void CreateBench(GameObject zone, Vector3 tableScale, Vector3 boardScale)
+    {
+        AddVisual(zone, "Plywood", "Table_Plywood",
+                  new Vector3(0f, -tableScale.y * 0.5f, 0f), tableScale);
+
+        AddVisual(zone, "Bareboard", "Bareboard",
+                  new Vector3(0f, boardScale.y * 0.5f, 0f), boardScale);
+
+        // 4 patas cilíndricas de madera desde el fondo de la tabla hasta el suelo
+        float legH   = TABLE_Y - tableScale.y;
+        float legScY = legH * 0.5f;
+        float legY   = -(tableScale.y + legH * 0.5f);
+        float lx     = tableScale.x * 0.40f;
+        float lz     = tableScale.z * 0.40f;
+        Color wood   = new Color(0.55f, 0.35f, 0.18f);
+
+        AddLeg(zone, new Vector3(-lx, legY, -lz), "Leg_FL", legScY, wood);
+        AddLeg(zone, new Vector3(+lx, legY, -lz), "Leg_FR", legScY, wood);
+        AddLeg(zone, new Vector3(-lx, legY, +lz), "Leg_BL", legScY, wood);
+        AddLeg(zone, new Vector3(+lx, legY, +lz), "Leg_BR", legScY, wood);
+    }
+
+    static void AddLeg(GameObject zone, Vector3 localPos, string legName, float scaleY, Color color)
+    {
+        var leg = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        leg.name = legName;
+        leg.transform.SetParent(zone.transform);
+        leg.transform.localPosition = localPos;
+        leg.transform.localScale    = new Vector3(0.06f, scaleY, 0.06f);
+        Object.DestroyImmediate(leg.GetComponent<Collider>());
+        SetColor(leg, color, legName + "_mat");
+        Undo.RegisterCreatedObjectUndo(leg, legName);
+    }
+
+    // ── Cable: cilindro primitivo coloreado ───────────────────────────
+    static void Wire(GameObject zone, Vector3 a, Vector3 b, Color color, string wireName,
+                     float thickness = 0.010f)
+    {
+        Vector3 dir    = b - a;
+        float   length = dir.magnitude;
+        if (length < 0.001f) return;
+
+        var cyl = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        cyl.name = wireName;
+        cyl.transform.SetParent(zone.transform);
+        cyl.transform.localPosition = (a + b) * 0.5f;
+        cyl.transform.localRotation = Quaternion.FromToRotation(Vector3.up, dir.normalized);
+        cyl.transform.localScale    = new Vector3(thickness, length * 0.5f, thickness);
+        Object.DestroyImmediate(cyl.GetComponent<Collider>());
+        SetColor(cyl, color, wireName + "_mat");
+        Undo.RegisterCreatedObjectUndo(cyl, wireName);
+    }
+
+    // ── Componente removible (XRGrabInteractable) ─────────────────────
+    static GameObject AddRemovable(GameObject parent, string prefabName, string objName,
+                                   Vector3 localPos, Vector3 localScale)
+    {
+        var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        go.name = objName;
+        go.transform.SetParent(parent.transform);
+        go.transform.localPosition = localPos;
+        go.transform.localScale    = localScale;
+
+        string vpath   = V2 + prefabName + ".prefab";
+        var    vprefab = AssetDatabase.LoadAssetAtPath<GameObject>(vpath);
+        if (vprefab != null)
+        {
+            var vis = Object.Instantiate(vprefab, go.transform);
+            vis.name = "Visual";
+            vis.transform.localPosition = Vector3.zero;
+            vis.transform.localScale    = Vector3.one;
+            foreach (var col in vis.GetComponentsInChildren<Collider>())
+                Object.DestroyImmediate(col);
+            var rootRend = go.GetComponent<Renderer>();
+            if (rootRend != null) rootRend.enabled = false;
+        }
+        else
+        {
+            SetColor(go, ComponentColor(prefabName), objName + "_mat");
+        }
+
+        Object.DestroyImmediate(go.GetComponent<Collider>());
+        var bc = go.AddComponent<BoxCollider>();
+        bc.isTrigger = false;
+
+        var rb = go.AddComponent<Rigidbody>();
+        rb.isKinematic = true;
+        rb.useGravity  = false;
+
+        var grab = go.AddComponent<XRGrabInteractable>();
+        grab.movementType  = XRBaseInteractable.MovementType.Kinematic;
+        grab.trackPosition = true;
+        grab.trackRotation = true;
+
+        go.AddComponent<GrabbableComponent>();
+
+        Undo.RegisterCreatedObjectUndo(go, $"Crear {objName}");
+        return go;
+    }
+
+    // ── Componente fijo (XRSimpleInteractable, para switch) ───────────
+    static GameObject AddFixed(GameObject parent, string prefabName, string objName,
+                               Vector3 localPos, Vector3 localScale)
+    {
+        var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        go.name = objName;
+        go.transform.SetParent(parent.transform);
+        go.transform.localPosition = localPos;
+        go.transform.localScale    = localScale;
+
+        string vpath   = V2 + prefabName + ".prefab";
+        var    vprefab = AssetDatabase.LoadAssetAtPath<GameObject>(vpath);
+        if (vprefab != null)
+        {
+            var vis = Object.Instantiate(vprefab, go.transform);
+            vis.name = "Visual";
+            vis.transform.localPosition = Vector3.zero;
+            vis.transform.localScale    = Vector3.one;
+            foreach (var col in vis.GetComponentsInChildren<Collider>())
+                Object.DestroyImmediate(col);
+            var rootRend = go.GetComponent<Renderer>();
+            if (rootRend != null) rootRend.enabled = false;
+        }
+        else
+        {
+            SetColor(go, ComponentColor(prefabName), objName + "_mat");
+        }
+
+        Object.DestroyImmediate(go.GetComponent<Collider>());
+        var bc = go.AddComponent<BoxCollider>();
+        bc.isTrigger = false;
+
+        var rb = go.AddComponent<Rigidbody>();
+        rb.isKinematic = true;
+        rb.useGravity  = false;
+
+        go.AddComponent<XRSimpleInteractable>();
+
+        Undo.RegisterCreatedObjectUndo(go, $"Crear {objName}");
+        return go;
+    }
+
+    static Color ComponentColor(string prefabName) => prefabName switch
+    {
+        "Battery 9v"       => new Color(0.90f, 0.85f, 0.10f),
+        "Switch"           => new Color(0.80f, 0.20f, 0.10f),
+        "Led A" or "Led B" => new Color(0.10f, 0.85f, 0.20f),
+        "Led C"            => new Color(0.85f, 0.10f, 0.10f),
+        "Led D"            => new Color(0.20f, 0.40f, 0.90f),
+        "Potentiometer"    => new Color(0.55f, 0.35f, 0.15f),
+        "Transistor"       => new Color(0.20f, 0.20f, 0.20f),
+        "Capacitor"        => new Color(0.15f, 0.45f, 0.85f),
+        "Relay"            => new Color(0.30f, 0.30f, 0.75f),
+        "Controller Board" => new Color(0.10f, 0.45f, 0.20f),
+        "Segment Display"  => new Color(0.15f, 0.15f, 0.15f),
+        _                  => new Color(0.50f, 0.50f, 0.50f),
+    };
+
+    // ── Nodo eléctrico ────────────────────────────────────────────────
+    static ElectricalNode MakeNode(GameObject zone, string nodeName, Vector3 localPos)
+    {
+        var go = new GameObject(nodeName);
+        go.transform.SetParent(zone.transform);
+        go.transform.localPosition = localPos;
+        Undo.RegisterCreatedObjectUndo(go, nodeName);
+        return go.AddComponent<ElectricalNode>();
+    }
+
+    // ── NodePoint: disco medible con multímetro ───────────────────────
+    static void MakeNodePoint(GameObject zone, ElectricalNode node,
+                              Vector3 localPos, Color color, string ptName,
+                              float padSize = 0.042f, float triggerRadius = 0.030f)
+    {
+        var visual = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        visual.name = ptName + "_Pad";
+        visual.transform.SetParent(zone.transform);
+        visual.transform.localPosition = localPos;
+        visual.transform.localScale    = new Vector3(padSize, 0.003f, padSize);
+        SetColor(visual, color, ptName + "_mat");
+        Object.DestroyImmediate(visual.GetComponent<Collider>());
+        Undo.RegisterCreatedObjectUndo(visual, ptName + "_Pad");
+
+        var det = new GameObject(ptName);
+        det.transform.SetParent(zone.transform);
+        det.transform.localPosition = localPos + new Vector3(0f, 0.004f, 0f);
+
+        var col = det.AddComponent<SphereCollider>();
+        col.isTrigger = false;
+        col.radius    = triggerRadius;
+
+        det.AddComponent<XRSimpleInteractable>();
+        var ni = det.AddComponent<NodeInteractable>();
+        ni.nodeTarget = node;
+
+        EditorUtility.SetDirty(det);
+        Undo.RegisterCreatedObjectUndo(det, ptName);
+    }
+
+    // ── Solderpad decorativo ──────────────────────────────────────────
+    static void AddSolderpadDecor(GameObject zone, Vector3 localPos, string padName)
+    {
+        string vpath   = V2 + "Solderpad.prefab";
+        var    vprefab = AssetDatabase.LoadAssetAtPath<GameObject>(vpath);
+        if (vprefab == null) return;
+
+        var pad = Object.Instantiate(vprefab, zone.transform);
+        pad.name = padName;
+        pad.transform.localPosition = localPos;
+        pad.transform.localScale    = new Vector3(0.4f, 0.05f, 0.4f);
+        foreach (var c in pad.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
+        Undo.RegisterCreatedObjectUndo(pad, padName);
+    }
+
+    // ── Slot de reemplazo ─────────────────────────────────────────────
+    static void AddSlot(GameObject zone, Vector3 localPos,
+                        ComponentSlotType slotType, string slotName, float size = 0.14f)
+    {
+        var slotGO = new GameObject(slotName);
+        slotGO.transform.SetParent(zone.transform);
+        slotGO.transform.localPosition = localPos;
+
+        var col = slotGO.AddComponent<BoxCollider>();
+        col.size      = new Vector3(size, 0.04f, size);
+        col.isTrigger = true;
+
+        var slot = slotGO.AddComponent<ComponentSlot>();
+        slot.acceptedType  = slotType;
+        slot.installAnchor = slotGO.transform;
+
+        var cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        cube.name = "SlotIndicator";
+        cube.transform.SetParent(slotGO.transform);
+        cube.transform.localPosition = Vector3.zero;
+        cube.transform.localScale    = new Vector3(size, 0.008f, size);
+        Object.DestroyImmediate(cube.GetComponent<Collider>());
+        SetColor(cube, CSlot, slotName + "_mat");
+        slot.slotRenderer = cube.GetComponent<Renderer>();
+
+        Undo.RegisterCreatedObjectUndo(slotGO, slotName);
+    }
+
+    // ─────────────────────────────────────────────
+    //  HELPERS — circuit/models FBX
+    // ─────────────────────────────────────────────
+
+    static Material _circuitMat;
+    static Material GetCircuitMat()
+    {
+        if (_circuitMat != null) return _circuitMat;
+        _circuitMat = AssetDatabase.LoadAssetAtPath<Material>(CM_MAT);
+        if (_circuitMat != null) return _circuitMat;
+
+        var shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
+        var mat    = new Material(shader);
+        var tex    = AssetDatabase.LoadAssetAtPath<Texture2D>(CM_TEX);
+        if (tex != null) { mat.SetTexture("_BaseMap", tex); mat.SetColor("_BaseColor", Color.white); }
+        else               mat.SetColor("_BaseColor", new Color(0.70f, 0.70f, 0.70f));
+        // Activar emisión para que MaterialPropertyBlock pueda controlarla por instancia
+        mat.EnableKeyword("_EMISSION");
+        mat.SetColor("_EmissionColor", Color.black);
+
+        if (!AssetDatabase.IsValidFolder("Assets/Materials"))
+            AssetDatabase.CreateFolder("Assets", "Materials");
+        AssetDatabase.CreateAsset(mat, CM_MAT);
+        _circuitMat = AssetDatabase.LoadAssetAtPath<Material>(CM_MAT);
+        return _circuitMat;
+    }
+
+    static float AutoScaleVal(GameObject vis, float targetSize)
+    {
+        float longest = 0f;
+        foreach (var f in vis.GetComponentsInChildren<MeshFilter>())
+            if (f.sharedMesh != null)
+            {
+                var sz = f.sharedMesh.bounds.size;
+                longest = Mathf.Max(longest, sz.x, sz.y, sz.z);
+            }
+        return longest > 0.001f ? targetSize / longest : 1f;
+    }
+
+    static GameObject AddCircuitComp(GameObject zone, string fbxPath, float targetSize,
+                                     Vector3 localPos, Vector3 localEuler, string objName)
+    {
+        var root = new GameObject(objName);
+        root.transform.SetParent(zone.transform);
+        root.transform.localPosition = localPos;
+        root.transform.localRotation = Quaternion.Euler(localEuler);
+
+        var fbx = AssetDatabase.LoadAssetAtPath<GameObject>(fbxPath);
+        if (fbx != null)
+        {
+            var vis = Object.Instantiate(fbx, root.transform);
+            vis.name = "Visual";
+            vis.transform.localPosition = Vector3.zero;
+            vis.transform.localRotation = Quaternion.identity;
+            float s = AutoScaleVal(vis, targetSize);
+            vis.transform.localScale = Vector3.one * s;
+            var mat = GetCircuitMat();
+            foreach (var rend in vis.GetComponentsInChildren<Renderer>())
+                rend.sharedMaterial = mat;
+            foreach (var col in vis.GetComponentsInChildren<Collider>())
+                Object.DestroyImmediate(col);
+        }
+        else
+        {
+            var cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            cube.name = "Visual";
+            cube.transform.SetParent(root.transform);
+            cube.transform.localPosition = Vector3.zero;
+            cube.transform.localScale    = Vector3.one * targetSize;
+            Object.DestroyImmediate(cube.GetComponent<Collider>());
+            SetColor(cube, new Color(0.50f, 0.50f, 0.50f), objName + "_mat");
+        }
+
+        var bc   = root.AddComponent<BoxCollider>();
+        bc.size      = Vector3.one * (targetSize * 1.2f);
+        bc.isTrigger = false;
+
+        var rb = root.AddComponent<Rigidbody>();
+        rb.isKinematic = true;
+        rb.useGravity  = false;
+
+        var grab = root.AddComponent<XRGrabInteractable>();
+        grab.movementType  = XRBaseInteractable.MovementType.Kinematic;
+        grab.trackPosition = true;
+        grab.trackRotation = true;
+
+        root.AddComponent<GrabbableComponent>();
+        Undo.RegisterCreatedObjectUndo(root, $"Crear {objName}");
+        return root;
+    }
+
+    // Coloca un cable decorativo del paquete circuit (wire1 o wire2).
+    // scale ~0.4 es un buen punto de partida; ajusta en Inspector si hace falta.
+    static void AddDecorWire(GameObject zone, string prefabPath,
+                             Vector3 localPos, Vector3 localEuler, float scale, string objName)
+    {
+        var pfb = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+        if (pfb == null)
+        {
+            // Fallback al FBX si el prefab no existe
+            string fbxPath = prefabPath
+                .Replace("Assets/circuit/prefabs/", CM_BASE + "/")
+                .Replace(".prefab", ".fbx");
+            pfb = AssetDatabase.LoadAssetAtPath<GameObject>(fbxPath);
+        }
+        if (pfb == null) return;
+
+        var go = Object.Instantiate(pfb, zone.transform);
+        go.name = objName;
+        go.transform.localPosition = localPos;
+        go.transform.localRotation = Quaternion.Euler(localEuler);
+        go.transform.localScale    = Vector3.one * scale;
+        foreach (var col in go.GetComponentsInChildren<Collider>())
+            Object.DestroyImmediate(col);
+        Undo.RegisterCreatedObjectUndo(go, objName);
+    }
+
+    // PCB-style bench: dark-green board + plywood table + 4 legs
+    static void CreatePCBBench(GameObject zone, float w, float d)
+    {
+        var pcbGreen = new Color(0.06f, 0.28f, 0.12f);
+        var wood     = new Color(0.55f, 0.35f, 0.18f);
+        string zn    = zone.name;
+
+        var board = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        board.name = "PCB_Board";
+        board.transform.SetParent(zone.transform);
+        board.transform.localPosition = new Vector3(0f, 0.004f, 0f);
+        board.transform.localScale    = new Vector3(w, 0.008f, d);
+        Object.DestroyImmediate(board.GetComponent<Collider>());
+        SetColor(board, pcbGreen, "PCB_" + zn + "_mat");
+        Undo.RegisterCreatedObjectUndo(board, "PCB_Board");
+
+        float tw = w + 0.10f, td = d + 0.10f;
+        var table = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        table.name = "Table_Surface";
+        table.transform.SetParent(zone.transform);
+        table.transform.localPosition = new Vector3(0f, -0.013f, 0f);
+        table.transform.localScale    = new Vector3(tw, 0.025f, td);
+        Object.DestroyImmediate(table.GetComponent<Collider>());
+        SetColor(table, wood, "Table_" + zn + "_mat");
+        Undo.RegisterCreatedObjectUndo(table, "Table_Surface");
+
+        float legH  = TABLE_Y - 0.025f;
+        float legScY = legH * 0.5f;
+        float legY  = -(0.025f + legH * 0.5f);
+        float lx    = tw * 0.40f, lz = td * 0.40f;
+        AddLeg(zone, new Vector3(-lx, legY, -lz), "Leg_FL", legScY, wood);
+        AddLeg(zone, new Vector3(+lx, legY, -lz), "Leg_FR", legScY, wood);
+        AddLeg(zone, new Vector3(-lx, legY, +lz), "Leg_BL", legScY, wood);
+        AddLeg(zone, new Vector3(+lx, legY, +lz), "Leg_BR", legScY, wood);
+    }
+
+    // ─────────────────────────────────────────────
+    //  HELPERS GENÉRICOS
     // ─────────────────────────────────────────────
 
     static GameObject GetOrCreateGameZones()
     {
-        var existing = GameObject.Find("GameZones");
-        if (existing != null) return existing;
-
+        var ex = GameObject.Find("GameZones");
+        if (ex != null) return ex;
         var go = new GameObject("GameZones");
         go.transform.position = Vector3.zero;
         Undo.RegisterCreatedObjectUndo(go, "Crear GameZones");
@@ -311,17 +878,14 @@ public static class Vol2RetosBuilder
 
     static GameObject GetOrCreateZone(GameObject parent, string name, Vector3 localPos)
     {
-        var existing = parent.transform.Find(name);
-        if (existing != null)
+        var ex = parent.transform.Find(name);
+        if (ex != null)
         {
-            bool replace = EditorUtility.DisplayDialog(
-                "Zona ya existe",
-                $"'{name}' ya existe. ¿Reemplazar?",
-                "Sí, reemplazar", "Mantener");
-            if (!replace) return existing.gameObject;
-            Undo.DestroyObjectImmediate(existing.gameObject);
+            bool replace = EditorUtility.DisplayDialog("Zona ya existe",
+                $"'{name}' ya existe. ¿Reemplazar?", "Sí", "Mantener");
+            if (!replace) return ex.gameObject;
+            Undo.DestroyObjectImmediate(ex.gameObject);
         }
-
         var zone = new GameObject(name);
         zone.transform.SetParent(parent.transform);
         zone.transform.localPosition = localPos;
@@ -329,22 +893,20 @@ public static class Vol2RetosBuilder
         return zone;
     }
 
-    /// <summary>Instancia un prefab Vol.2 como hijo, solo visual (sin scripts de juego).</summary>
     static GameObject AddVisual(GameObject parent, string prefabName, string objName,
                                 Vector3 localPos, Vector3 localScale)
     {
-        string path = V2 + prefabName + ".prefab";
-        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+        string path   = V2 + prefabName + ".prefab";
+        var    prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
 
         GameObject go;
         if (prefab != null)
         {
-            go = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent.transform);
+            go      = Object.Instantiate(prefab, parent.transform);
             go.name = objName;
         }
         else
         {
-            // Fallback: cubo primitivo si no existe el prefab
             go = GameObject.CreatePrimitive(PrimitiveType.Cube);
             go.name = objName + "_placeholder";
             go.transform.SetParent(parent.transform);
@@ -353,79 +915,44 @@ public static class Vol2RetosBuilder
 
         go.transform.localPosition = localPos;
         go.transform.localScale    = localScale;
-        Undo.RegisterCreatedObjectUndo(go, $"Crear visual {objName}");
+        Undo.RegisterCreatedObjectUndo(go, $"Crear {objName}");
         return go;
-    }
-
-    /// <summary>
-    /// Instancia el prefab Vol.2 y le añade el script eléctrico T.
-    /// Devuelve el componente eléctrico.
-    /// </summary>
-    static T AddCircuitComponent<T>(GameObject parent, string prefabName, string objName,
-                                    Vector3 localPos, Vector3 localScale)
-        where T : ElectricalComponent
-    {
-        var go = AddVisual(parent, prefabName, objName, localPos, localScale);
-        var comp = EnsureComponent<T>(go);
-
-        // Asegurar collider para NodeInteractable y ComponentSlot
-        if (go.GetComponentInChildren<Collider>() == null)
-            go.AddComponent<BoxCollider>();
-
-        return comp;
-    }
-
-    /// <summary>Igual que AddCircuitComponent pero devuelve el GameObject en lugar del componente.</summary>
-    static GameObject AddCircuitComponentObj(GameObject parent, string prefabName, string objName,
-                                             Vector3 localPos, Vector3 localScale)
-    {
-        var go = AddVisual(parent, prefabName, objName, localPos, localScale);
-        if (go.GetComponentInChildren<Collider>() == null)
-            go.AddComponent<BoxCollider>();
-        return go;
-    }
-
-    /// <summary>Crea un ComponentSlot hijo del componente eléctrico.</summary>
-    static void AddComponentSlot(GameObject parent, ComponentSlotType slotType, Vector3 localPos)
-    {
-        var slotGo = new GameObject($"Slot_{slotType}");
-        slotGo.transform.SetParent(parent.transform);
-        slotGo.transform.localPosition = localPos;
-        slotGo.transform.localScale    = Vector3.one;
-
-        var col = slotGo.AddComponent<BoxCollider>();
-        col.size      = new Vector3(0.06f, 0.04f, 0.06f);
-        col.isTrigger = true;
-
-        var slot = slotGo.AddComponent<ComponentSlot>();
-        slot.acceptedType  = slotType;
-        slot.installAnchor = slotGo.transform;
-
-        // Renderer para feedback de color
-        var cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        cube.transform.SetParent(slotGo.transform);
-        cube.transform.localPosition = Vector3.zero;
-        cube.transform.localScale    = new Vector3(0.06f, 0.005f, 0.06f);
-        Object.DestroyImmediate(cube.GetComponent<Collider>());
-        slot.slotRenderer = cube.GetComponent<Renderer>();
-
-        Undo.RegisterCreatedObjectUndo(slotGo, $"Crear ComponentSlot {slotType}");
-    }
-
-    /// <summary>Añade un NodeInteractable al componente para que el Explorador pueda medirlo.</summary>
-    static void AddNodeInteractable(GameObject go)
-    {
-        // NodeInteractable necesita XRSimpleInteractable y Collider
-        if (go.GetComponent<XRSimpleInteractable>() == null)
-            go.AddComponent<XRSimpleInteractable>();
-
-        if (go.GetComponent<NodeInteractable>() == null)
-            go.AddComponent<NodeInteractable>();
-        // nodeTarget se asigna automáticamente en NodeInteractable.Start()
-        // desde los hijos creados por CircuitManager.EnsureAllNodesExist()
     }
 
     static T EnsureComponent<T>(GameObject go) where T : Component
         => go.GetComponent<T>() ?? go.AddComponent<T>();
+
+    static void MarkDirty(params GameObject[] gos)
+    {
+        foreach (var g in gos) EditorUtility.SetDirty(g);
+    }
+
+    static void EnsureMatFolder()
+    {
+        if (!AssetDatabase.IsValidFolder("Assets/Materials"))
+            AssetDatabase.CreateFolder("Assets", "Materials");
+        if (!AssetDatabase.IsValidFolder(MAT_FOLDER))
+            AssetDatabase.CreateFolder("Assets/Materials", "Retos");
+    }
+
+    static void SetColor(GameObject go, Color color, string matName)
+    {
+        var r = go.GetComponent<Renderer>();
+        if (r == null) return;
+
+        string path   = $"{MAT_FOLDER}/{matName}.mat";
+        var    shader = Shader.Find("Universal Render Pipeline/Lit")
+                     ?? Shader.Find("Standard");
+
+        var mat = new Material(shader);
+        mat.SetColor("_BaseColor", color);
+        mat.color = color;
+
+        if (AssetDatabase.LoadAssetAtPath<Material>(path) != null)
+            AssetDatabase.DeleteAsset(path);
+
+        AssetDatabase.CreateAsset(mat, path);
+        r.sharedMaterial = AssetDatabase.LoadAssetAtPath<Material>(path);
+    }
 }
 #endif

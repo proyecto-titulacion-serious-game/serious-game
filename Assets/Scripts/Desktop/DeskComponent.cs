@@ -30,6 +30,11 @@ public class DeskComponent : MonoBehaviour,
     [Header("Referencias")]
     public ComponentSendingTray tray;
 
+    [Header("Prefab entregado")]
+    [Tooltip("Variante específica que se envía al Explorador (LED verde, capacitor azul, etc.).\n" +
+             "Deja vacío para usar el prefab default del ComponentDeliverySystem.")]
+    public GameObject deliveredPrefab;
+
     [Header("Colores de feedback")]
     public Color colorNormal   = new Color(0.3f, 0.3f, 0.4f);
     public Color colorHover    = new Color(0.9f, 0.8f, 0.2f);
@@ -59,9 +64,14 @@ public class DeskComponent : MonoBehaviour,
 
     void Awake()
     {
-        _renderer      = GetComponent<Renderer>();
+        _renderer      = GetComponent<Renderer>() ?? GetComponentInChildren<Renderer>();
         _mpb           = new MaterialPropertyBlock();
         _originalScale = transform.localScale;
+
+        // Ajustar BoxCollider a los bounds reales del mesh para que sea clicable.
+        // El generador pone el BoxCollider con size (1,1,1) pero el FBX puede tener
+        // bounds muy distintos; sin este ajuste el área de clic es casi invisible.
+        FitColliderToMesh();
 
         // Copia por objeto del material para habilitar el keyword _EMISSION
         // sin afectar el material compartido de otros objetos.
@@ -79,6 +89,17 @@ public class DeskComponent : MonoBehaviour,
             tray = FindAnyObjectByType<ComponentSendingTray>();
 
         _xrInteractable = GetComponent<XRBaseInteractable>();
+    }
+
+    void FitColliderToMesh()
+    {
+        var bc = GetComponent<BoxCollider>() ?? GetComponentInChildren<BoxCollider>();
+        var mf = GetComponent<MeshFilter>() ?? GetComponentInChildren<MeshFilter>();
+        if (bc == null || mf == null || mf.sharedMesh == null) return;
+
+        Bounds b  = mf.sharedMesh.bounds;
+        bc.center = b.center;
+        bc.size   = b.size * 1.4f;   // 40% de margen para facilitar el clic
     }
 
     void OnEnable()

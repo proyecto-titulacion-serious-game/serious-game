@@ -1,4 +1,4 @@
-using UnityEditor;
+﻿using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.UI;
@@ -160,6 +160,22 @@ public static class ExplorerPrefabGenerator
         trayAnchor.transform.SetParent(receiverGO.transform, false);
         trayAnchor.transform.localPosition = Vector3.zero;
 
+        // Slots individuales por tipo — los componentes aparecen separados
+        var slotResistor   = new GameObject("Slot_Resistor");
+        var slotLED        = new GameObject("Slot_LED");
+        var slotCapacitor  = new GameObject("Slot_Capacitor");
+        var slotArduinoPin = new GameObject("Slot_ArduinoPin");
+
+        slotResistor  .transform.SetParent(trayAnchor.transform, false);
+        slotLED       .transform.SetParent(trayAnchor.transform, false);
+        slotCapacitor .transform.SetParent(trayAnchor.transform, false);
+        slotArduinoPin.transform.SetParent(trayAnchor.transform, false);
+
+        slotResistor  .transform.localPosition = new Vector3(-0.09f, 0f, 0f);
+        slotLED       .transform.localPosition = new Vector3(-0.03f, 0f, 0f);
+        slotCapacitor .transform.localPosition = new Vector3( 0.03f, 0f, 0f);
+        slotArduinoPin.transform.localPosition = new Vector3( 0.09f, 0f, 0f);
+
         CreateBox(receiverGO, "Tray_Visual",
             new Vector3(0.25f, 0.02f, 0.2f), new Vector3(0f, -0.01f, 0f),
             CreateMat("Mat_ExplorerTray", new Color(0.15f, 0.22f, 0.35f)));
@@ -171,6 +187,34 @@ public static class ExplorerPrefabGenerator
 
         var receiver = receiverGO.AddComponent<ExplorerComponentReceiver>();
         receiver.puntoDeEntrega = trayAnchor.transform;
+
+        // Slots por tipo
+        receiver.slotResistor   = slotResistor.transform;
+        receiver.slotLED        = slotLED.transform;
+        receiver.slotCapacitor  = slotCapacitor.transform;
+        receiver.slotArduinoPin = slotArduinoPin.transform;
+
+        // Prefabs base
+        const string D = "Assets/Prefabs/Delivered";
+        receiver.resistorPrefab   = AssetDatabase.LoadAssetAtPath<GameObject>(D + "/Delivered_Resistor.prefab");
+        receiver.ledPrefab        = AssetDatabase.LoadAssetAtPath<GameObject>(D + "/Delivered_LED_Green.prefab")
+                                 ?? AssetDatabase.LoadAssetAtPath<GameObject>(D + "/Delivered_LED.prefab");
+        receiver.capacitorPrefab  = AssetDatabase.LoadAssetAtPath<GameObject>(D + "/Delivered_Capacitor_Blue.prefab")
+                                 ?? AssetDatabase.LoadAssetAtPath<GameObject>(D + "/Delivered_Capacitor.prefab");
+        receiver.arduinoPinPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(D + "/Delivered_ArduinoPIn.prefab");
+
+        // Variantes LED
+        receiver.ledGreenPrefab  = AssetDatabase.LoadAssetAtPath<GameObject>(D + "/Delivered_LED_Green.prefab");
+        receiver.ledRedPrefab    = AssetDatabase.LoadAssetAtPath<GameObject>(D + "/Delivered_LED_Red.prefab");
+        receiver.ledYellowPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(D + "/Delivered_LED_Yellow.prefab");
+
+        // Variantes Capacitor
+        receiver.capacitorBluePrefab   = AssetDatabase.LoadAssetAtPath<GameObject>(D + "/Delivered_Capacitor_Blue.prefab");
+        receiver.capacitorBlackPrefab  = AssetDatabase.LoadAssetAtPath<GameObject>(D + "/Delivered_Capacitor_Black.prefab");
+        receiver.capacitorOrangePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(D + "/Delivered_Capacitor_Orange.prefab");
+
+        // Variante Resistor
+        receiver.resistorVerticalPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(D + "/Delivered_Resistor_Vertical.prefab");
 
         // Label de la bandeja
         var labelGO = new GameObject("Tray_Label");
@@ -234,7 +278,9 @@ public static class ExplorerPrefabGenerator
                 "  ✓ PlayerController.interaction  → PlayerInteraction\n" +
                 "  ✓ ExplorerAvatar.xrCamera       → Main_Camera\n" +
                 "  ✓ ExplorerAvatar.avatarRoot     → RobotKyle_Explorer\n" +
-                "  ✓ Receiver.puntoDeEntrega       → Bandeja_Recepcion\n\n" +
+                "  ✓ Receiver.puntoDeEntrega       → Bandeja_Recepcion\n" +
+                "  ✓ Receiver.slotResistor/LED/Capacitor/ArduinoPin → asignados\n" +
+                "  ✓ Receiver.prefabs base + variantes              → asignados\n\n" +
                 "ASIGNAR MANUALMENTE en el Inspector:\n" +
                 "  PlayerInteraction:\n" +
                 "    • gameManager  → GameManager_System\n" +
@@ -284,7 +330,7 @@ public static class ExplorerPrefabGenerator
         tmp.fontSize = fontSize;
         tmp.color    = color;
         tmp.alignment          = TextAlignmentOptions.Center;
-        tmp.enableWordWrapping = true;
+        tmp.textWrappingMode = TextWrappingModes.Normal;
         var rt              = go.GetComponent<RectTransform>();
         rt.anchoredPosition = pos;
         rt.sizeDelta        = size;

@@ -4,19 +4,21 @@ using UnityEngine.XR;
 using UnityEngine.Rendering.Universal;
 
 /// Prevents IndexOutOfRangeException in XRDisplaySubsystem.GetRenderPass when
-/// Quest Link is initialized but reports 0 render passes. Also applies a fallback
-/// eye height when no headset is active so the camera doesn't stay at floor level.
-/// The TrackedPoseDriver (UpdateType=BeforeRender) overrides the fallback height
-/// automatically once a headset connects, so this does not interfere with real VR.
+/// Quest Link is initialized but reports 0 render passes temporarily.
+/// Uses a debounce so a single-frame dip in render pass count doesn't flicker the view.
 [RequireComponent(typeof(Camera))]
 public class XRRenderGuard : MonoBehaviour
 {
     [Tooltip("Eye height (m) used when no XR headset is detected")]
     public float fallbackEyeHeight = 1.36f;
 
+    [Tooltip("Consecutive 'not ready' frames required before disabling XR rendering (prevents flicker)")]
+    public int disableDebounceFrames = 10;
+
     private UniversalAdditionalCameraData _camData;
     private readonly List<XRDisplaySubsystem> _displays = new();
-    private bool _lastXRReady = false;
+    private bool _xrRenderingEnabled = true;
+    private int _notReadyFrameCount = 0;
 
     void Awake()
     {
@@ -27,9 +29,9 @@ public class XRRenderGuard : MonoBehaviour
 
     void Start()
     {
-        // Apply fallback immediately so the first frame isn't at floor level.
-        // If XR is ready, the TrackedPoseDriver (BeforeRender) corrects it before rendering.
         ApplyFallbackHeight();
+        if (_camData != null)
+            _camData.allowXRRendering = true;
     }
 
     void Update()
@@ -48,14 +50,26 @@ public class XRRenderGuard : MonoBehaviour
             }
         }
 
-        if (!xrReady)
-            ApplyFallbackHeight();
-
-        if (xrReady != _lastXRReady)
+        if (xrReady)
         {
-            _camData.allowXRRendering = xrReady;
-            _lastXRReady = xrReady;
-            Debug.Log($"[XRRenderGuard] XR rendering {(xrReady ? "ENABLED" : "DISABLED")} on {gameObject.name}");
+            _notReadyFrameCount = 0;
+            if (!_xrRenderingEnabled)
+            {
+                _xrRenderingEnabled = true;
+                _camData.allowXRRendering = true;
+                Debug.Log("[XRRenderGuard] XR rendering ENABLED on " + gameObject.name);
+            }
+        }
+        else
+        {
+            ApplyFallbackHeight();
+            _notReadyFrameCount++;
+            if (_xrRenderingEnabled && _notReadyFrameCount >= disableDebounceFrames)
+            {
+                _xrRenderingEnabled = false;
+                _camData.allowXRRendering = false;
+                Debug.Log("[XRRenderGuard] XR rendering DISABLED on " + gameObject.name);
+            }
         }
     }
 

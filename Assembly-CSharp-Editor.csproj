@@ -48,24 +48,36 @@
     <Analyzer Include="C:\Program Files\Unity\Hub\Editor\6000.4.3f1\Editor\Data\Tools\BuildPipeline\Unity.SourceGenerators\Unity.UIToolkit.SourceGenerator.dll" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Assets\Editor\ExplorerSceneSetup.cs" />
+    <Compile Include="Assets\Editor\TechnicianVRSetupTool.cs" />
     <Compile Include="Assets\TutorialInfo\Scripts\Editor\ReadmeEditor.cs" />
     <Compile Include="Assets\Editor\MultimeterPrefabGenerator.cs" />
     <Compile Include="Assets\Editor\CircuitNodeSetupTool.cs" />
     <Compile Include="Assets\Editor\URPMaterialConverter.cs" />
     <Compile Include="Assets\Editor\TechnicianPrefabGenerator.cs" />
     <Compile Include="Assets\Editor\VRHandSetupTool.cs" />
+    <Compile Include="Assets\Editor\MultimeterRebuildTool.cs" />
     <Compile Include="Assets\Editor\VRSimulatorSetup.cs" />
+    <Compile Include="Assets\Editor\FlexWireEditor.cs" />
+    <Compile Include="Assets\Editor\Vol2MaterialFixer.cs" />
     <Compile Include="Assets\Editor\VRSimulatorActionsSetup.cs" />
+    <Compile Include="Assets\Editor\ResistorV2Builder.cs" />
+    <Compile Include="Assets\Editor\ExplorerVRSetupTool.cs" />
     <Compile Include="Assets\Editor\GameManagerPrefabGenerator.cs" />
     <Compile Include="Assets\Editor\LooseCableButtonGenerator.cs" />
     <Compile Include="Assets\Editor\IntegratedDemoSetup.cs" />
     <Compile Include="Assets\Editor\TechnicianWorkstationGenerator.cs" />
     <Compile Include="Assets\Editor\GameUIPrefabGenerator.cs" />
+    <Compile Include="Assets\Editor\Vol2RetosBuilder.cs" />
+    <Compile Include="Assets\Editor\ExplorerCircuitUITool.cs" />
     <Compile Include="Assets\Editor\VRValidator.cs" />
+    <Compile Include="Assets\ObjectClipboard\Editor\ObjectClipboardWindow.cs" />
     <Compile Include="Assets\Editor\DeliveredComponentsGenerator.cs" />
+    <Compile Include="Assets\Editor\ExplorerPrefabUpdater.cs" />
+    <Compile Include="Assets\Editor\SpaceshipAmbientSetupTool.cs" />
     <Compile Include="Assets\Editor\ExplorerPrefabGenerator.cs" />
     <Compile Include="Assets\Editor\GameSceneGenerator.cs" />
+    <Compile Include="Assets\Editor\Vol2DeliveredSetup.cs" />
+    <Compile Include="Assets\Editor\ManualOverlaySetupTool.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">
@@ -1570,6 +1582,10 @@
     </Reference>
     <Reference Include="Unity.Multiplayer.Center.Common">
       <HintPath>Library\ScriptAssemblies\Unity.Multiplayer.Center.Common.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Unity.Multiplayer.Center.Integrations">
+      <HintPath>Library\ScriptAssemblies\Unity.Multiplayer.Center.Integrations.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Unity.Burst">

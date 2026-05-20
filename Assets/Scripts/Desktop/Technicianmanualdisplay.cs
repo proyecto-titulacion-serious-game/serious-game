@@ -55,6 +55,11 @@ public class TechnicianManualDisplay : MonoBehaviour
     //  Unity Lifecycle
     // ─────────────────────────────────────────────
 
+    void Awake()
+    {
+        AutoFindTMPFields();
+    }
+
     void Start()
     {
         // Auto-buscar referencias no asignadas en el Inspector
@@ -65,8 +70,21 @@ public class TechnicianManualDisplay : MonoBehaviour
             Debug.LogWarning("[TechnicianManualDisplay] GameManager no encontrado. " +
                              "Asígnalo en el Inspector de TechnicianManualDisplay.");
         if (manual == null)
-            Debug.LogWarning("[TechnicianManualDisplay] TechnicianManual no encontrado. " +
-                             "Asígnalo en el Inspector de TechnicianManualDisplay.");
+        {
+            manual = gameObject.AddComponent<TechnicianManual>();
+            Debug.LogWarning("[TechnicianManualDisplay] TechnicianManual no encontrado en la escena — " +
+                             "se creó como fallback en este GameObject.");
+        }
+
+        // Segundo intento de auto-búsqueda (Awake corre antes que otros scripts)
+        AutoFindTMPFields();
+
+        if (txtPaginaIzquierda == null)
+            Debug.LogWarning("[TechnicianManualDisplay] txtPaginaIzquierda es null. " +
+                             "Asígnalo en el Inspector o nombra el TMP_Text con 'izquierda' en su nombre.");
+        if (txtPaginaDerecha == null)
+            Debug.LogWarning("[TechnicianManualDisplay] txtPaginaDerecha es null. " +
+                             "Asígnalo en el Inspector o nombra el TMP_Text con 'derecha' en su nombre.");
 
         if (btnPaginaAnterior  != null) btnPaginaAnterior.onClick.AddListener(PaginaAnterior);
         if (btnPaginaSiguiente != null) btnPaginaSiguiente.onClick.AddListener(PaginaSiguiente);
@@ -75,9 +93,47 @@ public class TechnicianManualDisplay : MonoBehaviour
         BuildPages();
     }
 
+    void OnEnable()
+    {
+        // Cada vez que el overlay se activa, refrescar contenido
+        if (_paginas != null && _paginas.Length > 0)
+            MostrarPagina(_paginaActual);
+        // Si _paginas es null, Start() se encarga (primera activación)
+    }
+
     void OnDestroy()
     {
         GameManager.OnLevelLoaded -= OnLevelLoaded;
+    }
+
+    // ─────────────────────────────────────────────
+    //  Auto-búsqueda de TMP_Text por nombre
+    // ─────────────────────────────────────────────
+
+    void AutoFindTMPFields()
+    {
+        if (txtPaginaIzquierda != null && txtPaginaDerecha != null) return;
+
+        foreach (var t in GetComponentsInChildren<TMP_Text>(true))
+        {
+            string n = t.name.ToLowerInvariant();
+            if      (txtTitulo           == null && (n.Contains("titulo")    || n.Contains("title")))
+                txtTitulo           = t;
+            else if (txtPaginaIzquierda  == null && (n.Contains("izquierda") || n.Contains("left")  || n.Contains("izq")))
+                txtPaginaIzquierda  = t;
+            else if (txtPaginaDerecha    == null && (n.Contains("derecha")   || n.Contains("right") || n.Contains("der")))
+                txtPaginaDerecha    = t;
+            else if (txtNumeroPagina     == null && (n.Contains("pagina")    || n.Contains("page")  || n.Contains("numero") || n.Contains("pag")))
+                txtNumeroPagina     = t;
+        }
+    }
+
+    /// <summary>Forzar reconstrucción de páginas (útil al activar desde ManualScroll).</summary>
+    public void RefreshContent()
+    {
+        if (gameManager == null) gameManager = FindAnyObjectByType<GameManager>();
+        AutoFindTMPFields();
+        BuildPages();
     }
 
     // ─────────────────────────────────────────────
@@ -182,7 +238,7 @@ public class TechnicianManualDisplay : MonoBehaviour
 
         return gameManager.currentLevel switch
         {
-            LevelType.OhmLaw   => "VALORES DEL RETO 1:\n\nFuente: 9V\nR correcta: 100 Ohm\nLED R interna: 50 Ohm\nI objetivo: 10-20 mA",
+            LevelType.OhmLaw   => "VALORES DEL RETO 1:\n\nFuente: 9V\nR correcta: 850 Ohm\nLED R interna: 50 Ohm\nI objetivo: 10 mA",
             LevelType.Parallel => "VALORES DEL RETO 2:\n\nFuente: 9V\nR normal por rama: 50 Ohm\nRama rota: 9999 Ohm\nI por rama: 180 mA",
             LevelType.Mixed    => "VALORES DEL RETO 3:\n\nR serie incorrecta: 470 Ohm\nR correcta: 220 Ohm\nLED: polaridad invertida\nCap: polaridad invertida",
             LevelType.Arduino  => "VALORES DEL RETO 4:\n\nFuente: 5V\nPin sensor: D2 (correcto)\nPin actual: D4 (incorrecto)\nR buzzer: 330 Ohm",
@@ -197,7 +253,7 @@ public class TechnicianManualDisplay : MonoBehaviour
         "Azul=6    Violeta=7  Gris=8\n" +
         "Blanco=9\n\n" +
         "Tolerancia: Oro=5% Plata=10%\n\n" +
-        "100 Ohm = Marron-Negro-Marron-Oro\n" +
+        "850 Ohm = Gris-Verde-Marron-Oro\n" +
         "220 Ohm = Rojo-Rojo-Marron-Oro\n" +
         "330 Ohm = Naranja-Naranja-Marron-Oro\n" +
         "470 Ohm = Amarillo-Violeta-Marron-Oro";

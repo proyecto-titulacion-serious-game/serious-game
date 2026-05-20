@@ -5,7 +5,6 @@ using UnityEngine;
 /// Simula fallo por polaridad invertida (humo + vibración háptica).
 /// En CC actúa como circuito abierto (resistencia muy alta) excepto en cortocircuito.
 /// </summary>
-[RequireComponent(typeof(Renderer))]
 public class Capacitor : ElectricalComponent
 {
     // ─────────────────────────────────────────────
@@ -42,7 +41,7 @@ public class Capacitor : ElectricalComponent
     // ─────────────────────────────────────────────
     private Renderer _renderer;
     private MaterialPropertyBlock _mpb;
-    private static readonly int _colorID    = Shader.PropertyToID("_Color");
+    private static readonly int _colorID    = Shader.PropertyToID("_BaseColor");
     private static readonly int _emissionID = Shader.PropertyToID("_EmissionColor");
 
     // ─────────────────────────────────────────────
@@ -50,8 +49,9 @@ public class Capacitor : ElectricalComponent
     // ─────────────────────────────────────────────
     void Awake()
     {
-        _renderer = GetComponent<Renderer>();
-        _mpb      = new MaterialPropertyBlock();
+        foreach (var r in GetComponentsInChildren<Renderer>(true))
+            if (r.enabled) { _renderer = r; break; }
+        _mpb = new MaterialPropertyBlock();
     }
 
     // ─────────────────────────────────────────────
@@ -59,7 +59,7 @@ public class Capacitor : ElectricalComponent
     // ─────────────────────────────────────────────
     public override float GetResistance()
     {
-        // Con polaridad invertida actúa como cortocircuito
+        if (isOpenCircuit) return 1_000_000f;
         return polarityInverted ? shortCircuitResistance : normalDCResistance;
     }
 

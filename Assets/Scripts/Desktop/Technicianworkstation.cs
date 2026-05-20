@@ -127,7 +127,7 @@ public class TechnicianWorkstation : MonoBehaviour
         {
             if (c is VoltageSource vs)
             {
-                vSource = vs.voltage;
+                vSource = vs.GetEffectiveVoltage();
             }
             else if (c is Resistor r)
             {

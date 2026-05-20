@@ -5,7 +5,6 @@ using UnityEngine;
 /// negro (sin corriente / polaridad invertida).
 /// Usa MaterialPropertyBlock para evitar crear materiales duplicados en cada frame.
 /// </summary>
-[RequireComponent(typeof(Renderer))]
 public class LED : ElectricalComponent
 {
     // ─────────────────────────────────────────────
@@ -39,7 +38,7 @@ public class LED : ElectricalComponent
     // ─────────────────────────────────────────────
     private Renderer       _renderer;
     private MaterialPropertyBlock _mpb;      // ← Evita memory leak
-    private static readonly int   _colorID = Shader.PropertyToID("_Color");
+    private static readonly int   _colorID    = Shader.PropertyToID("_BaseColor");
     private static readonly int   _emissionID = Shader.PropertyToID("_EmissionColor");
 
     // ─────────────────────────────────────────────
@@ -47,14 +46,16 @@ public class LED : ElectricalComponent
     // ─────────────────────────────────────────────
     void Awake()
     {
-        _renderer = GetComponent<Renderer>();
-        _mpb      = new MaterialPropertyBlock();
+        // Busca el primer Renderer activo (puede estar en el hijo Visual del FBX)
+        foreach (var r in GetComponentsInChildren<Renderer>(true))
+            if (r.enabled) { _renderer = r; break; }
+        _mpb = new MaterialPropertyBlock();
     }
 
     // ─────────────────────────────────────────────
     //  ElectricalComponent
     // ─────────────────────────────────────────────
-    public override float GetResistance() => resistance;
+    public override float GetResistance() => isOpenCircuit ? 1_000_000f : resistance;
 
     public override void Calculate()
     {

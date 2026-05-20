@@ -142,12 +142,12 @@ public class Multimeter : MonoBehaviour
         }
 
         var gm = FindAnyObjectByType<GameManager>();
-        int gmCircuitID = -1;
+        CircuitManager gmCircuit = null;
         if (gm != null)
         {
-            gmCircuitID = gm.circuit != null ? gm.circuit.GetInstanceID() : -1;
-            string circuitInfo = gm.circuit != null
-                ? $"'{gm.circuit.name}' id={gmCircuitID} path={GetPath(gm.circuit.transform)}"
+            gmCircuit = gm.circuit;
+            string circuitInfo = gmCircuit != null
+                ? $"'{gmCircuit.name}' path={GetPath(gmCircuit.transform)}"
                 : "NULL ← CRÍTICO";
             Debug.Log($"  GameManager '{gm.name}': circuit → {circuitInfo}");
             Debug.Log($"  GameManager zonas: reto1={NullOrName(gm.reto1Zone)} | reto2={NullOrName(gm.reto2Zone)} | reto3={NullOrName(gm.reto3Zone)} | reto4={NullOrName(gm.reto4Zone)}");
@@ -162,8 +162,8 @@ public class Multimeter : MonoBehaviour
         foreach (var cm in allCMs)
         {
             bool isActive = cm.gameObject.activeInHierarchy;
-            bool isGmCircuit = cm.GetInstanceID() == gmCircuitID;
-            Debug.Log($"  ── CircuitManager '{cm.name}' id={cm.GetInstanceID()} {(isGmCircuit ? "← GameManager.circuit" : "")} " +
+            bool isGmCircuit = cm == gmCircuit;
+            Debug.Log($"  ── CircuitManager '{cm.name}' {(isGmCircuit ? "← GameManager.circuit" : "")} " +
                       $"path={GetPath(cm.transform)} activo={isActive} " +
                       $"components={cm.components.Count} sourceVoltage={cm.sourceVoltage:F2} V " +
                       $"totalCurrent={cm.totalCurrent * 1000f:F2} mA shortCircuit={cm.isShortCircuited}");

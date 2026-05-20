@@ -96,12 +96,9 @@ public class GrabbableComponent : MonoBehaviour
         _rb.useGravity  = true;
     }
 
-    /// <summary>
-    /// Llamado por ComponentSlot tras una instalación exitosa.
-    /// Deshabilita el grab para que no se pueda volver a coger del slot.
-    /// </summary>
-    public void DisableGrab()
-    {
-        _grab.enabled = false;
-    }
+    /// <summary>Llamado por ComponentSlot tras instalación exitosa. El componente queda fijo.</summary>
+    public void DisableGrab() => _grab.enabled = false;
+
+    /// <summary>Re-habilita el grab (usado cuando el slot permite remover el componente instalado).</summary>
+    public void EnableGrab()  => _grab.enabled = true;
 }

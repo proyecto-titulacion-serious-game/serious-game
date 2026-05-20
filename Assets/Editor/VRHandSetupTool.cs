@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEditor;
 using UnityEngine.InputSystem.XR;
 using UnityEngine.InputSystem;
@@ -20,11 +20,13 @@ public class VRHandSetupTool : Editor
     static void SetupHandControllers()
     {
         bool changed = false;
-        changed |= SetupHand("LeftHand Controller",
+        // Soporta tanto "LeftHand Controller" (espacio, XRI estándar)
+        // como "LeftHand_Controller" (guión bajo, prefab TITA)
+        changed |= SetupHand(FindHandGO("Left"),
             "<XRController>{LeftHand}/devicePosition",
             "<XRController>{LeftHand}/deviceRotation",
             HandModelController.HandSide.Left);
-        changed |= SetupHand("RightHand Controller",
+        changed |= SetupHand(FindHandGO("Right"),
             "<XRController>{RightHand}/devicePosition",
             "<XRController>{RightHand}/deviceRotation",
             HandModelController.HandSide.Right);
@@ -41,14 +43,30 @@ public class VRHandSetupTool : Editor
         }
     }
 
-    static bool SetupHand(string goName, string posPath, string rotPath, HandModelController.HandSide side)
+    // Busca el GO de la mano por las variantes de nombre más comunes.
+    static GameObject FindHandGO(string side)
     {
-        GameObject go = GameObject.Find(goName);
-        if (go == null)
+        string[] candidates = {
+            $"{side}Hand Controller",    // XRI estándar
+            $"{side}Hand_Controller",    // prefab TITA (guión bajo)
+            $"{side}Hand",
+            $"{side} Controller",
+            $"XRController ({side})",
+        };
+        foreach (var n in candidates)
         {
-            Debug.LogWarning($"[VRHandSetupTool] No se encontró '{goName}' en la escena activa.");
-            return false;
+            var go = GameObject.Find(n);
+            if (go != null) return go;
         }
+        Debug.LogWarning($"[VRHandSetupTool] Mano '{side}' no encontrada. " +
+                         $"Candidatos probados: {string.Join(", ", candidates)}");
+        return null;
+    }
+
+    static bool SetupHand(GameObject go, string posPath, string rotPath, HandModelController.HandSide side)
+    {
+        if (go == null) return false;
+        string goName = go.name;
 
         bool changed = false;
 
@@ -130,7 +148,7 @@ public class VRHandSetupTool : Editor
     [MenuItem("Tools/TITA/Remove Hand Placeholders")]
     static void RemovePlaceholders()
     {
-        var all = GameObject.FindObjectsByType<GameObject>(FindObjectsSortMode.None);
+        var all = GameObject.FindObjectsByType<GameObject>(FindObjectsInactive.Include);
         int count = 0;
         foreach (var go in all)
         {

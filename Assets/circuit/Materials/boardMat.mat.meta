@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 6b75b4d22255c4245aab6c88632e20d4
+timeCreated: 1453639592
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 54458
+  packageName: Cartoon Style Circuit components Assets
+  packageVersion: 1.0
+  assetPath: Assets/circuit/Materials/boardMat.mat
+  uploadId: 99485

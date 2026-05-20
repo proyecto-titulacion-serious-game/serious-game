@@ -3,6 +3,7 @@ using UnityEngine;
 /// <summary>
 /// Resistencia con soporte de código de colores (Reto 3).
 /// Permite establecer el valor "correcto" vs el valor "defectuoso" para gamificación.
+/// Incluye feedback visual de sobrecarga y falla visible para el Explorador.
 /// </summary>
 public class Resistor : ElectricalComponent
 {
@@ -24,24 +25,76 @@ public class Resistor : ElectricalComponent
     [Range(1f, 20f)]
     public float tolerancePercent  = 5f;
 
+    [Header("Potencia nominal")]
+    [Tooltip("Potencia máxima que puede disipar sin quemarse. Típico: 0.25 W (1/4 W).")]
+    public float powerRatingWatts = 0.25f;
+
+    [Header("Colores educativos")]
+    public Color colorNormal    = new Color(0.76f, 0.60f, 0.42f);  // beige/tan — resistor físico
+    public Color colorFault     = new Color(1.00f, 0.55f, 0.00f);  // naranja — valor incorrecto
+    public Color colorOverload  = new Color(1.00f, 0.10f, 0.05f);  // rojo — sobrecarga
+    public Color colorOpen      = new Color(0.25f, 0.25f, 0.25f);  // gris oscuro — circuito abierto
+
+    [Header("Efectos de sobrecarga")]
+    public ParticleSystem smokeEffect;
+
+    // ─────────────────────────────────────────────
+    //  Estado de potencia (solo lectura)
+    // ─────────────────────────────────────────────
+    [Header("Potencia disipada (solo lectura)")]
+    [SerializeField] private float _dissipatedPower;
+    [SerializeField] private bool  _isOverloaded;
+
+    public float dissipatedPower => _dissipatedPower;
+    public bool  isOverloaded    => _isOverloaded;
+
+    // ─────────────────────────────────────────────
+    //  Internos
+    // ─────────────────────────────────────────────
+    private Renderer             _renderer;
+    private MaterialPropertyBlock _mpb;
+    private ResistorVisualState  _lastState = ResistorVisualState.Normal;
+
+    private static readonly int _colorID    = Shader.PropertyToID("_BaseColor");
+    private static readonly int _emissionID = Shader.PropertyToID("_EmissionColor");
+
+    // ─────────────────────────────────────────────
+    //  Unity Lifecycle
+    // ─────────────────────────────────────────────
+    void Awake()
+    {
+        foreach (var r in GetComponentsInChildren<Renderer>(true))
+            if (r.enabled) { _renderer = r; break; }
+        _mpb = new MaterialPropertyBlock();
+    }
+
     // ─────────────────────────────────────────────
     //  ElectricalComponent
     // ─────────────────────────────────────────────
-    public override float GetResistance() => resistance;
+    public override float GetResistance() => isOpenCircuit ? 1_000_000f : resistance;
 
     public override void Calculate()
     {
         if (nodeA == null || nodeB == null) return;
         if (resistance <= 0f)
         {
-            current = 0f;
-            voltageDrop = 0f;
+            current          = 0f;
+            voltageDrop      = 0f;
+            _dissipatedPower = 0f;
+            _isOverloaded    = false;
+            UpdateVisual();
             return;
         }
 
         float voltageDiff = nodeA.voltage - nodeB.voltage;
-        current     = (resistance > 0f) ? voltageDiff / resistance : 0f;
-        voltageDrop = voltageDiff;
+        current          = isOpenCircuit ? 0f : voltageDiff / resistance;
+        voltageDrop      = voltageDiff;
+
+        // P = I² × R  (potencia disipada real)
+        _dissipatedPower = Mathf.Abs(current * current * resistance);
+        _isOverloaded    = _dissipatedPower > powerRatingWatts;
+
+        UpdateVisual();
     }
 
     // ─────────────────────────────────────────────
@@ -79,7 +132,53 @@ public class Resistor : ElectricalComponent
     {
         return ResistorColorCode.GetBandString((int)correctResistance, tolerancePercent);
     }
+
+    // ─────────────────────────────────────────────
+    //  Feedback visual
+    // ─────────────────────────────────────────────
+
+    void UpdateVisual()
+    {
+        ResistorVisualState newState;
+        if (isOpenCircuit)           newState = ResistorVisualState.Open;
+        else if (_isOverloaded)      newState = ResistorVisualState.Overloaded;
+        else if (hasFault)           newState = ResistorVisualState.Fault;
+        else                         newState = ResistorVisualState.Normal;
+
+        if (newState == _lastState) return;
+        _lastState = newState;
+
+        Color c = newState switch
+        {
+            ResistorVisualState.Overloaded => colorOverload,
+            ResistorVisualState.Fault      => colorFault,
+            ResistorVisualState.Open       => colorOpen,
+            _                              => colorNormal
+        };
+
+        bool emissive = newState != ResistorVisualState.Normal;
+        ApplyColor(c, emissive);
+
+        if (smokeEffect != null)
+        {
+            if (newState == ResistorVisualState.Overloaded)
+            { if (!smokeEffect.isPlaying) smokeEffect.Play(); }
+            else
+            { smokeEffect.Stop(); }
+        }
+    }
+
+    void ApplyColor(Color color, bool emissive)
+    {
+        if (_renderer == null || _mpb == null) return;
+        _renderer.GetPropertyBlock(_mpb);
+        _mpb.SetColor(_colorID,    color);
+        _mpb.SetColor(_emissionID, emissive ? color * 1.8f : Color.black);
+        _renderer.SetPropertyBlock(_mpb);
+    }
 }
+
+public enum ResistorVisualState { Normal, Fault, Overloaded, Open }
 
 /// <summary>
 /// Utilidad para calcular el código de colores de una resistencia.

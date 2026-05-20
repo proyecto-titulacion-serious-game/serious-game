@@ -1,0 +1,21 @@
+fileFormatVersion: 2
+guid: 899e0f832ac907240ac2b55a9a03bd44
+labels:
+- 3d
+- cartoon
+- prop
+- enviroment
+- electronic
+timeCreated: 1453640351
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 54458
+  packageName: Cartoon Style Circuit components Assets
+  packageVersion: 1.0
+  assetPath: Assets/circuit/prefabs/wire2.prefab
+  uploadId: 99485

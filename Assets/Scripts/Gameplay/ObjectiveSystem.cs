@@ -38,6 +38,7 @@ public class ObjectiveSystem : MonoBehaviour
         GameManager.OnLevelLoaded    += BuildObjectivesForLevel;
         GameManager.OnLevelCompleted += HandleLevelCompleted;
         GameManager.OnGameCompleted  += HandleGameCompleted;
+        CircuitManager.OnCircuitChanged += AutoCompleteByCircuitState;
     }
 
     void OnDestroy()
@@ -45,10 +46,7 @@ public class ObjectiveSystem : MonoBehaviour
         GameManager.OnLevelLoaded    -= BuildObjectivesForLevel;
         GameManager.OnLevelCompleted -= HandleLevelCompleted;
         GameManager.OnGameCompleted  -= HandleGameCompleted;
-        // Limpieza defensiva de eventos estáticos
-        OnObjectiveCompleted = null;
-        OnScoreUpdated       = null;
-        OnSessionEnded       = null;
+        CircuitManager.OnCircuitChanged -= AutoCompleteByCircuitState;
     }
 
     // ─────────────────────────────────────────────
@@ -152,6 +150,100 @@ public class ObjectiveSystem : MonoBehaviour
             int lastIdx = _objectives.Count - 1;
             CompleteObjective(lastIdx, bonus);
         }
+    }
+
+    // ─────────────────────────────────────────────
+    //  Auto-completar objetivos por estado del circuito
+    // ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Detecta hitos observables en el circuito y marca el objetivo correspondiente.
+    /// Solo completa cada objetivo una vez (CompleteObjective es idempotente).
+    /// </summary>
+    void AutoCompleteByCircuitState()
+    {
+        if (gameManager?.circuit == null) return;
+
+        var circuit = gameManager.circuit;
+
+        switch (gameManager.currentLevel)
+        {
+            case LevelType.OhmLaw:
+                // Obj 0: multímetro conectado a dos nodos (detectar corriente en circuito)
+                if (circuit.totalCurrent > 0f)
+                    CompleteObjectiveOnce(0);
+                // Obj 1: voltaje leído (hay voltaje en nodos)
+                if (circuit.sourceVoltage > 0f)
+                    CompleteObjectiveOnce(1);
+                // Obj 2: resistencia seleccionada → delegado a TechnicianActions
+                // Obj 3: reparación aplicada → se completa en HandleLevelCompleted
+                break;
+
+            case LevelType.Parallel:
+                // Obj 0: se midió voltaje (multímetro en uso)
+                if (circuit.totalCurrent > 0f)
+                    CompleteObjectiveOnce(0);
+                // Obj 1: rama rota identificada (algún LED apagado al inicio)
+                if (circuit.sourceVoltage > 0f)
+                    CompleteObjectiveOnce(1);
+                // Obj 2: reparación → HandleLevelCompleted
+                break;
+
+            case LevelType.Mixed:
+                // Obj 0: capacitor invertido detectado
+                foreach (var c in circuit.components)
+                    if (c is Capacitor cap && cap.polarityInverted)
+                    { CompleteObjectiveOnce(0); break; }
+
+                // Obj 1: LED invertido detectado
+                foreach (var c in circuit.components)
+                    if (c is LED led && led.polarityInverted)
+                    { CompleteObjectiveOnce(1); break; }
+
+                // Obj 2: resistencia incorrecta identificada
+                foreach (var c in circuit.components)
+                    if (c is Resistor r && r.hasFault)
+                    { CompleteObjectiveOnce(2); break; }
+
+                // Obj 3: todas las fallas corregidas → HandleLevelCompleted
+                break;
+
+            case LevelType.Arduino:
+                // Obj 0: multímetro en escena
+                if (circuit.sourceVoltage > 0f)
+                    CompleteObjectiveOnce(0);
+
+                // Obj 1: pin corregido
+                bool pinOk = true;
+                foreach (var c in circuit.components)
+                    if (c is ArduinoPin p && p.hasFault) { pinOk = false; break; }
+                if (pinOk && gameManager.HasPerformedRepair())
+                    CompleteObjectiveOnce(1);
+
+                // Obj 2: resistencia buzzer corregida
+                bool resOk = true;
+                foreach (var c in circuit.components)
+                    if (c is Resistor rs && rs.hasFault) { resOk = false; break; }
+                if (resOk && gameManager.HasPerformedRepair())
+                    CompleteObjectiveOnce(2);
+
+                // Obj 3: cable suelto reparado
+                bool cableOk = true;
+                foreach (var c in circuit.components)
+                    if (c is ArduinoPin ap && ap.hasLooseCable) { cableOk = false; break; }
+                if (cableOk && gameManager.HasPerformedRepair())
+                    CompleteObjectiveOnce(3);
+
+                // Obj 4: verificación → HandleLevelCompleted
+                break;
+        }
+    }
+
+    void CompleteObjectiveOnce(int index)
+    {
+        if (index < 0 || index >= _objectives.Count) return;
+        if (_objectives[index].isCompleted) return;
+        CompleteObjective(index);
     }
 
     void HandleGameCompleted()

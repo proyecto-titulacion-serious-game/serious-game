@@ -58,13 +58,14 @@ public class PlayerInteraction : MonoBehaviour
     public void PlaceRedProbe(ElectricalNode node)
     {
         if (node == null) return;
+        if (multimeter == null) { Debug.LogWarning("[PlayerInteraction] Multimeter no asignado.", this); return; }
 
         multimeter.SetProbeA(node);
         _probeAPlaced = true;
         haptics?.PlayLight();
 
         Debug.Log($"[PlayerInteraction] Punta roja → {node.name}");
-        circuit.MarkDirty();
+        circuit?.MarkDirty();
     }
 
     /// <summary>
@@ -74,17 +75,19 @@ public class PlayerInteraction : MonoBehaviour
     public void PlaceBlackProbe(ElectricalNode node)
     {
         if (node == null) return;
+        if (multimeter == null) { Debug.LogWarning("[PlayerInteraction] Multimeter no asignado.", this); return; }
 
         multimeter.SetProbeB(node);
         _probeBPlaced = true;
         haptics?.PlayLight();
 
         Debug.Log($"[PlayerInteraction] Punta negra → {node.name}");
-        circuit.MarkDirty();
+        circuit?.MarkDirty();
     }
 
     public void RemoveProbes()
     {
+        if (multimeter == null) return;
         multimeter.ResetProbes();
         _probeAPlaced = false;
         _probeBPlaced = false;

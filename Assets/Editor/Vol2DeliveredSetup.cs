@@ -39,7 +39,7 @@ public static class Vol2DeliveredSetup
     public static void CreateAll()
     {
         EnsureFolder();
-        ConvertVol2MaterialsToURP();
+        Vol2MaterialFixer.FixAllSilent(out _, out _);
 
         CreateFromVol2("Led A",           "Delivered_LED_V2",
                        ComponentType.LED,        new Vector3(0.04f, 0.04f, 0.04f));
@@ -68,11 +68,7 @@ public static class Vol2DeliveredSetup
     [MenuItem("Tools/TITA/Vol.2 Electronics/Solo Convertir Materiales a URP")]
     public static void ConvertMaterialsOnly()
     {
-        ConvertVol2MaterialsToURP();
-        AssetDatabase.SaveAssets();
-        AssetDatabase.Refresh();
-        EditorUtility.DisplayDialog("Materiales convertidos",
-            "Todos los materiales de Resources Vol.2 - Electronics fueron convertidos a URP/Lit.", "OK");
+        Vol2MaterialFixer.FixAll();
     }
 
     [MenuItem("Tools/TITA/Vol.2 Electronics/Setup Seleccionado Como Resistor")]
@@ -203,7 +199,7 @@ public static class Vol2DeliveredSetup
             return;
         }
         EnsureFolder();
-        ConvertVol2MaterialsToURP();
+        Vol2MaterialFixer.FixAllSilent(out _, out _);
         BuildDeliveredPrefab(assetPath, outputName, type, scale);
         AssetDatabase.Refresh();
     }

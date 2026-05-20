@@ -44,14 +44,14 @@ public class TechnicianManual : MonoBehaviour
                     "resistencia tiene el valor incorrecto.\n\n" +
                     "1. Pide al Explorador que mida V en nodo_A y nodo_B\n" +
                     "2. Calcula: R = (9V - V_LED) / I_objetivo\n" +
-                    "3. El valor correcto es 100 Ω\n" +
-                    "4. Escribe 100 en el campo y pulsa ENVIAR",
+                    "3. El valor correcto es 850 Ω\n" +
+                    "4. Escribe 850 en el campo y pulsa ENVIAR",
 
         tablaValores =
-                    "CÓDIGO DE COLORES — Resistencia 100Ω 5%\n" +
+                    "CÓDIGO DE COLORES — Resistencia 850Ω 5%\n" +
                     "━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-                    "Banda 1: Marrón  (1)\n" +
-                    "Banda 2: Negro   (0)\n" +
+                    "Banda 1: Gris    (8)\n" +
+                    "Banda 2: Verde   (5)\n" +
                     "Banda 3: Marrón  (×10)\n" +
                     "Banda 4: Oro     (±5%)\n" +
                     "━━━━━━━━━━━━━━━━━━━━━━━━━\n" +

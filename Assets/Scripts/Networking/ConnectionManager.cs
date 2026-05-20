@@ -18,36 +18,47 @@ public class ConnectionManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private NetworkRunner _runner;
 
-    [Header("Modo Offline")]
+    [Header("Modo Offline / Testing")]
     [Tooltip("Si está activo, omite Fusion y activa el entorno local directamente (útil para testing sin red).")]
     public bool modoOffline = false;
 
     [Tooltip("GO 'Entorno del explorador' a activar en modo offline. Si queda vacío se busca por nombre.")]
     public GameObject entornoExplorador;
 
+    // TechnicianController gestiona si XR se activa o no según el modo detectado.
+
+    private void OnDestroy()
+    {
+        if (_runner != null && _runner.IsRunning)
+            _runner.Shutdown();
+    }
+
     private void Start()
     {
+        bool esTecnico = rolAutomatico == AutoConnectRole.Tecnico;
+
         if (modoOffline)
         {
-            ActivarEntornoLocal();
+            if (!esTecnico)
+                ActivarEntornoExplorador();
+            else
+                Debug.Log("[Red] Modo offline Técnico — sin entorno VR, sin Fusion.");
             return;
         }
 
-        // Conexión automática para la escena del Explorador
         if (rolAutomatico == AutoConnectRole.Explorador)
         {
             Debug.Log("[Red] Conectando automáticamente como Explorador...");
             StartSimulation(GameMode.Client);
         }
-        // NUEVO: Conexión automática para la escena del Técnico
-        else if (rolAutomatico == AutoConnectRole.Tecnico)
+        else if (esTecnico)
         {
             Debug.Log("[Red] Creando servidor automáticamente como Técnico...");
             StartSimulation(GameMode.Host);
         }
     }
 
-    void ActivarEntornoLocal()
+    void ActivarEntornoExplorador()
     {
         if (entornoExplorador == null)
             entornoExplorador = BuscarIncluyendoInactivos("Entorno del explorador");
@@ -80,6 +91,13 @@ public class ConnectionManager : MonoBehaviour, INetworkRunnerCallbacks
         _runner = gameObject.GetComponent<NetworkRunner>();
         if (_runner == null)
             _runner = gameObject.AddComponent<NetworkRunner>();
+
+        // Evita "ServerAlreadyInRoom" (Code 104) si ya hay sesión activa
+        if (_runner.IsRunning)
+        {
+            Debug.LogWarning($"[Red] StartSimulation ignorado — el runner ya está corriendo ({_runner.GameMode}).");
+            return;
+        }
 
         _runner.ProvideInput = true;
 
@@ -129,9 +147,17 @@ public class ConnectionManager : MonoBehaviour, INetworkRunnerCallbacks
     public void OnPlayerLeft(NetworkRunner runner, PlayerRef player) { }
     public void OnInput(NetworkRunner runner, NetworkInput input) { }
     public void OnInputMissing(NetworkRunner runner, PlayerRef player, NetworkInput input) { }
-    public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason) { }
+    public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason)
+    {
+        Debug.Log($"[Red] Runner apagado: {shutdownReason}");
+        _runner = null;
+    }
     public void OnConnectedToServer(NetworkRunner runner) { }
-    public void OnDisconnectedFromServer(NetworkRunner runner, NetDisconnectReason reason) { }
+    public void OnDisconnectedFromServer(NetworkRunner runner, NetDisconnectReason reason)
+    {
+        Debug.LogWarning($"[Red] Desconectado del servidor: {reason}");
+        _runner = null;
+    }
     public void OnConnectRequest(NetworkRunner runner, NetworkRunnerCallbackArgs.ConnectRequest request, byte[] token) { }
     public void OnConnectFailed(NetworkRunner runner, NetAddress remoteAddress, NetConnectFailedReason reason) { }
     public void OnUserSimulationMessage(NetworkRunner runner, SimulationMessagePtr message) { }

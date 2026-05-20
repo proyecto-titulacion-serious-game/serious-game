@@ -27,6 +27,7 @@ public class RuntimeHandConsolidator : MonoBehaviour
     static GameObject FindHandGO(string side)
     {
         string[] candidates = {
+            $"{side}Hand_Controller",   // prefab TITA (guión bajo)
             $"{side}Hand Controller",
             $"{side}Hand",
             $"{side} Controller",
@@ -89,6 +90,15 @@ public class RuntimeHandConsolidator : MonoBehaviour
         }
         else
         {
+            // Si ya hay un mesh de controlador físico como hijo, no añadir geometría procedural.
+            bool hasControllerVisual = go.GetComponentInChildren<MeshRenderer>() != null
+                                    || go.GetComponentInChildren<SkinnedMeshRenderer>() != null;
+            if (hasControllerVisual)
+            {
+                Debug.Log($"[HandConsolidator] '{handName}' ya tiene visual de controlador — omitiendo HandModelController.");
+                return;
+            }
+
             // Fallback: mano procedural con HandModelController
             HandModelController hmc = go.GetComponent<HandModelController>();
             if (hmc == null)
@@ -109,7 +119,7 @@ public class RuntimeHandConsolidator : MonoBehaviour
     {
         // Busca todos los HandModelController en escena.
         // Los que NO tienen XRDirectInteractor en el mismo GO son los duplicados del prefab.
-        HandModelController[] allHMCs = FindObjectsByType<HandModelController>(FindObjectsSortMode.None);
+        HandModelController[] allHMCs = FindObjectsByType<HandModelController>(FindObjectsInactive.Include);
         foreach (var hmc in allHMCs)
         {
             bool hasInteractor = hmc.GetComponent<XRDirectInteractor>() != null

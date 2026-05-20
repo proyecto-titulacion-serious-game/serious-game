@@ -1,4 +1,4 @@
-using UnityEditor;
+﻿using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -276,7 +276,7 @@ public static class GameSceneGenerator
     static void WireGameManager(GameObject z1, GameObject z2,
                                  GameObject z3, GameObject z4)
     {
-        var gm = Object.FindFirstObjectByType<GameManager>();
+        var gm = Object.FindAnyObjectByType<GameManager>();
         if (gm == null)
         {
             Debug.LogWarning("[GameSceneGenerator] GameManager no encontrado en la escena. " +
@@ -409,7 +409,7 @@ public static class GameSceneGenerator
         tmp.fontSize          = 12f;
         tmp.color             = color;
         tmp.alignment         = TextAlignmentOptions.Center;
-        tmp.enableWordWrapping = true;
+        tmp.textWrappingMode = TextWrappingModes.Normal;
 
         var txtRT           = txtGO.GetComponent<RectTransform>();
         txtRT.sizeDelta     = new Vector2(205f, 88f);

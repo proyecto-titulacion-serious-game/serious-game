@@ -1,4 +1,4 @@
-using UnityEditor;
+﻿using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
@@ -21,7 +21,7 @@ public static class CircuitNodeSetupTool
     public static void SetupAllNodes()
     {
         // ── 1. Buscar el Multimeter en la escena ──────────────────────────
-        var multimeter = Object.FindFirstObjectByType<Multimeter>();
+        var multimeter = Object.FindAnyObjectByType<Multimeter>();
         if (multimeter == null)
         {
             bool proceed = EditorUtility.DisplayDialog(
@@ -35,7 +35,7 @@ public static class CircuitNodeSetupTool
         }
 
         // ── 2. Buscar todos los ElectricalNode en escena ──────────────────
-        var allNodes = Object.FindObjectsByType<ElectricalNode>(FindObjectsSortMode.None);
+        var allNodes = Object.FindObjectsByType<ElectricalNode>(FindObjectsInactive.Include);
         if (allNodes.Length == 0)
         {
             EditorUtility.DisplayDialog("Sin nodos",

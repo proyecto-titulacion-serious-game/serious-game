@@ -1,4 +1,4 @@
-using UnityEditor;
+﻿using UnityEditor;
 using UnityEditor.Events;
 using UnityEngine;
 using UnityEngine.UI;
@@ -18,7 +18,7 @@ public static class LooseCableButtonGenerator
     public static void Generate()
     {
         // ── 1. Buscar TechnicianActions en la escena ──────────────────────
-        var actions = Object.FindFirstObjectByType<TechnicianActions>();
+        var actions = Object.FindAnyObjectByType<TechnicianActions>();
         if (actions == null)
         {
             EditorUtility.DisplayDialog("Error",
@@ -127,7 +127,7 @@ public static class LooseCableButtonGenerator
     static Canvas FindTechnicianCanvas(TechnicianActions actions)
     {
         // Buscar TechnicianWorkstation para encontrar el Canvas de diagnóstico
-        var workstation = Object.FindFirstObjectByType<TechnicianWorkstation>();
+        var workstation = Object.FindAnyObjectByType<TechnicianWorkstation>();
         if (workstation != null)
         {
             var c = workstation.GetComponentInChildren<Canvas>(true);
@@ -139,7 +139,7 @@ public static class LooseCableButtonGenerator
         if (parentCanvas != null) return parentCanvas;
 
         // Fallback: primer Canvas en escena
-        return Object.FindFirstObjectByType<Canvas>();
+        return Object.FindAnyObjectByType<Canvas>();
     }
 
     static string GetPath(Transform t)

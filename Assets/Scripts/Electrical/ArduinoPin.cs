@@ -28,8 +28,8 @@ public class ArduinoPin : ElectricalComponent
     // ─────────────────────────────────────────────
     public override float GetResistance()
     {
-        // Cable suelto = circuito abierto
-        return hasLooseCable ? 1_000_000f : 10f;   // 10Ω interno típico
+        // Pin incorrecto o cable suelto = circuito abierto
+        return (hasLooseCable || hasFault) ? 1_000_000f : 10f;
     }
 
     public override void Calculate()

@@ -189,6 +189,12 @@ public class NodeInteractable : MonoBehaviour
     }
 
     void ResetColor() => SetColor(_originalColor);
+
+    /// Llamado por MultimeterProbe para iluminar este nodo cuando una punta lo apunta.
+    public void SetAimHighlight(bool active, Color highlightCol)
+    {
+        SetColor(active ? highlightCol : _originalColor);
+    }
 }
 
 public enum ProbeType { Auto, Red, Black }

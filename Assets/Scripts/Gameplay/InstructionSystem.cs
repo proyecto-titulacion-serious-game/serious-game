@@ -287,18 +287,44 @@ public class InstructionSystem : MonoBehaviour
     /// <summary>Valida los 5 pasos del Reto 4 — Sensor-Actuador Arduino.</summary>
     private void ValidateArduino()
     {
+        if (gameManager?.circuit == null) return;
+
         switch (currentStep)
         {
+            // Paso 0 → Explorador localiza el cable (multímetro en escena)
             case 0:
                 if (multimeter?.probeA != null) NextStep();
                 break;
 
+            // Paso 1 → Pin del sensor corregido
             case 1:
+                foreach (var comp in gameManager.circuit.components)
+                    if (comp is ArduinoPin pin && !pin.hasFault)
+                    { NextStep(); return; }
+                break;
+
+            // Paso 2 → Resistencia del buzzer correcta
             case 2:
+                foreach (var comp in gameManager.circuit.components)
+                    if (comp is Resistor r && !r.hasFault)
+                    { NextStep(); return; }
+                break;
+
+            // Paso 3 → Cable suelto reconectado
             case 3:
+            {
+                bool cableOk = true;
+                foreach (var comp in gameManager.circuit.components)
+                    if (comp is ArduinoPin p && p.hasLooseCable)
+                    { cableOk = false; break; }
+                if (cableOk && gameManager.HasPerformedRepair()) NextStep();
+                break;
+            }
+
+            // Paso 4 → Verificación final (manual — el jugador confirma la señal)
             case 4:
                 if (gameManager.HasPerformedRepair())
-                    NextStep();
+                    hasAppliedFix = true;
                 break;
         }
     }

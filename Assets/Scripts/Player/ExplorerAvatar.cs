@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -10,13 +11,13 @@ using UnityEngine;
 ///   4. Asigna:
 ///        xrCamera    → la cámara principal del XR Origin (Main Camera)
 ///        avatarRoot  → el transform raíz de RobotKyle (el hijo recién añadido)
-///   5. headBoneName → "head" (nombre del hueso de la cabeza en RobotKyle)
 ///
-/// QUÉ HACE:
-///   - El cuerpo sigue la posición XZ de la cámara (no el Y, para que no flote).
-///   - El cuerpo rota hacia donde mira la cámara en el plano horizontal.
+/// COMPORTAMIENTO:
+///   - El cuerpo sigue la posición XZ de la cámara.
+///   - El cuerpo SOLO rota cuando el jugador se mueve (no al girar la cámara).
+///   - La Y usa raycast al suelo + suavizado para evitar caídas visuales.
 ///   - Oculta el mesh de la cabeza del robot para que no tape el visor VR.
-///   - Reproduce la animación de caminar/idle según si el CharacterController se mueve.
+///   - Las manos las proveen LeftHandQuestVisual / RightHandQuestVisual del XR rig.
 /// </summary>
 [RequireComponent(typeof(CharacterController))]
 public class ExplorerAvatar : MonoBehaviour
@@ -35,20 +36,41 @@ public class ExplorerAvatar : MonoBehaviour
     [Header("Cabeza")]
     [Tooltip("Nombre del hueso de la cabeza para ocultarlo (evita que tape el visor).")]
     public string headBoneName = "head";
-    [Tooltip("Activar para ocultar la cabeza del robot en VR. Desactivar en modo PC para debug.")]
+    [Tooltip("Oculta la cabeza del robot en VR. Desactivar en modo PC para debug.")]
     public bool hideHeadInVR = true;
 
-    [Header("Suavizado")]
+    [Header("Rotación del cuerpo")]
     [Range(1f, 30f)]
-    [Tooltip("Velocidad con la que el cuerpo rota para seguir la cámara.")]
+    [Tooltip("Velocidad de giro del cuerpo cuando el jugador se mueve.")]
     public float rotationSmoothing = 10f;
+    [Range(0f, 1f)]
+    [Tooltip("Velocidad mínima (m/s) para que el cuerpo gire hacia el movimiento.\n" +
+             "Mientras el jugador está quieto o solo gira la cabeza, el cuerpo no rota.")]
+    public float movementThreshold = 0.25f;
 
-    // Parámetros del Animator (deben coincidir con StarterAssetsThirdPerson.controller)
-    private static readonly int _animSpeed  = Animator.StringToHash("Speed");
-    private static readonly int _animMotion = Animator.StringToHash("MotionSpeed");
+    [Header("Estabilidad de suelo")]
+    [Range(0f, 30f)]
+    [Tooltip("Suavizado de la posición Y del cuerpo (Lerp). Evita que caídas bruscas del CC salten visualmente.")]
+    public float ySmoothing = 15f;
+
+    [Header("Cuerpo parcial (solo piernas visibles)")]
+    [Tooltip("Oculta todo el mesh del robot y muestra solo piernas primitivas animadas.\n" +
+             "Las manos las proveen LeftHandQuestVisual/RightHandQuestVisual del XR rig.")]
+    public bool hideBodyShowLegs = false;
+    [Tooltip("Color de los segmentos de pierna generados.")]
+    public Color legColor = new Color(0.15f, 0.15f, 0.20f);
+
+    // Parámetros del Animator (StarterAssetsThirdPerson.controller)
+    private static readonly int _animSpeed    = Animator.StringToHash("Speed");
+    private static readonly int _animMotion   = Animator.StringToHash("MotionSpeed");
+    private static readonly int _animGrounded = Animator.StringToHash("Grounded");
 
     private CharacterController _cc;
     private Transform           _headBone;
+    private float               _smoothedY;   // Y suavizada — evita caídas visuales bruscas
+
+    // Segmentos de pierna: (hueso inicio, hueso fin, radio, GameObject primitivo)
+    private readonly List<(Transform a, Transform b, float r, GameObject go)> _limbSegments = new();
 
     // ─────────────────────────────────────────────────────────
     //  Lifecycle
@@ -85,7 +107,11 @@ public class ExplorerAvatar : MonoBehaviour
 
     void Start()
     {
-        if (hideHeadInVR)
+        _smoothedY = transform.position.y;
+
+        if (hideBodyShowLegs)
+            SetupPartialBody();
+        else if (hideHeadInVR)
             HideHead();
     }
 
@@ -94,29 +120,46 @@ public class ExplorerAvatar : MonoBehaviour
         if (avatarRoot == null || xrCamera == null) return;
 
         MoveAvatarToCamera();
-        RotateAvatarToCamera();
+        RotateAvatarWithMovement();
         UpdateAnimation();
+
+        if (hideBodyShowLegs)
+            SyncLimbMeshes();
     }
 
     // ─────────────────────────────────────────────────────────
-    //  Posición y rotación
+    //  Posición
     // ─────────────────────────────────────────────────────────
 
     void MoveAvatarToCamera()
     {
-        // El avatar sigue el XZ de la cámara; Y viene del CharacterController (gravedad).
-        Vector3 target = xrCamera.position;
-        target.y = transform.position.y;
-        avatarRoot.position = target;
+        // XZ: el cuerpo sigue la posición horizontal del visor VR.
+        Vector3 camPos = xrCamera.position;
+
+        // Y: usar la base del CharacterController con suavizado.
+        // El Lerp amortigua cualquier caída brusca de un frame sin usar raycast
+        // (el raycast con mask ~0 golpea contra PCBs y objetos del circuito).
+        float targetY = transform.position.y;
+        _smoothedY = ySmoothing > 0f
+            ? Mathf.Lerp(_smoothedY, targetY, ySmoothing * Time.deltaTime)
+            : targetY;
+
+        avatarRoot.position = new Vector3(camPos.x, _smoothedY, camPos.z);
     }
 
-    void RotateAvatarToCamera()
-    {
-        Vector3 forward = Vector3.ProjectOnPlane(xrCamera.forward, Vector3.up);
-        if (forward.sqrMagnitude < 0.01f) return;
+    // ─────────────────────────────────────────────────────────
+    //  Rotación del cuerpo
+    // ─────────────────────────────────────────────────────────
 
-        Quaternion targetRot = Quaternion.LookRotation(forward);
-        avatarRoot.rotation  = Quaternion.Slerp(
+    void RotateAvatarWithMovement()
+    {
+        // El cuerpo SOLO gira cuando el jugador se mueve físicamente.
+        // Girar la cabeza/cámara sin desplazarse no afecta la orientación del torso.
+        Vector3 hVel = new Vector3(_cc.velocity.x, 0f, _cc.velocity.z);
+        if (hVel.magnitude < movementThreshold) return;
+
+        Quaternion targetRot = Quaternion.LookRotation(hVel.normalized);
+        avatarRoot.rotation = Quaternion.Slerp(
             avatarRoot.rotation, targetRot, rotationSmoothing * Time.deltaTime);
     }
 
@@ -128,12 +171,100 @@ public class ExplorerAvatar : MonoBehaviour
     {
         if (avatarAnimator == null) return;
 
-        // Velocidad normalizada: 0 = idle, 1 = caminar/correr
         float speed = new Vector3(_cc.velocity.x, 0f, _cc.velocity.z).magnitude;
-        float normalized = Mathf.Clamp01(speed / 2f); // 2 m/s = velocidad máxima de caminar
 
-        avatarAnimator.SetFloat(_animSpeed,  normalized, 0.1f, Time.deltaTime);
-        avatarAnimator.SetFloat(_animMotion, 1f);
+        avatarAnimator.SetFloat(_animSpeed,    speed, 0.1f, Time.deltaTime);
+        avatarAnimator.SetFloat(_animMotion,   1f);
+        avatarAnimator.SetBool(_animGrounded,  _cc.isGrounded);
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  Cuerpo parcial
+    // ─────────────────────────────────────────────────────────
+
+    void SetupPartialBody()
+    {
+        if (avatarRoot == null) return;
+
+        foreach (var smr in avatarRoot.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            smr.enabled = false;
+        foreach (var mr in avatarRoot.GetComponentsInChildren<MeshRenderer>(true))
+            mr.enabled = false;
+
+        var anim = avatarRoot.GetComponentInChildren<Animator>();
+        if (anim == null || !anim.isHuman)
+        {
+            Debug.LogError("[ExplorerAvatar] hideBodyShowLegs requiere un avatar Humanoid.", this);
+            return;
+        }
+
+        Transform lUpper  = anim.GetBoneTransform(HumanBodyBones.LeftUpperLeg);
+        Transform lLower  = anim.GetBoneTransform(HumanBodyBones.LeftLowerLeg);
+        Transform lFoot   = anim.GetBoneTransform(HumanBodyBones.LeftFoot);
+        Transform lToe    = anim.GetBoneTransform(HumanBodyBones.LeftToes);
+
+        Transform rUpper  = anim.GetBoneTransform(HumanBodyBones.RightUpperLeg);
+        Transform rLower  = anim.GetBoneTransform(HumanBodyBones.RightLowerLeg);
+        Transform rFoot   = anim.GetBoneTransform(HumanBodyBones.RightFoot);
+        Transform rToe    = anim.GetBoneTransform(HumanBodyBones.RightToes);
+
+        if (lUpper && lLower) AddSegment(lUpper, lLower, 0.065f, "Leg_L_Upper");
+        if (lLower && lFoot)  AddSegment(lLower, lFoot,  0.050f, "Leg_L_Lower");
+        if (lFoot)            AddFootBlock(lFoot, lToe, "Foot_L");
+
+        if (rUpper && rLower) AddSegment(rUpper, rLower, 0.065f, "Leg_R_Upper");
+        if (rLower && rFoot)  AddSegment(rLower, rFoot,  0.050f, "Leg_R_Lower");
+        if (rFoot)            AddFootBlock(rFoot, rToe, "Foot_R");
+    }
+
+    void AddSegment(Transform boneA, Transform boneB, float radius, string goName)
+    {
+        var go = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+        go.name = goName;
+        Object.Destroy(go.GetComponent<Collider>());
+        ApplyLegMaterial(go);
+        _limbSegments.Add((boneA, boneB, radius, go));
+    }
+
+    void AddFootBlock(Transform footBone, Transform toeBone, string goName)
+    {
+        var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        go.name = goName;
+        Object.Destroy(go.GetComponent<Collider>());
+        ApplyLegMaterial(go);
+        Transform b = toeBone != null ? toeBone : footBone;
+        _limbSegments.Add((footBone, b, -1f, go));
+    }
+
+    void ApplyLegMaterial(GameObject go)
+    {
+        var mr = go.GetComponent<Renderer>();
+        if (mr == null) return;
+        var mat = new Material(mr.sharedMaterial);
+        mat.color = legColor;
+        mr.material = mat;
+    }
+
+    void SyncLimbMeshes()
+    {
+        foreach (var (a, b, radius, go) in _limbSegments)
+        {
+            if (go == null || a == null || b == null) continue;
+
+            Vector3 posA = a.position;
+            Vector3 posB = b.position;
+            Vector3 dir  = posB - posA;
+            float   len  = dir.magnitude;
+            if (len < 0.001f) continue;
+
+            go.transform.position = (posA + posB) * 0.5f;
+            go.transform.rotation = Quaternion.FromToRotation(Vector3.up, dir.normalized);
+
+            if (radius < 0f)
+                go.transform.localScale = new Vector3(0.09f, 0.04f, len);
+            else
+                go.transform.localScale = new Vector3(radius * 2f, len * 0.5f, radius * 2f);
+        }
     }
 
     // ─────────────────────────────────────────────────────────
@@ -144,16 +275,13 @@ public class ExplorerAvatar : MonoBehaviour
     {
         if (avatarRoot == null) return;
 
-        // Buscar el hueso por nombre (búsqueda recursiva)
         _headBone = FindBone(avatarRoot, headBoneName);
         if (_headBone == null)
         {
-            Debug.LogWarning($"[ExplorerAvatar] Hueso '{headBoneName}' no encontrado en {avatarRoot.name}. " +
-                             "El mesh de la cabeza no se ocultará.");
+            Debug.LogWarning($"[ExplorerAvatar] Hueso '{headBoneName}' no encontrado en {avatarRoot.name}.");
             return;
         }
 
-        // Escalar a cero es la forma más simple de ocultar un hueso sin tocar los renderers
         _headBone.localScale = Vector3.zero;
         Debug.Log($"[ExplorerAvatar] Cabeza ocultada: {_headBone.name}");
     }
@@ -163,6 +291,13 @@ public class ExplorerAvatar : MonoBehaviour
     {
         if (_headBone == null) return;
         _headBone.localScale = visible ? Vector3.one : Vector3.zero;
+    }
+
+    void OnDestroy()
+    {
+        foreach (var (_, _, _, go) in _limbSegments)
+            if (go != null) Destroy(go);
+        _limbSegments.Clear();
     }
 
     // ─────────────────────────────────────────────────────────

@@ -1,6 +1,8 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.EventSystems;
+using UnityEngine.XR.Management;
+using UnityEngine.XR.Interaction.Toolkit.UI;
 
 /// <summary>
 /// Controlador del Técnico — soporta DOS modos de entrada:
@@ -48,6 +50,9 @@ public class TechnicianController : MonoBehaviour
     [Header("Debug / Override")]
     [Tooltip("Fuerza modo PC aunque haya dispositivos XR en escena (útil al probar sin headset)")]
     public bool forcePCMode = false;
+
+    [Tooltip("En modo PC, desactiva el subsistema XR para que no interfiera con el cursor ni la cámara.")]
+    public bool desactivarXRSiEsPC = true;
 
     // ─────────────────────────────────────────────
     //  Internos
@@ -124,6 +129,8 @@ public class TechnicianController : MonoBehaviour
 
     void SetupPC()
     {
+        if (desactivarXRSiEsPC) DesinicializarXR();
+
         // Activar cámara PC, desactivar XR Origin del Técnico
         if (pcCamera           != null) pcCamera.gameObject.SetActive(true);
         if (xrOriginTechnician != null) xrOriginTechnician.SetActive(false);
@@ -144,6 +151,15 @@ public class TechnicianController : MonoBehaviour
 
                 if (canvas.GetComponent<UnityEngine.UI.GraphicRaycaster>() == null)
                     canvas.gameObject.AddComponent<UnityEngine.UI.GraphicRaycaster>();
+
+                // Desactivar raycastTarget en fondos/decoraciones de TODOS los canvases
+                // WorldSpace para que los clicks pasen al PhysicsRaycaster y lleguen a
+                // los DeskComponents 3D situados detrás del canvas.
+                foreach (var img in canvas.GetComponentsInChildren<UnityEngine.UI.Image>(true))
+                {
+                    if (img.GetComponentInParent<UnityEngine.UI.Selectable>() == null)
+                        img.raycastTarget = false;
+                }
             }
 
             // El canvas principal del técnico se convierte a ScreenSpaceCamera para
@@ -153,14 +169,6 @@ public class TechnicianController : MonoBehaviour
                 technicianCanvas.renderMode    = RenderMode.ScreenSpaceCamera;
                 technicianCanvas.worldCamera   = cam;
                 technicianCanvas.planeDistance = 1f;
-
-                // Desactivar raycastTarget en imágenes decorativas para que los clicks
-                // pasen al PhysicsRaycaster y lleguen a los DeskComponents 3D.
-                foreach (var img in technicianCanvas.GetComponentsInChildren<UnityEngine.UI.Image>(true))
-                {
-                    if (img.GetComponentInParent<UnityEngine.UI.Selectable>() == null)
-                        img.raycastTarget = false;
-                }
             }
 
             // PhysicsRaycaster enruta eventos de puntero del EventSystem a objetos 3D.
@@ -202,9 +210,26 @@ public class TechnicianController : MonoBehaviour
             technicianCanvas.transform.localScale = Vector3.one * 0.001f;
         }
 
-        // Asegurarse de que la mano derecha tenga el XR Ray Interactor
-        // apuntando al canvas (configurado en el prefab)
+        // Añadir TrackedDeviceGraphicRaycaster a todos los canvases WorldSpace
+        // para que el XRRayInteractor pueda interactuar con botones y campos de texto.
+        foreach (var canvas in FindObjectsByType<Canvas>(FindObjectsInactive.Include))
+        {
+            if (canvas.renderMode != RenderMode.WorldSpace) continue;
+            if (canvas.GetComponent<TrackedDeviceGraphicRaycaster>() == null)
+                canvas.gameObject.AddComponent<TrackedDeviceGraphicRaycaster>();
+        }
+
         Debug.Log("[TechnicianController] Modo VR Estático configurado.");
+    }
+
+    void DesinicializarXR()
+    {
+        var xrSettings = XRGeneralSettings.Instance;
+        if (xrSettings == null || xrSettings.Manager == null) return;
+        if (!xrSettings.Manager.isInitializationComplete) return;
+        xrSettings.Manager.StopSubsystems();
+        xrSettings.Manager.DeinitializeLoader();
+        Debug.Log("[TechnicianController] XR desactivado — modo PC.");
     }
 
     void EnsureEventSystem()

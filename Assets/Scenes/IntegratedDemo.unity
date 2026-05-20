@@ -13622,7 +13622,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ComponentDeliverySystem
   gameManager: {fileID: 0}
   puntoDeEntrega: {fileID: 324636031}
-  resistorPrefab: {fileID: 3800738567907917920, guid: c6b0e08f321c9384398b2e19e1dca6b0, type: 3}
+  resistorPrefab: {fileID: 2414145904669836311, guid: 9e7ab834969c64e41884081a6ac4633e, type: 3}
   ledPrefab: {fileID: 8101690486802690680, guid: 91f5e47fa1561b0418247a2dbc3f3a59, type: 3}
   capacitorPrefab: {fileID: 123309205590929796, guid: 5990932cbd65d1148b6f9cf3d078d7c0, type: 3}
   arduinoPinPrefab: {fileID: 2582350800741640194, guid: 03b87575f304ff54585f96f7540ce6b8, type: 3}
@@ -35672,7 +35672,7 @@ PrefabInstance:
     - target: {fileID: 894414935829455053, guid: d637b8f7dd999304fb2322e55fa4ca7d, type: 3}
       propertyPath: resistorPrefab
       value: 
-      objectReference: {fileID: 3800738567907917920, guid: c6b0e08f321c9384398b2e19e1dca6b0, type: 3}
+      objectReference: {fileID: 2414145904669836311, guid: 9e7ab834969c64e41884081a6ac4633e, type: 3}
     - target: {fileID: 894414935829455053, guid: d637b8f7dd999304fb2322e55fa4ca7d, type: 3}
       propertyPath: capacitorPrefab
       value: 
@@ -54159,7 +54159,7 @@ PrefabInstance:
     - target: {fileID: 7218562165297641277, guid: 7b5b46e5f78369149a5dd12b4be76f0b, type: 3}
       propertyPath: resistorPrefab
       value: 
-      objectReference: {fileID: 3800738567907917920, guid: c6b0e08f321c9384398b2e19e1dca6b0, type: 3}
+      objectReference: {fileID: 2414145904669836311, guid: 9e7ab834969c64e41884081a6ac4633e, type: 3}
     - target: {fileID: 7218562165297641277, guid: 7b5b46e5f78369149a5dd12b4be76f0b, type: 3}
       propertyPath: capacitorPrefab
       value: 

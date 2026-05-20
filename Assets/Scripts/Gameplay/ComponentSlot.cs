@@ -76,11 +76,8 @@ public class ComponentSlot : MonoBehaviour
             InstallComponent(other.gameObject);
             SetColor(colorCorrect);
 
-            // ── CORRECCIÓN 1: delivery solo cuando es correcto ──
+            // OnExplorerInstalled valida el valor y llama RegisterRepairAction solo si es correcto.
             delivery?.OnExplorerInstalled(this);
-
-            // ── CORRECCIÓN 2: avisar al GameManager para que corra CheckReto ──
-            gameManager?.RegisterRepairAction();
 
             Debug.Log($"[Slot {name}] Instalado: {incoming}");
         }
@@ -91,7 +88,8 @@ public class ComponentSlot : MonoBehaviour
             // ── CORRECCIÓN 3: registrar intento incorrecto ──
             gameManager?.RegisterWrongAttempt($"Componente incorrecto: {incoming} en slot de {acceptedType}");
 
-            // Restaurar color tras un momento
+            // Restaurar color tras un momento (cancelar cualquier reset pendiente primero)
+            CancelInvoke(nameof(ResetColor));
             Invoke(nameof(ResetColor), 1.2f);
 
             Debug.Log($"[Slot {name}] Tipo incorrecto: {incoming} (esperaba {acceptedType})");
@@ -135,10 +133,14 @@ public class ComponentSlot : MonoBehaviour
 
     public void ReleaseComponent()
     {
-        if (_installed != null && _installed.TryGetComponent<Rigidbody>(out var rb))
+        if (_installed != null)
         {
-            rb.isKinematic = false;
-            rb.useGravity  = true;
+            if (_installed.TryGetComponent<Rigidbody>(out var rb))
+            {
+                rb.isKinematic = false;
+                rb.useGravity  = true;
+            }
+            _installed.GetComponent<GrabbableComponent>()?.EnableGrab();
         }
         _installed    = null;
         _hasComponent = false;
@@ -181,7 +183,11 @@ public class ComponentSlot : MonoBehaviour
         slotRenderer.SetPropertyBlock(_mpb);
     }
 
-    void ResetColor() => SetColor(colorNormal);
+    void ResetColor()
+    {
+        if (_hasComponent) return;  // no pisar colorCorrect si algo fue instalado
+        SetColor(colorNormal);
+    }
 
     void OnDrawGizmos()
     {

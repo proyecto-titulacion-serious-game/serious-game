@@ -1,4 +1,4 @@
-using UnityEditor;
+﻿using UnityEditor;
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
@@ -202,7 +202,7 @@ public static class MultimeterPrefabGenerator
         tmp.fontSize            = fontSize;
         tmp.color               = color;
         tmp.alignment           = TextAlignmentOptions.Center;
-        tmp.enableWordWrapping  = false;
+        tmp.textWrappingMode = TextWrappingModes.NoWrap;
 
         var rt          = go.GetComponent<RectTransform>();
         rt.anchoredPosition = anchoredPos;

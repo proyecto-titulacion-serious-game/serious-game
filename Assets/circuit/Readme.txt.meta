@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: dce0aca62b73bba4c84a98d088265e60
+timeCreated: 1429706119
+licenseType: Store
+TextScriptImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 54458
+  packageName: Cartoon Style Circuit components Assets
+  packageVersion: 1.0
+  assetPath: Assets/circuit/Readme.txt
+  uploadId: 99485

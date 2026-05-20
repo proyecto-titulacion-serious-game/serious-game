@@ -69,6 +69,17 @@ public class ComponentDeliverySystem : MonoBehaviour
                 var toolbox = FindAnyObjectByType<ToolboxController>();
                 if (toolbox != null) puntoDeEntrega = toolbox.GetComponentSlot();
             }
+
+            if (puntoDeEntrega == null)
+            {
+                var fallback = new GameObject("PuntoDeEntrega_Fallback");
+                fallback.transform.SetParent(transform);
+                fallback.transform.localPosition = Vector3.up * 0.5f;
+                puntoDeEntrega = fallback.transform;
+                Debug.LogWarning("[Delivery] Bandeja_Recepcion no encontrada. " +
+                                 "Los componentes aparecerán junto al ComponentDeliverySystem. " +
+                                 "Crea un GameObject 'Bandeja_Recepcion' en la escena del Explorador.");
+            }
         }
     }
 
@@ -86,7 +97,7 @@ public class ComponentDeliverySystem : MonoBehaviour
     /// NO se valida aquí — el Explorador recibirá el componente igualmente.
     /// La validación real sucede cuando se instala en un slot.
     /// </summary>
-    public void SendResistor(float resistanceValue)
+    public void SendResistor(float resistanceValue, GameObject prefabOverride = null)
     {
         if (_waitingForInstall)
         {
@@ -96,37 +107,31 @@ public class ComponentDeliverySystem : MonoBehaviour
 
         _pendingType  = ComponentType.Resistor;
         _pendingValue = resistanceValue;
-        SpawnInDeliveryTray(resistorPrefab, resistanceValue);
+        SpawnInDeliveryTray(prefabOverride != null ? prefabOverride : resistorPrefab, resistanceValue);
     }
 
-    /// <summary>
-    /// El Técnico envía un LED con la polaridad que decidió.
-    /// Si se equivoca, el LED no encenderá al instalarse.
-    /// </summary>
-    public void SendLED(bool correctPolarity = true)
+    public void SendLED(bool correctPolarity = true, GameObject prefabOverride = null)
     {
         if (_waitingForInstall) return;
         _pendingType  = ComponentType.LED;
         _pendingValue = correctPolarity ? 1f : -1f;
-        SpawnInDeliveryTray(ledPrefab, _pendingValue);
+        SpawnInDeliveryTray(prefabOverride != null ? prefabOverride : ledPrefab, _pendingValue);
     }
 
-    /// <summary>El Técnico envía un capacitor con la polaridad elegida.</summary>
-    public void SendCapacitor(bool correctPolarity = true)
+    public void SendCapacitor(bool correctPolarity = true, GameObject prefabOverride = null)
     {
         if (_waitingForInstall) return;
         _pendingType  = ComponentType.Capacitor;
         _pendingValue = correctPolarity ? 1f : -1f;
-        SpawnInDeliveryTray(capacitorPrefab, _pendingValue);
+        SpawnInDeliveryTray(prefabOverride != null ? prefabOverride : capacitorPrefab, _pendingValue);
     }
 
-    /// <summary>El Técnico envía un pin Arduino.</summary>
-    public void SendArduinoPin(int pinNumber)
+    public void SendArduinoPin(int pinNumber, GameObject prefabOverride = null)
     {
         if (_waitingForInstall) return;
         _pendingType  = ComponentType.ArduinoPin;
         _pendingValue = pinNumber;
-        SpawnInDeliveryTray(arduinoPinPrefab, pinNumber);
+        SpawnInDeliveryTray(prefabOverride != null ? prefabOverride : arduinoPinPrefab, pinNumber);
     }
 
     // ─────────────────────────────────────────────
@@ -142,7 +147,7 @@ public class ComponentDeliverySystem : MonoBehaviour
     /// </summary>
     public void OnExplorerInstalled(ComponentSlot slot)
     {
-        if (!_waitingForInstall || _spawnedComponent == null)
+        if (!_waitingForInstall)
         {
             Debug.Log("[Delivery] No hay componente en tránsito para instalar.");
             return;
@@ -189,7 +194,9 @@ public class ComponentDeliverySystem : MonoBehaviour
             ApplyIncorrectValueToCircuit();
         }
 
-        
+        if (_spawnedComponent != null)
+            Destroy(_spawnedComponent);
+
         ResetDeliveryState();
     }
 
@@ -213,7 +220,8 @@ public class ComponentDeliverySystem : MonoBehaviour
         _spawnedComponent = Instantiate(
             prefab,
             puntoDeEntrega.position,
-            puntoDeEntrega.rotation
+            puntoDeEntrega.rotation,
+            puntoDeEntrega
         );
 
         ConfigureSpawnedComponent(_spawnedComponent, value);

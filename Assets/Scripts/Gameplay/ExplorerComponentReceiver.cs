@@ -13,14 +13,37 @@ using UnityEngine;
 /// </summary>
 public class ExplorerComponentReceiver : MonoBehaviour
 {
-    [Header("Bandeja donde aparece el componente")]
+    [Header("Punto de spawn general (fallback si no hay slot específico)")]
     public Transform puntoDeEntrega;
 
-    [Header("Prefabs (mismos que ComponentDeliverySystem)")]
+    [Header("Slots por tipo — arrastra los empties de la escena (opcional)")]
+    [Tooltip("Si se asigna, el Resistor aparece aquí en lugar del puntoDeEntrega general.")]
+    public Transform slotResistor;
+    [Tooltip("Si se asigna, el LED aparece aquí.")]
+    public Transform slotLED;
+    [Tooltip("Si se asigna, el Capacitor aparece aquí.")]
+    public Transform slotCapacitor;
+    [Tooltip("Si se asigna, el ArduinoPin aparece aquí.")]
+    public Transform slotArduinoPin;
+
+    [Header("Prefabs base (fallback cuando no hay variante específica)")]
     public GameObject resistorPrefab;
     public GameObject ledPrefab;
     public GameObject capacitorPrefab;
     public GameObject arduinoPinPrefab;
+
+    [Header("Variantes LED (opcionales — asigna los Delivered_LED_X)")]
+    public GameObject ledGreenPrefab;
+    public GameObject ledRedPrefab;
+    public GameObject ledYellowPrefab;
+
+    [Header("Variantes Capacitor (opcionales — asigna los Delivered_Capacitor_X)")]
+    public GameObject capacitorBluePrefab;
+    public GameObject capacitorBlackPrefab;
+    public GameObject capacitorOrangePrefab;
+
+    [Header("Variante Resistor (opcional — asigna Delivered_Resistor_Vertical)")]
+    public GameObject resistorVerticalPrefab;
 
     [Header("Sistema de delivery local (para validar instalación)")]
     public ComponentDeliverySystem delivery;
@@ -44,6 +67,11 @@ public class ExplorerComponentReceiver : MonoBehaviour
             if (capacitorPrefab  == null) capacitorPrefab  = delivery.capacitorPrefab;
             if (arduinoPinPrefab == null) arduinoPinPrefab = delivery.arduinoPinPrefab;
         }
+        else
+        {
+            Debug.LogWarning("[ExplorerComponentReceiver] ComponentDeliverySystem no encontrado. " +
+                             "Los componentes recibidos no podrán instalarse en el circuito.", this);
+        }
 
         // Auto-asignar punto de entrega desde el Toolbox si no está asignado
         if (puntoDeEntrega == null)
@@ -57,27 +85,35 @@ public class ExplorerComponentReceiver : MonoBehaviour
     {
         GameSession.OnComponenteRecibido          += HandleComponenteRecibido;
         GameSession.OnRetoChanged                 += HandleRetoChanged;
-        ComponentSendingTray.OnComponentSentLocal += HandleComponenteRecibido;
+        ComponentSendingTray.OnComponentSentLocal += HandleComponenteRecibidoLocal;
     }
 
     void OnDisable()
     {
         GameSession.OnComponenteRecibido          -= HandleComponenteRecibido;
         GameSession.OnRetoChanged                 -= HandleRetoChanged;
-        ComponentSendingTray.OnComponentSentLocal -= HandleComponenteRecibido;
+        ComponentSendingTray.OnComponentSentLocal -= HandleComponenteRecibidoLocal;
     }
 
     // ─────────────────────────────────────────────
     //  Handlers
     // ─────────────────────────────────────────────
 
+    // GameSession (multijugador) — sin info de variante, usa prefab base
     void HandleComponenteRecibido(ComponentType tipo, float valor)
+        => SpawnComponente(tipo, valor, null);
+
+    // OnComponentSentLocal (editor/local) — lleva el prefab de variante directamente
+    void HandleComponenteRecibidoLocal(ComponentType tipo, float valor, GameObject prefabOverride)
+        => SpawnComponente(tipo, valor, prefabOverride);
+
+    void SpawnComponente(ComponentType tipo, float valor, GameObject prefabOverride)
     {
-        // Destruir componente anterior si quedó sin instalar
         if (_componenteActual != null)
             Destroy(_componenteActual);
 
-        GameObject prefab = tipo switch
+        // Prioridad: prefab enviado desde el Técnico → prefab base asignado en Inspector
+        GameObject prefab = prefabOverride != null ? prefabOverride : tipo switch
         {
             ComponentType.Resistor   => resistorPrefab,
             ComponentType.LED        => ledPrefab,
@@ -86,26 +122,33 @@ public class ExplorerComponentReceiver : MonoBehaviour
             _                        => null
         };
 
-        if (prefab == null || puntoDeEntrega == null)
+        Transform slot = tipo switch
+        {
+            ComponentType.Resistor   => slotResistor   != null ? slotResistor   : puntoDeEntrega,
+            ComponentType.LED        => slotLED         != null ? slotLED         : puntoDeEntrega,
+            ComponentType.Capacitor  => slotCapacitor   != null ? slotCapacitor   : puntoDeEntrega,
+            ComponentType.ArduinoPin => slotArduinoPin  != null ? slotArduinoPin  : puntoDeEntrega,
+            _                        => puntoDeEntrega
+        };
+
+        if (prefab == null || slot == null)
         {
             Debug.LogWarning($"[Receiver] Prefab o punto de entrega no asignado para {tipo}.");
             return;
         }
 
-        _componenteActual = Instantiate(prefab, puntoDeEntrega.position, puntoDeEntrega.rotation, puntoDeEntrega);
+        _componenteActual = Instantiate(prefab, slot.position, slot.rotation, slot);
         ConfigurarComponente(_componenteActual, tipo, valor);
 
-        // Mantenerlo kinematic mientras está en la bandeja — XRGrabInteractable lo activa al agarrar
         if (_componenteActual.TryGetComponent<Rigidbody>(out var rb))
         {
             rb.isKinematic = true;
             rb.useGravity  = false;
         }
 
-        // Informar al DeliverySystem local para que pueda validar la instalación
         delivery?.PrepareForInstall(tipo, valor);
 
-        Debug.Log($"[Receiver] Componente recibido: {tipo} = {valor}");
+        Debug.Log($"[Receiver] Componente recibido: {tipo} ({(prefabOverride != null ? prefabOverride.name : "base")}) = {valor}");
     }
 
     void HandleRetoChanged(int reto)

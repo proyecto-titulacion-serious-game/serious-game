@@ -50,6 +50,7 @@
   <ItemGroup>
     <Compile Include="Assets\Scripts\Interaction\SelectableComponent.cs" />
     <Compile Include="Assets\Scripts\Gameplay\PerformanceTracker.cs" />
+    <Compile Include="Assets\Scripts\Gameplay\SpaceshipAmbientSystem.cs" />
     <Compile Include="Assets\Scripts\Gameplay\OfflineTestSpawner.cs" />
     <Compile Include="Assets\Scripts\Player\PlayerInteraction.cs" />
     <Compile Include="Assets\Scripts\Electrical\VoltageSource.cs" />
@@ -61,8 +62,10 @@
     <Compile Include="Assets\Scripts\Interaction\CircuitNode.cs" />
     <Compile Include="Assets\Scripts\Player\HandControllerVisual.cs" />
     <Compile Include="Assets\Scripts\Desktop\DeskComponent.cs" />
+    <Compile Include="Assets\Scripts\Electrical\CircuitSwitch.cs" />
     <Compile Include="Assets\Scripts\Gameplay\ComponentDeliverySystem.cs" />
     <Compile Include="Assets\UnityTechnologies\StarterAssets\ThirdPersonController\Scripts\BasicRigidBodyPush.cs" />
+    <Compile Include="Assets\Scripts\Gameplay\CircuitNodeDisplay.cs" />
     <Compile Include="Assets\Scripts\Gameplay\ZoneProximityScaler.cs" />
     <Compile Include="Assets\Scripts\Player\HandModelController.cs" />
     <Compile Include="Assets\UnityTechnologies\StarterAssets\Mobile\Scripts\VirtualInputs\UIVirtualJoystick.cs" />
@@ -70,6 +73,7 @@
     <Compile Include="Assets\KAT\SDK\KATNativeSDK.cs" />
     <Compile Include="Assets\KAT\Demo\C2ExtraDataDemo.cs" />
     <Compile Include="Assets\Scripts\Player\ExplorerAvatar.cs" />
+    <Compile Include="Assets\Scripts\Desktop\ClipboardZoom.cs" />
     <Compile Include="Assets\Scripts\Player\HandSubsystemManager.cs" />
     <Compile Include="Assets\KAT\SDK\Legacy\3DTDemos\ShakeLevelTrigger.cs" />
     <Compile Include="Assets\UnityTechnologies\StarterAssets\Mobile\Scripts\CanvasInputs\UICanvasControllerInput.cs" />
@@ -119,10 +123,12 @@
     <Compile Include="Assets\Scripts\Core\MouseGrabSimulator.cs" />
     <Compile Include="Assets\Scripts\Electrical\Capacitor.cs" />
     <Compile Include="Assets\Scripts\UI\MultimeterUI.cs" />
+    <Compile Include="Assets\Scripts\Desktop\ManualScroll.cs" />
     <Compile Include="Assets\Scripts\Interaction\Multimeter.cs" />
     <Compile Include="Assets\KAT\SDK\LocoSExtraData.cs" />
     <Compile Include="Assets\Scripts\Electrical\ArduinoPin.cs" />
     <Compile Include="Assets\Scripts\Gameplay\ChallengeTag.cs" />
+    <Compile Include="Assets\Scripts\Electrical\ShortCircuitSparkEffect.cs" />
     <Compile Include="Assets\Scripts\Electrical\SensorStatusDisplay.cs" />
     <Compile Include="Assets\KAT\SDK\MainThreadDispatcher.cs" />
     <Compile Include="Assets\Scripts\UI\PlayerFeedbackUI.cs" />
@@ -130,8 +136,10 @@
     <Compile Include="Assets\KAT\SDK\Legacy\3DTDemos\TremorShortTrigger.cs" />
     <Compile Include="Assets\Scripts\Gameplay\TechnicianActions.cs" />
     <Compile Include="Assets\Scripts\Desktop\ManualBookOpener.cs" />
+    <Compile Include="Assets\Scripts\Interaction\MultimeterModeButton.cs" />
     <Compile Include="Assets\KAT\Demo\LongPressCalibrate.cs" />
     <Compile Include="Assets\Scripts\Player\RobotHandIK.cs" />
+    <Compile Include="Assets\Scripts\Gameplay\ExplorerCircuitPanel.cs" />
     <Compile Include="Assets\Scripts\Desktop\ComponentSendingTray.cs" />
     <Compile Include="Assets\Scripts\Player\ToolboxController.cs" />
     <Compile Include="Assets\Scripts\Electrical\InteractableResistor.cs" />
@@ -139,10 +147,12 @@
     <Compile Include="Assets\KAT\SDK\KATXRWalker.cs" />
     <Compile Include="Assets\Scripts\Interaction\NodeInteractable.cs" />
     <Compile Include="Assets\KAT\SDK\KATWifiLatencyHelper.cs" />
+    <Compile Include="Assets\Scripts\Desktop\FlexWire.cs" />
     <Compile Include="Assets\KAT\Demo\3. WalkDemo\WalkDemo.cs" />
     <Compile Include="Assets\Scripts\Core\XRRenderGuard.cs" />
     <Compile Include="Assets\KAT\SDK\NativeLibHandler.cs" />
     <Compile Include="Assets\Scripts\Electrical\Resistor.cs" />
+    <Compile Include="Assets\Scripts\Electrical\FaultManager.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\Photon\Fusion\Plugins\NanoSockets\libnanosockets_LICENSE.txt" />
@@ -178,7 +188,9 @@
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Mobile SSD.shader" />
     <None Include="Assets\Photon\PhotonLibs\changes-library.txt" />
     <None Include="Assets\TextMesh Pro\Resources\LineBreaking Leading Characters.txt" />
+    <None Include="Assets\circuit\shaders\WrapAlpha.shader" />
     <None Include="Assets\TextMesh Pro\Shaders\TMPro_Properties.cginc" />
+    <None Include="Assets\ObjectClipboard\ReadMe.txt" />
     <None Include="Assets\Photon\Fusion\Plugins\NanoSockets\Metro\x64\libnanosockets.dll" />
     <None Include="Assets\TextMesh Pro\Shaders\TMPro_Surface.cginc" />
     <None Include="Assets\Photon\Fusion\Plugins\NanoSockets\Metro\x86\libnanosockets.dll" />
@@ -187,6 +199,8 @@
     <None Include="Assets\Photon\Fusion\Plugins\NanoSockets\Windows\nanosockets.dll" />
     <None Include="Assets\Free Skyboxes - Space\Readme.txt" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Mobile Masking.shader" />
+    <None Include="Assets\circuit\Readme.txt" />
+    <None Include="Assets\circuit\shaders\WrapDiffuse.shader" />
     <None Include="Assets\Photon\Fusion\build_info.txt" />
     <None Include="Assets\Photon\Fusion\Assemblies\Fusion.Realtime.dll" />
     <None Include="Assets\Photon\Fusion\Plugins\NanoSockets\Metro\ARM64\libnanosockets.dll" />
@@ -1607,6 +1621,10 @@
     </Reference>
     <Reference Include="Unity.Multiplayer.Center.Common">
       <HintPath>Library\ScriptAssemblies\Unity.Multiplayer.Center.Common.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Unity.Multiplayer.Center.Integrations">
+      <HintPath>Library\ScriptAssemblies\Unity.Multiplayer.Center.Integrations.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Unity.Burst">

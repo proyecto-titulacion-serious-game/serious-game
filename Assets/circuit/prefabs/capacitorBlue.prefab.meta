@@ -1,0 +1,21 @@
+fileFormatVersion: 2
+guid: e071bce323fb75e4a8bafe75aee94d9f
+labels:
+- 3d
+- cartoon
+- prop
+- enviroment
+- electronic
+timeCreated: 1453640380
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 54458
+  packageName: Cartoon Style Circuit components Assets
+  packageVersion: 1.0
+  assetPath: Assets/circuit/prefabs/capacitorBlue.prefab
+  uploadId: 99485

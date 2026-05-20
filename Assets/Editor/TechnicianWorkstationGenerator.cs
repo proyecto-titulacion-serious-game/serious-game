@@ -1,4 +1,4 @@
-using UnityEditor;
+﻿using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -46,7 +46,30 @@ using TMPro;
 /// </summary>
 public static class TechnicianWorkstationGenerator
 {
-    private const string PREFAB_PATH = "Assets/Prefabs/Technician_Workstation.prefab";
+    private const string PREFAB_PATH   = "Assets/Prefabs/Technician_Workstation.prefab";
+
+    // ── circuit/models — componentes electrónicos ─────────────────────────────
+    private const string CM_BASE           = "Assets/circuit/models";
+    private const string CM_TEX            = "Assets/circuit/textures/masterTex.png";
+    private const string CM_MAT_PATH       = "Assets/Materials/Mat_Circuit.mat";
+    private const string FBX_RESISTOR      = CM_BASE + "/resistor.fbx";
+    private const string FBX_RESISTOR_V    = CM_BASE + "/resistorVertical.fbx";
+    private const string FBX_LED_GREEN     = CM_BASE + "/LEDGreen.fbx";
+    private const string FBX_LED_RED       = CM_BASE + "/LEDRed.fbx";
+    private const string FBX_LED_YELLOW    = CM_BASE + "/LEDYellow.fbx";
+    private const string FBX_CAP_BLUE      = CM_BASE + "/capacitorBlue.fbx";
+    private const string FBX_CAP_BLACK     = CM_BASE + "/capacitorBlack.fbx";
+    private const string FBX_CAP_ORANGE    = CM_BASE + "/capacitorOrange.fbx";
+    private const string FBX_TRANS         = CM_BASE + "/transistor.fbx";
+    private const string DELIVERED         = "Assets/Prefabs/Delivered";
+
+    // Lado más largo deseado en metros para los componentes sobre la mesa.
+    private const float DESK_TARGET   = 0.05f;
+
+    // ── SigunStudio Workshop Tools — decoración (toolbox) ────────────────────
+    private const string WS_BASE     = "Assets/SigunStudio/Toony Workshop Tools FREE";
+    private const string WS_MAT      = WS_BASE + "/Materials/Main.mat";
+    private const string FBX_TOOLBOX = WS_BASE + "/Meshes/Toolboxes/toolbox.fbx";
 
     [MenuItem("Tools/TITA/Generar Prefab Technician Workstation")]
     public static void Generate()
@@ -81,53 +104,116 @@ public static class TechnicianWorkstationGenerator
         ws.deskSurface = desk.transform;
 
         // ── Manual Book ───────────────────────────────────────────────────────
-        var book = CreateCube(root, "Manual_Book",
-            new Vector3(-0.45f, 0.02f, -0.1f), new Vector3(0.4f, 0.02f, 0.3f),
-            CreateMat("Mat_ManualBook", new Color(0.12f, 0.22f, 0.52f)));
-        ws.manualBook = book.transform;
+        // Manual — pergamino enrollado sobre la mesa
+        var scrollGO = BuildManualScroll(root, out var scrollComp);
+        ws.manualBook = scrollGO.transform;
 
-        var bookOpener           = book.AddComponent<ManualBookOpener>();
-        bookOpener.bookRenderer  = book.GetComponent<Renderer>();
-
-        // Mini label WorldSpace sobre el libro
-        var mcGO = CreateWorldCanvas(book, "Manual_Canvas",
-            new Vector3(0f, 0.13f, 0f), new Vector2(400f, 280f), 0.0008f);
-        AddPanelBG(mcGO, new Color(0.04f, 0.06f, 0.14f, 0.92f));
-        var mcLabel = CreateTMP(mcGO, "TMP_ManualLabel",
-            "MANUAL TECNICO\n[Click para abrir]",
-            Vector2.zero, new Vector2(380f, 270f), 14f, new Color(0.4f, 0.8f, 1f));
-        mcLabel.alignment = TextAlignmentOptions.Center;
-
-        // Manual Overlay — pantalla completa, se abre con click en el libro
-        var overlayGO       = BuildManualOverlay(root, manual, out var manualDisplay);
+        // Manual Overlay — pantalla completa, se abre al desenrollar
+        var overlayGO = BuildManualOverlay(root, manual, out var manualDisplay, out var closeBtn);
         overlayGO.SetActive(false);
-        bookOpener.manualOverlay = overlayGO;
+        scrollComp.manualOverlay = overlayGO;
+        if (closeBtn != null)
+            closeBtn.onClick.AddListener(scrollComp.CloseManual);
 
-        // ── ComponentsArea ────────────────────────────────────────────────────
+        // ── ComponentsArea — modelos de circuit/models ────────────────────────
         var compArea = new GameObject("ComponentsArea");
         compArea.transform.SetParent(root.transform, false);
-        compArea.transform.localPosition = new Vector3(0.1f, 0.025f, 0.05f);
+        compArea.transform.localPosition = new Vector3(0.05f, 0.04f, 0.0f);
         ws.componentsArea = compArea.transform;
 
-        AddDeskComp(compArea, "Comp_R100", new Vector3(-0.2f, 0, 0),
+        var circuitMat = GetCircuitMat();
+
+        // Cargar variantes de Delivered para asignar como deliveredPrefab
+        var dR_H  = AssetDatabase.LoadAssetAtPath<GameObject>(DELIVERED + "/Delivered_Resistor.prefab");
+        var dR_V  = AssetDatabase.LoadAssetAtPath<GameObject>(DELIVERED + "/Delivered_Resistor_Vertical.prefab");
+        var dLG   = AssetDatabase.LoadAssetAtPath<GameObject>(DELIVERED + "/Delivered_LED_Green.prefab");
+        var dLR   = AssetDatabase.LoadAssetAtPath<GameObject>(DELIVERED + "/Delivered_LED_Red.prefab");
+        var dLY   = AssetDatabase.LoadAssetAtPath<GameObject>(DELIVERED + "/Delivered_LED_Yellow.prefab");
+        var dCB   = AssetDatabase.LoadAssetAtPath<GameObject>(DELIVERED + "/Delivered_Capacitor_Blue.prefab");
+        var dCK   = AssetDatabase.LoadAssetAtPath<GameObject>(DELIVERED + "/Delivered_Capacitor_Black.prefab");
+        var dCO   = AssetDatabase.LoadAssetAtPath<GameObject>(DELIVERED + "/Delivered_Capacitor_Orange.prefab");
+        var dAP   = AssetDatabase.LoadAssetAtPath<GameObject>(DELIVERED + "/Delivered_ArduinoPIn.prefab");
+
+        // ── Fila 1 — Resistores (z = -0.08) ─────────────────────────────────
+        AddDeskCompWS(compArea, "Comp_R100", new Vector3(-0.28f, 0f, -0.08f),
+            AutoScale(FBX_RESISTOR, DESK_TARGET), Vector3.zero,
             ComponentType.Resistor, 100f, "100 Ω — Reto 1 (Ley de Ohm)",
-            CreateMat("Mat_CompR100", new Color(0.85f, 0.75f, 0.55f)));
-        AddDeskComp(compArea, "Comp_R220", new Vector3(-0.1f, 0, 0),
+            FBX_RESISTOR, circuitMat, dR_H);
+
+        AddDeskCompWS(compArea, "Comp_R220", new Vector3(-0.14f, 0f, -0.08f),
+            AutoScale(FBX_RESISTOR, DESK_TARGET), Vector3.zero,
             ComponentType.Resistor, 220f, "220 Ω — Reto 3 (Mixto)",
-            CreateMat("Mat_CompR220", new Color(0.80f, 0.70f, 0.50f)));
-        AddDeskComp(compArea, "Comp_R330", new Vector3(0f, 0, 0),
+            FBX_RESISTOR, circuitMat, dR_H);
+
+        AddDeskCompWS(compArea, "Comp_R330", new Vector3(0.00f, 0f, -0.08f),
+            AutoScale(FBX_RESISTOR, DESK_TARGET), Vector3.zero,
             ComponentType.Resistor, 330f, "330 Ω — Reto 4 (Buzzer)",
-            CreateMat("Mat_CompR330", new Color(0.75f, 0.65f, 0.45f)));
-        AddDeskCompSphere(compArea, "Comp_LED", new Vector3(0.1f, 0, 0),
-            ComponentType.LED, 1f, "LED — Verificar polaridad (Reto 2 / 3)",
-            CreateMat("Mat_CompLED", new Color(0.15f, 0.95f, 0.25f)));
-        AddDeskComp(compArea, "Comp_Cap", new Vector3(0.2f, 0, 0),
-            ComponentType.Capacitor, 1f, "Capacitor — Verificar polaridad (Reto 3)",
-            CreateMat("Mat_CompCap", new Color(0.1f, 0.2f, 0.75f)));
+            FBX_RESISTOR, circuitMat, dR_H);
+
+        AddDeskCompWS(compArea, "Comp_R_Vertical", new Vector3(0.14f, 0f, -0.08f),
+            AutoScale(FBX_RESISTOR_V, DESK_TARGET), Vector3.zero,
+            ComponentType.Resistor, 100f, "100 Ω Vertical",
+            FBX_RESISTOR_V, circuitMat, dR_V);
+
+        // ── Fila 2 — LEDs (z = +0.06) ────────────────────────────────────────
+        AddDeskCompWS(compArea, "Comp_LED_Green", new Vector3(-0.28f, 0f, 0.06f),
+            AutoScale(FBX_LED_GREEN, DESK_TARGET), Vector3.zero,
+            ComponentType.LED, 1f, "LED Verde — polaridad correcta",
+            FBX_LED_GREEN, circuitMat, dLG);
+
+        AddDeskCompWS(compArea, "Comp_LED_Red", new Vector3(-0.15f, 0f, 0.06f),
+            AutoScale(FBX_LED_RED, DESK_TARGET), Vector3.zero,
+            ComponentType.LED, 1f, "LED Rojo — polaridad correcta",
+            FBX_LED_RED, circuitMat, dLR);
+
+        AddDeskCompWS(compArea, "Comp_LED_Yellow", new Vector3(-0.02f, 0f, 0.06f),
+            AutoScale(FBX_LED_YELLOW, DESK_TARGET), Vector3.zero,
+            ComponentType.LED, 1f, "LED Amarillo — polaridad correcta",
+            FBX_LED_YELLOW, circuitMat, dLY);
+
+        // ── Fila 2 — Capacitores (z = +0.06) ─────────────────────────────────
+        AddDeskCompWS(compArea, "Comp_Cap_Blue", new Vector3(0.11f, 0f, 0.06f),
+            AutoScale(FBX_CAP_BLUE, DESK_TARGET), Vector3.zero,
+            ComponentType.Capacitor, 1f, "Capacitor Azul — polaridad correcta",
+            FBX_CAP_BLUE, circuitMat, dCB);
+
+        AddDeskCompWS(compArea, "Comp_Cap_Black", new Vector3(0.24f, 0f, 0.06f),
+            AutoScale(FBX_CAP_BLACK, DESK_TARGET), Vector3.zero,
+            ComponentType.Capacitor, 1f, "Capacitor Negro — polaridad correcta",
+            FBX_CAP_BLACK, circuitMat, dCK);
+
+        AddDeskCompWS(compArea, "Comp_Cap_Orange", new Vector3(0.37f, 0f, 0.06f),
+            AutoScale(FBX_CAP_ORANGE, DESK_TARGET), Vector3.zero,
+            ComponentType.Capacitor, 1f, "Capacitor Naranja — polaridad correcta",
+            FBX_CAP_ORANGE, circuitMat, dCO);
+
+        // ── Arduino Pin ───────────────────────────────────────────────────────
+        AddDeskCompWS(compArea, "Comp_ArduinoPin", new Vector3(0.50f, 0f, 0.06f),
+            AutoScale(FBX_TRANS, DESK_TARGET), Vector3.zero,
+            ComponentType.ArduinoPin, 2f, "Pin Arduino — Reto 4 (numero de pin D2)",
+            FBX_TRANS, circuitMat, dAP);
+
+        // Decoración: caja de herramientas al costado de la mesa (SigunStudio)
+        var wsMat = AssetDatabase.LoadAssetAtPath<Material>(WS_MAT);
+        AddToolboxDecoration(root, wsMat);
+
+        // ── ComponentDeliverySystem ───────────────────────────────────────────
+        var delivery = root.AddComponent<ComponentDeliverySystem>();
+
+        delivery.resistorPrefab   = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Delivered/Delivered_Resistor.prefab");
+        delivery.ledPrefab        = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Delivered/Delivered_LED.prefab");
+        delivery.capacitorPrefab  = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Delivered/Delivered_Capacitor.prefab");
+        delivery.arduinoPinPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Delivered/Delivered_ArduinoPIn.prefab");
+
+        if (delivery.resistorPrefab == null || delivery.ledPrefab == null ||
+            delivery.capacitorPrefab == null || delivery.arduinoPinPrefab == null)
+            Debug.LogWarning("[WorkstationGen] Uno o más Delivered prefabs no encontrados. " +
+                             "Ejecuta primero 'Generar Prefabs Delivered'.");
 
         // ── Sending Tray ──────────────────────────────────────────────────────
         var trayGO           = BuildSendingTray(root, out var traySending);
         ws.sendingTray       = trayGO.transform;
+        traySending.delivery = delivery;
 
         // Conectar todos los DeskComponents al tray
         foreach (var dc in compArea.GetComponentsInChildren<DeskComponent>())
@@ -136,8 +222,8 @@ public static class TechnicianWorkstationGenerator
         // ── MiniHUD (telemetría en vivo) ──────────────────────────────────────
         BuildMiniHUD(root, ws, out var miniCanvas);
 
-        // ── DiagnosticPanel ───────────────────────────────────────────────────
-        BuildDiagnosticPanel(root, ws);
+        // ── DiagnosticPanel (Clipboard) ───────────────────────────────────────
+        BuildDiagnosticPanel(root, ws, cam);
 
         // ── Cableado final ────────────────────────────────────────────────────
         ws.manual              = manual;
@@ -161,13 +247,17 @@ public static class TechnicianWorkstationGenerator
                 "  ✓ TechnicianController.pcCamera → PC_Camera\n" +
                 "  ✓ TechnicianManualDisplay (manual, TMPs, botones)\n" +
                 "  ✓ ComponentSendingTray (TMPs, InputField, Toggle, Btn, TraySlot)\n" +
+                "  ✓ ComponentSendingTray.delivery → ComponentDeliverySystem\n" +
                 "  ✓ DeskComponent.tray → ComponentSendingTray\n" +
                 "  ✓ ManualBookOpener (renderer + overlay)\n" +
                 "  ✓ TechnicianWorkstation (TMPs del MiniHUD y DiagnosticPanel)\n\n" +
+                "COMPONENTES EN LA MESA:\n" +
+                "  R100 (100Ω Reto1), R220 (220Ω Reto3), R330 (330Ω Reto4)\n" +
+                "  LED, Capacitor, ArduinoPin\n\n" +
                 "ASIGNAR MANUALMENTE:\n" +
-                "  TechnicianWorkstation → gameManager, circuit, technicianActions\n" +
-                "  TechnicianManualDisplay → gameManager\n" +
-                "  ComponentSendingTray → technicianActions, delivery, gameManager\n\n" +
+                "  GameManager → TechnicianWorkstation, ComponentSendingTray\n" +
+                "  ComponentDeliverySystem → resistorPrefab, ledPrefab, capacitorPrefab, arduinoPinPrefab\n" +
+                "    (usar prefabs de Assets/Prefabs/Delivered/ — correr 'Generar Prefabs Delivered' primero)\n\n" +
                 "OPCIONAL para modo VR estático:\n" +
                 "  TechnicianController → xrOriginTechnician, rightHandVR\n" +
                 "  Añadir XRSimpleInteractable a cada Comp_* para interacción VR",
@@ -184,7 +274,8 @@ public static class TechnicianWorkstationGenerator
     // ── Sub-builders ─────────────────────────────────────────────────────────
 
     static GameObject BuildManualOverlay(GameObject root, TechnicianManual manual,
-                                         out TechnicianManualDisplay display)
+                                         out TechnicianManualDisplay display,
+                                         out Button closeButton)
     {
         var go     = new GameObject("Manual_Overlay");
         go.transform.SetParent(root.transform, false);
@@ -207,12 +298,12 @@ public static class TechnicianWorkstationGenerator
         var txtIzq = CreateTMP(go, "TMP_PaginaIzquierda", "",
             new Vector2(-330f, -10f), new Vector2(580f, 820f), 10f, Color.white);
         txtIzq.alignment          = TextAlignmentOptions.TopLeft;
-        txtIzq.enableWordWrapping = true;
+        txtIzq.textWrappingMode = TextWrappingModes.Normal;
 
         var txtDer = CreateTMP(go, "TMP_PaginaDerecha", "",
             new Vector2(330f, -10f), new Vector2(580f, 820f), 10f, Color.white);
         txtDer.alignment          = TextAlignmentOptions.TopLeft;
-        txtDer.enableWordWrapping = true;
+        txtDer.textWrappingMode = TextWrappingModes.Normal;
 
         var txtNumPag = CreateTMP(go, "TMP_NumeroPagina", "Pag 1 / 3",
             new Vector2(0, -460f), new Vector2(200f, 30f), 11f, new Color(0.7f, 0.7f, 0.7f));
@@ -226,7 +317,7 @@ public static class TechnicianWorkstationGenerator
             new Vector2(180f, -460f), new Vector2(160f, 40f),
             "Siguiente ►", new Color(0.1f, 0.2f, 0.4f), out _);
 
-        CreateButton(go, "Button_Cerrar",
+        closeButton = CreateButton(go, "Button_Cerrar",
             new Vector2(870f, 480f), new Vector2(100f, 36f),
             "✕ Cerrar", new Color(0.4f, 0.1f, 0.1f), out _);
 
@@ -237,6 +328,80 @@ public static class TechnicianWorkstationGenerator
         display.txtNumeroPagina     = txtNumPag;
         display.btnPaginaAnterior   = btnPrev;
         display.btnPaginaSiguiente  = btnNext;
+
+        return go;
+    }
+
+    /// <summary>
+    /// Construye el pergamino enrollado que reemplaza al libro del manual.
+    /// Estructura:
+    ///   Manual_Scroll  [ManualScroll, BoxCollider]
+    ///   ├─ Scroll_Roll    — cilindro horizontal (pergamino cerrado)
+    ///   ├─ Scroll_CapL/R  — tapas decorativas en los extremos
+    ///   └─ Scroll_Paper   — cubo plano que crece hacia arriba al abrir
+    /// </summary>
+    static GameObject BuildManualScroll(GameObject root, out ManualScroll scrollComp)
+    {
+        var parchmentMat = CreateMat("Mat_ScrollParchment", new Color(0.95f, 0.88f, 0.70f));
+        var rollMat      = CreateMat("Mat_ScrollRoll",      new Color(0.85f, 0.76f, 0.58f));
+        var capMat       = CreateMat("Mat_ScrollCap",       new Color(0.52f, 0.34f, 0.16f));
+
+        // ── Raíz ─────────────────────────────────────────────────────────────
+        var go = new GameObject("Manual_Scroll");
+        go.transform.SetParent(root.transform, false);
+        go.transform.localPosition = new Vector3(-0.45f, 0.005f, -0.05f);
+        go.transform.localRotation = Quaternion.Euler(0f, 15f, 0f);
+
+        var col    = go.AddComponent<BoxCollider>();
+        col.size   = new Vector3(0.26f, 0.08f, 0.09f);
+        col.center = new Vector3(0f, 0.025f, 0f);
+
+        // ── Cilindro del rollo (lying along X) ───────────────────────────────
+        // Unity Cylinder: 2 m alto, 1 m diámetro a escala 1.
+        // Con (0.04, 0.11, 0.04) + Euler(0,0,90): diámetro 8 cm, longitud 22 cm.
+        var roll = new GameObject("Scroll_Roll");
+        roll.transform.SetParent(go.transform, false);
+        roll.transform.localPosition = new Vector3(0f, 0.025f, 0f);
+        roll.transform.localScale    = new Vector3(0.04f, 0.11f, 0.04f);
+        roll.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
+        roll.AddComponent<MeshFilter>().sharedMesh      = GetMesh(PrimitiveType.Cylinder);
+        roll.AddComponent<MeshRenderer>().sharedMaterial = rollMat;
+
+        // ── Tapas decorativas ─────────────────────────────────────────────────
+        foreach (var side in new[] { -1f, 1f })
+        {
+            var cap = new GameObject(side < 0 ? "Scroll_CapL" : "Scroll_CapR");
+            cap.transform.SetParent(go.transform, false);
+            cap.transform.localPosition = new Vector3(side * 0.115f, 0.025f, 0f);
+            cap.transform.localScale    = new Vector3(0.022f, 0.006f, 0.022f);
+            cap.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
+            cap.AddComponent<MeshFilter>().sharedMesh      = GetMesh(PrimitiveType.Cylinder);
+            cap.AddComponent<MeshRenderer>().sharedMaterial = capMat;
+        }
+
+        // ── Papel (empieza plano, crece hacia arriba) ─────────────────────────
+        // Se posiciona ligeramente detrás del rollo (-Z) para el efecto visual.
+        var paper = new GameObject("Scroll_Paper");
+        paper.transform.SetParent(go.transform, false);
+        paper.transform.localPosition = new Vector3(0f, 0f, -0.046f);
+        paper.transform.localScale    = new Vector3(0.21f, 0.001f, 0.002f);
+        paper.AddComponent<MeshFilter>().sharedMesh      = GetMesh(PrimitiveType.Cube);
+        paper.AddComponent<MeshRenderer>().sharedMaterial = parchmentMat;
+
+        // ── Label "Click para abrir" (siempre visible) ────────────────────────
+        var lblGO = CreateWorldCanvas(go, "Scroll_Label",
+            new Vector3(0f, 0.072f, 0f), new Vector2(220f, 14f), 0.0007f);
+        var lbl = CreateTMP(lblGO, "TMP_ScrollHint",
+            "[ MANUAL  —  Click para abrir ]",
+            Vector2.zero, new Vector2(215f, 12f), 7.5f, new Color(0.40f, 0.24f, 0.06f));
+        lbl.alignment = TextAlignmentOptions.Center;
+
+        // ── Componente ManualScroll ───────────────────────────────────────────
+        scrollComp              = go.AddComponent<ManualScroll>();
+        scrollComp.scrollRoll   = roll;
+        scrollComp.scrollPaper  = paper;
+        scrollComp.paperHeight  = 0.36f;
+        scrollComp.animDuration = 0.50f;
 
         return go;
     }
@@ -278,7 +443,7 @@ public static class TechnicianWorkstationGenerator
         var txtDesc = CreateTMP(cGO, "TMP_Descripcion",
             "Haz click en un componente de la mesa",
             new Vector2(0, 82f), new Vector2(260f, 70f), 8f, new Color(0.85f, 0.85f, 0.85f));
-        txtDesc.enableWordWrapping = true;
+        txtDesc.textWrappingMode = TextWrappingModes.Normal;
 
         var txtInputLabel = CreateTMP(cGO, "TMP_InputLabel",
             "Valor calculado (ohm):", new Vector2(0, 35f), new Vector2(260f, 18f),
@@ -352,7 +517,7 @@ public static class TechnicianWorkstationGenerator
             new Vector2(-10f, -46f), new Vector2(370f, 28f), 8.5f,
             new Color(0.85f, 0.9f, 1f));
         txtC.alignment          = TextAlignmentOptions.Right;
-        txtC.enableWordWrapping = true;
+        txtC.textWrappingMode = TextWrappingModes.Normal;
 
         var txtR = CreateTMP(panel, "TMP_HudReto",
             "RETO 1 — Tiempo: 480 s",
@@ -365,45 +530,209 @@ public static class TechnicianWorkstationGenerator
         ws.hudReto      = txtR;
     }
 
-    static void BuildDiagnosticPanel(GameObject root, TechnicianWorkstation ws)
+    /// <summary>
+    /// Construye el clipboard físico con tablero, clip metálico, papel y canvas de diagnóstico.
+    /// Click → anima hacia la cámara.  Click / Escape → regresa a la mesa.
+    /// </summary>
+    static void BuildDiagnosticPanel(GameObject root, TechnicianWorkstation ws, Camera pcCamera)
     {
-        var go = new GameObject("DiagnosticPanel");
-        go.transform.SetParent(root.transform, false);
-        go.transform.localPosition = new Vector3(-0.42f, 0.5f, -0.38f);
-        go.transform.localRotation = Quaternion.Euler(-5f, 0f, 0f);
+        // ── Raíz del clipboard ────────────────────────────────────────────────
+        var clip = new GameObject("Clipboard");
+        clip.transform.SetParent(root.transform, false);
+        // Sobre la mesa, ligeramente apoyado hacia el técnico
+        clip.transform.localPosition = new Vector3(-0.46f, 0.03f, 0.08f);
+        clip.transform.localRotation = Quaternion.Euler(-80f, 12f, -4f);
 
-        var canvas        = go.AddComponent<Canvas>();
+        // Collider principal para hacer click en el clipboard completo
+        var col    = clip.AddComponent<BoxCollider>();
+        col.size   = new Vector3(0.22f, 0.34f, 0.02f);
+        col.center = Vector3.zero;
+
+        var zoom             = clip.AddComponent<ClipboardZoom>();
+        zoom.pcCamera        = pcCamera;
+        zoom.zoomedDistance  = 0.45f;
+        zoom.zoomedScaleMult = 2f;
+        zoom.animDuration    = 0.35f;
+
+        // ── Tablero (board) ───────────────────────────────────────────────────
+        var board = new GameObject("Clipboard_Board");
+        board.transform.SetParent(clip.transform, false);
+        board.transform.localScale = new Vector3(0.22f, 0.34f, 0.008f);
+        board.AddComponent<MeshFilter>().sharedMesh      = GetMesh(PrimitiveType.Cube);
+        board.AddComponent<MeshRenderer>().sharedMaterial =
+            CreateMat("Mat_ClipboardBoard", new Color(0.32f, 0.20f, 0.09f));
+
+        // ── Clip metálico (parte superior) ────────────────────────────────────
+        var metalClip = new GameObject("Clipboard_Clip");
+        metalClip.transform.SetParent(clip.transform, false);
+        metalClip.transform.localPosition = new Vector3(0f, 0.158f, 0.006f);
+        metalClip.transform.localScale    = new Vector3(0.09f, 0.028f, 0.014f);
+        metalClip.AddComponent<MeshFilter>().sharedMesh      = GetMesh(PrimitiveType.Cube);
+        metalClip.AddComponent<MeshRenderer>().sharedMaterial =
+            CreateMat("Mat_ClipMetal", new Color(0.62f, 0.63f, 0.68f));
+
+        // ── Papel (hoja en blanco) ────────────────────────────────────────────
+        var paper = new GameObject("Clipboard_Paper");
+        paper.transform.SetParent(clip.transform, false);
+        paper.transform.localPosition = new Vector3(0f, -0.012f, 0.005f);
+        paper.transform.localScale    = new Vector3(0.19f, 0.28f, 0.002f);
+        paper.AddComponent<MeshFilter>().sharedMesh      = GetMesh(PrimitiveType.Cube);
+        paper.AddComponent<MeshRenderer>().sharedMaterial =
+            CreateMat("Mat_ClipboardPaper", new Color(0.97f, 0.96f, 0.92f));
+
+        // ── Canvas con el diagnóstico (flotando sobre el papel) ───────────────
+        var canvasGO = new GameObject("Clipboard_Canvas");
+        canvasGO.transform.SetParent(clip.transform, false);
+        canvasGO.transform.localPosition = new Vector3(0f, -0.012f, 0.008f);
+        canvasGO.transform.localScale    = Vector3.one * 0.001f;
+
+        var canvas        = canvasGO.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.WorldSpace;
-        go.AddComponent<CanvasScaler>();
-        var rt            = go.GetComponent<RectTransform>();
-        rt.sizeDelta      = new Vector2(240f, 320f);
-        go.transform.localScale = Vector3.one * 0.001f;
+        canvasGO.AddComponent<CanvasScaler>();
+        canvasGO.GetComponent<RectTransform>().sizeDelta = new Vector2(185f, 275f);
 
-        AddPanelBG(go, new Color(0.04f, 0.06f, 0.14f, 0.93f));
-
-        var hdr1 = CreateTMP(go, "TMP_HeaderDiag", "DIAGNÓSTICO",
-            new Vector2(0, 145f), new Vector2(220f, 20f), 9f, new Color(0.4f, 0.8f, 1f));
+        var hdr1 = CreateTMP(canvasGO, "TMP_HeaderDiag", "DIAGNÓSTICO",
+            new Vector2(0f, 124f), new Vector2(178f, 18f), 9.5f, new Color(0.2f, 0.35f, 0.75f));
         hdr1.alignment = TextAlignmentOptions.Center;
 
-        var txtDiag = CreateTMP(go, "TMP_Diagnostico", "—",
-            new Vector2(0, 55f), new Vector2(220f, 150f), 7f, Color.white);
-        txtDiag.alignment          = TextAlignmentOptions.TopLeft;
-        txtDiag.enableWordWrapping = true;
+        // Línea divisora (guión largo)
+        var sep1 = CreateTMP(canvasGO, "TMP_Sep1", "─────────────────",
+            new Vector2(0f, 108f), new Vector2(178f, 12f), 6f, new Color(0.6f, 0.6f, 0.6f));
+        sep1.alignment = TextAlignmentOptions.Center;
 
-        var hdr2 = CreateTMP(go, "TMP_HeaderAccion", "SIGUIENTE ACCIÓN",
-            new Vector2(0, -50f), new Vector2(220f, 18f), 8.5f, new Color(1f, 0.85f, 0.3f));
+        var txtDiag = CreateTMP(canvasGO, "TMP_Diagnostico", "—",
+            new Vector2(0f, 30f), new Vector2(175f, 130f), 7f, new Color(0.08f, 0.08f, 0.08f));
+        txtDiag.alignment          = TextAlignmentOptions.TopLeft;
+        txtDiag.textWrappingMode = TextWrappingModes.Normal;
+
+        var hdr2 = CreateTMP(canvasGO, "TMP_HeaderAccion", "SIGUIENTE ACCIÓN",
+            new Vector2(0f, -52f), new Vector2(178f, 16f), 8.5f, new Color(0.55f, 0.25f, 0f));
         hdr2.alignment = TextAlignmentOptions.Center;
 
-        var txtAccion = CreateTMP(go, "TMP_AccionSiguiente", "—",
-            new Vector2(0, -120f), new Vector2(220f, 110f), 7f, new Color(0.9f, 0.95f, 0.7f));
+        var sep2 = CreateTMP(canvasGO, "TMP_Sep2", "─────────────────",
+            new Vector2(0f, -66f), new Vector2(178f, 12f), 6f, new Color(0.6f, 0.6f, 0.6f));
+        sep2.alignment = TextAlignmentOptions.Center;
+
+        var txtAccion = CreateTMP(canvasGO, "TMP_AccionSiguiente", "—",
+            new Vector2(0f, -118f), new Vector2(175f, 82f), 7f, new Color(0.12f, 0.12f, 0.12f));
         txtAccion.alignment          = TextAlignmentOptions.TopLeft;
-        txtAccion.enableWordWrapping = true;
+        txtAccion.textWrappingMode = TextWrappingModes.Normal;
+
+        // Nota al pie — hint de interacción
+        var hint = CreateTMP(canvasGO, "TMP_HintZoom", "[ Click para leer · Esc para cerrar ]",
+            new Vector2(0f, -130f), new Vector2(178f, 12f), 5f, new Color(0.55f, 0.55f, 0.55f));
+        hint.alignment = TextAlignmentOptions.Center;
 
         ws.txtDiagnostico     = txtDiag;
         ws.txtAccionSiguiente = txtAccion;
     }
 
-    // ── DeskComponent helpers ─────────────────────────────────────────────────
+    // ── DeskComponent Workshop helpers ───────────────────────────────────────
+
+    /// <summary>
+    /// Crea un DeskComponent usando un mesh del SigunStudio Workshop asset.
+    /// Si el FBX no carga (cambia la ruta) usa una primitiva como fallback.
+    /// Escala: X/Z = grosor, Y = longitud. Rota el GO para orientar el modelo.
+    /// </summary>
+    static void AddDeskCompWS(GameObject parent, string name, Vector3 localPos,
+                               Vector3 scale, Vector3 rotEuler,
+                               ComponentType type, float value, string desc,
+                               string fbxPath, Material wsMat,
+                               GameObject deliveredPrefab = null)
+    {
+        var go = new GameObject(name);
+        go.transform.SetParent(parent.transform, false);
+        go.transform.localPosition = localPos;
+        go.transform.localScale    = scale;
+        go.transform.localRotation = Quaternion.Euler(rotEuler);
+
+        var mesh = LoadFBXMesh(fbxPath);
+
+        if (mesh != null && wsMat != null)
+        {
+            go.AddComponent<MeshFilter>().sharedMesh       = mesh;
+            go.AddComponent<MeshRenderer>().sharedMaterial = wsMat;
+        }
+        else
+        {
+            var prim = type == ComponentType.LED ? PrimitiveType.Sphere : PrimitiveType.Cylinder;
+            go.AddComponent<MeshFilter>().sharedMesh = GetMesh(prim);
+            go.AddComponent<MeshRenderer>().sharedMaterial =
+                CreateMat("Mat_FB_" + name, new Color(0.6f, 0.6f, 0.6f));
+            Debug.LogWarning($"[WorkstationGen] FBX no encontrado en {fbxPath}. Usando primitiva para {name}.");
+        }
+
+        go.AddComponent<BoxCollider>();
+
+        var dc                  = go.AddComponent<DeskComponent>();
+        dc.componentType        = type;
+        dc.componentValue       = value;
+        dc.componentDescription = desc;
+        dc.deliveredPrefab      = deliveredPrefab;
+        dc.colorNormal          = Color.white;
+        dc.colorHover           = new Color(1f, 0.85f, 0.2f);
+        dc.colorSelected        = new Color(0.3f, 1f, 0.45f);
+    }
+
+    /// <summary>Añade la caja de herramientas como decoración visual en la esquina de la mesa.</summary>
+    static void AddToolboxDecoration(GameObject root, Material wsMat)
+    {
+        var mesh = LoadFBXMesh(FBX_TOOLBOX);
+        if (mesh == null || wsMat == null) return;
+
+        var go = new GameObject("Toolbox_Deco");
+        go.transform.SetParent(root.transform, false);
+        go.transform.localPosition = new Vector3(-0.55f, 0.025f, 0.0f);
+        go.transform.localScale    = new Vector3(0.5f, 0.5f, 0.5f);
+        go.AddComponent<MeshFilter>().sharedMesh      = mesh;
+        go.AddComponent<MeshRenderer>().sharedMaterial = wsMat;
+        go.AddComponent<BoxCollider>();
+    }
+
+    /// <summary>Carga el primer Mesh encontrado dentro de un archivo FBX.</summary>
+    static Mesh LoadFBXMesh(string fbxPath)
+    {
+        foreach (var asset in AssetDatabase.LoadAllAssetsAtPath(fbxPath))
+            if (asset is Mesh m) return m;
+        return null;
+    }
+
+    /// <summary>
+    /// Escala uniforme para que el lado más largo del mesh mida targetSize metros.
+    /// </summary>
+    static Vector3 AutoScale(string fbxPath, float targetSize)
+    {
+        var mesh = LoadFBXMesh(fbxPath);
+        if (mesh == null) return Vector3.one * targetSize;
+        float longest = Mathf.Max(mesh.bounds.size.x, mesh.bounds.size.y, mesh.bounds.size.z);
+        if (longest < 0.0001f) return Vector3.one * targetSize;
+        return Vector3.one * (targetSize / longest);
+    }
+
+    /// <summary>
+    /// Material URP compatible con masterTex.png del asset circuit/models.
+    /// Reutiliza el .mat si ya existe; si no, lo crea en Assets/Materials/.
+    /// </summary>
+    static Material GetCircuitMat()
+    {
+        var existing = AssetDatabase.LoadAssetAtPath<Material>(CM_MAT_PATH);
+        if (existing != null) return existing;
+
+        var shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
+        var mat    = new Material(shader);
+        var tex    = AssetDatabase.LoadAssetAtPath<Texture2D>(CM_TEX);
+        if (tex != null)
+        {
+            mat.SetTexture("_BaseMap", tex);
+            mat.SetTexture("_MainTex", tex);
+        }
+        if (!AssetDatabase.IsValidFolder("Assets/Materials"))
+            AssetDatabase.CreateFolder("Assets", "Materials");
+        AssetDatabase.CreateAsset(mat, CM_MAT_PATH);
+        return mat;
+    }
+
+    // ── DeskComponent helpers (primitivas — kept como fallback) ───────────────
 
     static void AddDeskComp(GameObject parent, string name, Vector3 localPos,
                              ComponentType type, float value, string desc, Material mat)
@@ -480,7 +809,7 @@ public static class TechnicianWorkstationGenerator
         tmp.fontSize          = fontSize;
         tmp.color             = color;
         tmp.alignment         = TextAlignmentOptions.Center;
-        tmp.enableWordWrapping = false;
+        tmp.textWrappingMode = TextWrappingModes.NoWrap;
         var rt              = go.GetComponent<RectTransform>();
         rt.anchoredPosition = pos;
         rt.sizeDelta        = size;

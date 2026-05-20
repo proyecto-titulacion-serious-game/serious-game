@@ -1,3 +1,4 @@
+using System.Globalization;
 using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
@@ -59,10 +60,10 @@ public class ComponentSendingTray : MonoBehaviour
     /// Fired when delivery == null and GameSession.Instance == null.
     /// ExplorerComponentReceiver subscribes to spawn the component locally.
     /// </summary>
-    public static event System.Action<ComponentType, float> OnComponentSentLocal;
+    public static event System.Action<ComponentType, float, GameObject> OnComponentSentLocal;
 
-    public static void RaiseOnComponentSentLocal(ComponentType tipo, float valor)
-        => OnComponentSentLocal?.Invoke(tipo, valor);
+    public static void RaiseOnComponentSentLocal(ComponentType tipo, float valor, GameObject prefabOverride = null)
+        => OnComponentSentLocal?.Invoke(tipo, valor, prefabOverride);
 
     // ─────────────────────────────────────────────
     //  Estado
@@ -79,6 +80,10 @@ public class ComponentSendingTray : MonoBehaviour
         if (btnEnviar != null)
             btnEnviar.onClick.AddListener(Enviar);
 
+        // Enter dentro del InputField también envía (New Input System compatible).
+        if (inputValor != null)
+            inputValor.onSubmit.AddListener(_ => Enviar());
+
         if (technicianActions == null)
             technicianActions = FindAnyObjectByType<TechnicianActions>();
         if (gameManager == null)
@@ -88,6 +93,31 @@ public class ComponentSendingTray : MonoBehaviour
             togglePolaridad.onValueChanged.AddListener(OnPolaridadToggleChanged);
 
         UpdateUI();
+    }
+
+    void Update()
+    {
+        if (_pending == null) return;
+
+        bool sendPressed = false;
+
+#if ENABLE_INPUT_SYSTEM
+        // New Input System — no depender de Input.GetKeyDown legacy.
+        var kb = UnityEngine.InputSystem.Keyboard.current;
+        if (kb != null)
+            sendPressed = kb.enterKey.wasPressedThisFrame
+                       || kb.numpadEnterKey.wasPressedThisFrame
+                       || kb.spaceKey.wasPressedThisFrame;
+#endif
+        // Fallback para proyectos con ambos sistemas activos.
+        if (!sendPressed)
+            sendPressed = Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space);
+
+        // Solo enviar con Space/Enter cuando el InputField NO está enfocado;
+        // si está enfocado, el Enter lo maneja onSubmit directamente.
+        bool inputFocused = inputValor != null && inputValor.isFocused;
+        if (sendPressed && !inputFocused)
+            Enviar();
     }
 
     // ─────────────────────────────────────────────
@@ -183,19 +213,19 @@ public class ComponentSendingTray : MonoBehaviour
                 }
                 else if (delivery != null)
                 {
-                    delivery.SendLED(correcta);
+                    delivery.SendLED(correcta, _pending.deliveredPrefab);
                     exito = true;
                 }
                 else if (correcta)
                 {
                     exito = FixLEDPolarity();
-                    if (exito) OnComponentSentLocal?.Invoke(ComponentType.LED, valorLED);
+                    if (exito) OnComponentSentLocal?.Invoke(ComponentType.LED, valorLED, _pending?.deliveredPrefab);
                 }
                 else
                 {
                     gameManager?.RegisterWrongAttempt("LED enviado con polaridad incorrecta");
                     Set(txtFeedback, "Polaridad incorrecta. El LED no encenderá.");
-                    OnComponentSentLocal?.Invoke(ComponentType.LED, valorLED);
+                    OnComponentSentLocal?.Invoke(ComponentType.LED, valorLED, _pending?.deliveredPrefab);
                     exito = true;
                 }
                 break;
@@ -212,19 +242,19 @@ public class ComponentSendingTray : MonoBehaviour
                 }
                 else if (delivery != null)
                 {
-                    delivery.SendCapacitor(correcta);
+                    delivery.SendCapacitor(correcta, _pending.deliveredPrefab);
                     exito = true;
                 }
                 else if (correcta)
                 {
                     exito = FixCapacitorPolarity();
-                    if (exito) OnComponentSentLocal?.Invoke(ComponentType.Capacitor, valorCap);
+                    if (exito) OnComponentSentLocal?.Invoke(ComponentType.Capacitor, valorCap, _pending?.deliveredPrefab);
                 }
                 else
                 {
                     gameManager?.RegisterWrongAttempt("Capacitor enviado con polaridad incorrecta");
                     Set(txtFeedback, "Polaridad incorrecta. El capacitor generará falla.");
-                    OnComponentSentLocal?.Invoke(ComponentType.Capacitor, valorCap);
+                    OnComponentSentLocal?.Invoke(ComponentType.Capacitor, valorCap, _pending?.deliveredPrefab);
                     exito = true;
                 }
                 break;
@@ -267,8 +297,11 @@ public class ComponentSendingTray : MonoBehaviour
             return false;
         }
 
-        // Parsear el valor
-        if (!float.TryParse(inputValor.text, out float valorEscrito))
+        // Parsear el valor (InvariantCulture para que "850.5" funcione en cualquier locale del SO)
+        if (!float.TryParse(inputValor.text,
+                            NumberStyles.Float,
+                            CultureInfo.InvariantCulture,
+                            out float valorEscrito))
         {
             Set(txtFeedback, "Valor invalido. Escribe un numero.");
             return false;
@@ -296,7 +329,7 @@ public class ComponentSendingTray : MonoBehaviour
         }
         else if (delivery != null)
         {
-            delivery.SendResistor(valorEscrito);
+            delivery.SendResistor(valorEscrito, _pending?.deliveredPrefab);
             Set(txtFeedback, $"Resistencia de {valorEscrito:F0} ohm enviada.");
             return true;
         }
@@ -307,7 +340,7 @@ public class ComponentSendingTray : MonoBehaviour
                 Set(txtFeedback, $"Resistencia de {valorEscrito:F0} ohm aplicada.");
             else
                 Set(txtFeedback, $"Resistencia de {valorEscrito:F0} ohm aplicada. Revisa el LED.");
-            OnComponentSentLocal?.Invoke(ComponentType.Resistor, valorEscrito);
+            OnComponentSentLocal?.Invoke(ComponentType.Resistor, valorEscrito, _pending?.deliveredPrefab);
             return true;
         }
 
@@ -344,7 +377,7 @@ public class ComponentSendingTray : MonoBehaviour
         }
         else if (delivery != null)
         {
-            delivery.SendArduinoPin(pinEscrito);
+            delivery.SendArduinoPin(pinEscrito, _pending?.deliveredPrefab);
             Set(txtFeedback, $"Pin D{pinEscrito} enviado.");
             return true;
         }
@@ -361,7 +394,7 @@ public class ComponentSendingTray : MonoBehaviour
                     gameManager.circuit.MarkDirty();
                     gameManager.RegisterRepairAction();
                     Set(txtFeedback, $"Pin D{pinEscrito} aplicado.");
-                    OnComponentSentLocal?.Invoke(ComponentType.ArduinoPin, pinEscrito);
+                    OnComponentSentLocal?.Invoke(ComponentType.ArduinoPin, pinEscrito, _pending?.deliveredPrefab);
                     return true;
                 }
             }

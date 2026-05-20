@@ -1,7 +1,9 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.XR;
-using UnityEngine.XR.Interaction.Toolkit;   // Requiere: com.unity.xr.interaction.toolkit
+using UnityEngine.XR.Interaction.Toolkit;
+using UnityEngine.XR.Interaction.Toolkit.Locomotion.Movement;
+using UnityEngine.XR.Interaction.Toolkit.Locomotion.Turning;
 
 /// <summary>
 /// Controlador del Explorador VR (Meta Quest 3 + KAT VR).
@@ -29,6 +31,14 @@ public class PlayerController : MonoBehaviour
 
     [Header("Velocidad (joystick VR)")]
     public float walkSpeed = 2.0f;
+
+    [Header("Snap Turn (joystick derecho)")]
+    [Tooltip("False = el joystick derecho NO rota la cámara.")]
+    public bool enableSnapTurn = false;
+    [Tooltip("Angulo de giro por snap (grados). Solo aplica si enableSnapTurn = true.")]
+    [Range(0f, 90f)] public float snapTurnAngle = 45f;
+    [Tooltip("Umbral del thumbstick derecho para activar snap turn.")]
+    [Range(0.2f, 0.9f)] public float snapTurnThreshold = 0.5f;
 
     [Header("KAT VR")]
     [Tooltip("Numero de serie del dispositivo. Dejar vacio para detectar automaticamente.")]
@@ -58,9 +68,16 @@ public class PlayerController : MonoBehaviour
     private bool    _frozen;
 
     // KAT VR
-    private float   _yawCorrection;   // diferencia yaw cuerpo<->visor al calibrar
-    private Vector3 _lastKatPosition; // para sincronizar XR Origin en LateUpdate
-    private bool    _usedSimpleMove;  // SimpleMove aplica gravedad; evita doble aplicacion
+    private float   _yawCorrection;
+    private Vector3 _lastKatPosition;
+    private bool    _usedSimpleMove;
+    // true solo cuando KAT está proveyendo datos reales en este frame
+    // (evita que LateUpdate aplique el offset cuando se usó el joystick como fallback)
+    private bool    _katActive;
+
+    // Snap turn
+    private InputAction _snapTurnAct;
+    private bool        _snapTurnHeld;
 
     // ─────────────────────────────────────────────
     //  Unity Lifecycle
@@ -76,18 +93,23 @@ public class PlayerController : MonoBehaviour
 
     void OnEnable()
     {
-        moveAction?.action.Enable();
+        if (moveAction != null)
+        {
+            moveAction.action.actionMap?.Enable();
+            moveAction.action.Enable();
+        }
+        _snapTurnAct?.Enable();
     }
 
     void OnDisable()
     {
         moveAction?.action.Disable();
+        _snapTurnAct?.Disable();
     }
 
     void Start()
     {
 #if !UNITY_EDITOR
-        // En builds finales el Explorador requiere headset VR activo.
         if (!XRSettings.isDeviceActive)
         {
             Debug.LogError("[PlayerController] No hay dispositivo XR activo. " +
@@ -96,29 +118,116 @@ public class PlayerController : MonoBehaviour
             return;
         }
 #endif
+        DisableConflictingXRILocomotion();
+
         if (useKatVR) InitKatVR();
+
+        // Asegurar que la acción de movimiento esté habilitada
+        if (moveAction != null)
+        {
+            moveAction.action.actionMap?.Enable();   // habilita el action map completo
+            moveAction.action.Enable();
+        }
+        else
+        {
+            Debug.LogError("[PlayerController] moveAction NO está asignado. " +
+                           "El joystick no moverá al jugador.\n" +
+                           "Fix: corre Tools → TITA → Setup Completo VR Explorador, " +
+                           "o asigna manualmente la acción 'XRI Left Locomotion/Move' " +
+                           "del asset 'XRI Default Input Actions' en el Inspector.");
+        }
+
+        DiagnosticarMovimiento();
+        InitSnapTurn();
+    }
+
+    /// <summary>
+    /// Desactiva los providers de locomoción de XRI para que no conflictúen
+    /// con el CharacterController que maneja este script.
+    /// </summary>
+    void DisableConflictingXRILocomotion()
+    {
+        // Buscar en el GameObject propio y en padres (XR Origin)
+        var moveProviders = GetComponentsInParent<ContinuousMoveProvider>(true);
+        foreach (var p in moveProviders)
+        {
+            if (p.enabled)
+            {
+                p.enabled = false;
+                Debug.Log($"[PlayerController] ContinuousMoveProvider '{p.name}' desactivado " +
+                          "(PlayerController toma control del movimiento).");
+            }
+        }
+
+        var continuousTurn = GetComponentsInParent<ContinuousTurnProvider>(true);
+        foreach (var p in continuousTurn)
+        {
+            if (p.enabled)
+            {
+                p.enabled = false;
+                Debug.Log($"[PlayerController] ContinuousTurnProvider '{p.name}' desactivado.");
+            }
+        }
+
+        var snapTurn = GetComponentsInParent<SnapTurnProvider>(true);
+        foreach (var p in snapTurn)
+        {
+            if (p.enabled)
+            {
+                p.enabled = false;
+                Debug.Log($"[PlayerController] SnapTurnProvider '{p.name}' desactivado.");
+            }
+        }
+    }
+
+    [ContextMenu("Diagnosticar movimiento")]
+    public void DiagnosticarMovimiento()
+    {
+        Debug.Log("════ [PlayerController] DIAGNÓSTICO DE MOVIMIENTO ════");
+        Debug.Log($"  useKatVR        = {useKatVR}");
+        Debug.Log($"  moveAction      = {(moveAction != null ? moveAction.name : "⚠ NULL — asignar en Inspector")}");
+
+        if (moveAction != null)
+        {
+            bool enabled_ = moveAction.action.enabled;
+            Vector2 val   = moveAction.action.ReadValue<Vector2>();
+            Debug.Log($"  action enabled  = {enabled_}");
+            Debug.Log($"  action value    = {val}  (mueve el joystick izquierdo ahora para ver si cambia)");
+            Debug.Log($"  action map      = {moveAction.action.actionMap?.name ?? "sin action map"}");
+            Debug.Log($"  bindings        = {moveAction.action.bindings.Count}");
+        }
+
+        Debug.Log($"  headCamera      = {(headCamera != null ? headCamera.name : "⚠ NULL")}");
+        Debug.Log($"  xrRig           = {(xrRig != null ? xrRig.name : "⚠ NULL")}");
+        Debug.Log($"  CharacterController.enabled = {_cc?.enabled}");
+        Debug.Log($"  CharacterController.isGrounded = {_cc?.isGrounded}");
+        Debug.Log($"  _frozen         = {_frozen}");
+        Debug.Log("════════════════════════════════════════════════════════");
     }
 
     void Update()
     {
         _isGrounded = _cc.isGrounded;
         _usedSimpleMove = false;
+        _katActive = false;
 
         if (!_frozen)
         {
             if (useKatVR) HandleKatVRLocomotion();
             else          HandleJoystickLocomotion();
+
+            HandleSnapTurn();
         }
 
-        // SimpleMove (KAT) ya aplica gravedad internamente; solo aplicar en modo joystick o frozen
         if (!_usedSimpleMove)
             ApplyGravity();
     }
 
     void LateUpdate()
     {
-        // Mueve el XR Origin para que el visor siga al CharacterController en modo KAT
-        if (!useKatVR || xrRig == null) return;
+        // Solo desplaza el XR Origin cuando KAT proveyó movimiento real en este frame.
+        // Si KAT cayó en fallback de joystick, _katActive=false → NO doble movimiento.
+        if (!_katActive || xrRig == null) return;
         Vector3 offset = transform.position - _lastKatPosition;
         offset.y = 0f;
         xrRig.position += offset;
@@ -148,8 +257,6 @@ public class PlayerController : MonoBehaviour
         }
 
         Debug.Log($"[PlayerController] KAT VR conectado: {data.deviceName}");
-
-        // Calibracion inicial: sincroniza orientacion cuerpo<->visor
         CalibrateOrientation(data);
     }
 
@@ -157,34 +264,25 @@ public class PlayerController : MonoBehaviour
     {
         KATNativeSDK.TreadMillData data = KATNativeSDK.GetWalkStatus(katSerialNumber);
 
-        // Fallback en caliente si la caminadora se desconecta durante el juego
-        if (!data.connected)
+        if (!data.connected || data.deviceDatas == null || data.deviceDatas.Length == 0)
         {
+            // KAT no disponible en este frame — joystick sin doble offset
             HandleJoystickLocomotion();
             return;
         }
 
-        // Fallback si el SDK devuelve deviceDatas vacío (estado transitorio de reconexión)
-        if (data.deviceDatas == null || data.deviceDatas.Length == 0)
-        {
-            HandleJoystickLocomotion();
-            return;
-        }
-
-        // Calibracion: el boton del sensor sincroniza cuerpo<->visor (estandar del SDK)
         if (data.deviceDatas[0].btnPressed)
         {
             CalibrateOrientation(data);
             return;
         }
 
-        // Rotacion corporal con correccion de yaw para alinear cuerpo y visor
         Quaternion bodyRot = data.bodyRotationRaw
                            * Quaternion.Inverse(Quaternion.Euler(0f, _yawCorrection, 0f));
 
-        // SimpleMove espera velocidad en m/s (sin Time.deltaTime) y aplica gravedad automaticamente
         _cc.SimpleMove(bodyRot * data.moveSpeed * katSpeedMultiplier);
         _usedSimpleMove = true;
+        _katActive = true;   // KAT proveyó movimiento real → LateUpdate puede correr
     }
 
     void CalibrateOrientation(KATNativeSDK.TreadMillData data)
@@ -193,7 +291,6 @@ public class PlayerController : MonoBehaviour
 
         _yawCorrection = data.bodyRotationRaw.eulerAngles.y - headCamera.transform.eulerAngles.y;
 
-        // Alinea la posicion del CharacterController con el visor al calibrar
         Vector3 pos  = transform.position;
         pos.x        = headCamera.transform.position.x;
         pos.z        = headCamera.transform.position.z;
@@ -217,11 +314,68 @@ public class PlayerController : MonoBehaviour
             ? moveAction.action.ReadValue<Vector2>()
             : Vector2.zero;
 
+        if (stick.sqrMagnitude < 0.001f) return;
+
         Vector3 forward = Vector3.ProjectOnPlane(headCamera.transform.forward, Vector3.up).normalized;
         Vector3 right   = Vector3.ProjectOnPlane(headCamera.transform.right,   Vector3.up).normalized;
 
-        Vector3 moveDir = (forward * stick.y + right * stick.x).normalized;
+        // Sin .normalized: la magnitud del stick controla la velocidad (control analógico)
+        Vector3 moveDir = forward * stick.y + right * stick.x;
         _cc.Move(moveDir * walkSpeed * Time.deltaTime);
+    }
+
+    // ─────────────────────────────────────────────
+    //  Snap Turn
+    // ─────────────────────────────────────────────
+
+    void InitSnapTurn()
+    {
+        if (!enableSnapTurn || snapTurnAngle <= 0f || xrRig == null) return;
+
+        // Busca la acción de snap turn en el mismo asset que moveAction
+        // (XRI Default Input Actions tiene "XRI Right Locomotion/Snap Turn" → thumbstick derecho)
+        if (moveAction?.asset != null)
+        {
+            _snapTurnAct = moveAction.asset.FindAction("XRI Right Locomotion/Snap Turn")
+                        ?? moveAction.asset.FindAction("XRI Right Locomotion/Turn")
+                        ?? moveAction.asset.FindAction("Explorer/SnapTurn");
+        }
+
+        if (_snapTurnAct == null)
+        {
+            Debug.LogWarning("[PlayerController] No se encontró acción de snap turn. " +
+                             "El thumbstick derecho no rotará al jugador.");
+            return;
+        }
+
+        _snapTurnAct.Enable();
+        Debug.Log($"[PlayerController] Snap turn activado: {_snapTurnAct.actionMap?.name}/{_snapTurnAct.name}");
+    }
+
+    void HandleSnapTurn()
+    {
+        if (!enableSnapTurn || snapTurnAngle <= 0f || _snapTurnAct == null || xrRig == null) return;
+
+        Vector2 val = _snapTurnAct.ReadValue<Vector2>();
+
+        if (Mathf.Abs(val.x) > snapTurnThreshold)
+        {
+            if (!_snapTurnHeld)
+            {
+                // Rota el XR Origin alrededor de la posición horizontal de la cabeza
+                // → la cámara mantiene su posición XZ pero el visor gira visualmente
+                Vector3 pivot = headCamera
+                    ? new Vector3(headCamera.transform.position.x, xrRig.position.y, headCamera.transform.position.z)
+                    : xrRig.position;
+
+                xrRig.RotateAround(pivot, Vector3.up, Mathf.Sign(val.x) * snapTurnAngle);
+                _snapTurnHeld = true;
+            }
+        }
+        else
+        {
+            _snapTurnHeld = false;
+        }
     }
 
     // ─────────────────────────────────────────────
@@ -241,10 +395,6 @@ public class PlayerController : MonoBehaviour
     //  API publica
     // ─────────────────────────────────────────────
 
-    /// <summary>
-    /// Detiene o reanuda el movimiento del jugador.
-    /// Llamar desde PlayerInteraction al iniciar/terminar una interaccion.
-    /// </summary>
     public void FreezeMovement(bool freeze)
     {
         _frozen = freeze;

@@ -140,8 +140,8 @@ public class DiagnosticSystem
         {
             if (comp is VoltageSource vs)
             {
-                sourceVoltage = vs.voltage;
-                sb.AppendLine($"Fuente:      {vs.voltage:F1} V");
+                sourceVoltage = vs.GetEffectiveVoltage();
+                sb.AppendLine($"Fuente:      {vs.GetEffectiveVoltage():F1} V{(vs.hasFault ? $" [{vs.faultMode}]" : "")}");
             }
             else if (comp is Resistor r)
             {
@@ -250,7 +250,7 @@ public class DiagnosticSystem
     float GetSourceVoltage(List<ElectricalComponent> components)
     {
         foreach (var c in components)
-            if (c is VoltageSource vs) return vs.voltage;
+            if (c is VoltageSource vs) return vs.GetEffectiveVoltage();
         return 9f;
     }
 }
