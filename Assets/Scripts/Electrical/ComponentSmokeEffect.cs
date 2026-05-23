@@ -2,34 +2,42 @@ using System.Collections;
 using UnityEngine;
 
 /// <summary>
-/// Muestra humo en un componente dañado cuando el circuito está energizado.
-/// Si no se asigna smokeEffect en el Inspector, crea uno por código automáticamente.
+/// Humo + chispas para componentes dañados/sobrecargados.
 ///
-/// SETUP MÍNIMO:
-///   Añadir este script al GO del componente eléctrico (Resistor, LED, Capacitor, ArduinoPin).
-///   Nada más es necesario — el ParticleSystem se genera solo si queda vacío.
+/// DOS NIVELES de efecto:
+///   Dañado  → humo denso (hasFault, polarityInverted, NearOverload…)
+///   Sobrecarga → humo + chispas amarillas (LEDState.Overload, Resistor.isOverloaded, etc.)
 ///
-/// SETUP AVANZADO (aspecto personalizado):
-///   Asignar un ParticleSystem ya configurado en el campo smokeEffect.
-///   Asignar un Material de partículas URP en smokeMaterial para evitar el color magenta.
+/// SETUP MÍNIMO: añadir este script al GO del componente eléctrico.
+/// Los ParticleSystem se generan automáticamente si no se asignan.
 /// </summary>
 [DisallowMultipleComponent]
 public class ComponentSmokeEffect : MonoBehaviour
 {
-    [Header("Efecto visual")]
-    [Tooltip("ParticleSystem de humo. Si queda vacío se genera uno automáticamente.")]
+    [Header("Humo")]
+    [Tooltip("ParticleSystem de humo. Se genera automáticamente si queda vacío.")]
     public ParticleSystem smokeEffect;
-
-    [Tooltip("Material para las partículas. Si queda vacío se usa el shader URP Particles/Unlit.")]
+    [Tooltip("Material para el humo (URP Particles/Unlit recomendado). Opcional.")]
     public Material smokeMaterial;
 
-    [Header("Fade-in")]
-    [Tooltip("Segundos que tarda la emisión en llegar a su tasa máxima.")]
+    [Header("Dirección del humo (espacio LOCAL del componente)")]
+    [Tooltip("Hacia dónde sube el humo en el espacio local del componente.\n" +
+             "Vector3.up    → sale hacia el eje Y local (componente horizontal).\n" +
+             "Vector3.forward → sale hacia el eje Z local (componente vertical/de frente).\n" +
+             "Vector3.right  → sale hacia el eje X local.")]
+    public Vector3 smokeDirection = Vector3.up;
+
+    [Header("Chispas (sobrecarga)")]
+    [Tooltip("ParticleSystem de chispas. Se genera automáticamente si queda vacío.")]
+    public ParticleSystem sparkEffect;
+    [Tooltip("Material para las chispas (Additive recomendado). Opcional.")]
+    public Material sparkMaterial;
+
+    [Header("Tiempos")]
     [Range(0.5f, 5f)]
-    public float fadeInDuration = 2f;
+    public float fadeInDuration = 1.5f;
 
     [Header("Referencias")]
-    [Tooltip("CircuitManager de esta zona. Si es null, busca en los padres automáticamente.")]
     public CircuitManager circuitManager;
 
     // ─────────────────────────────────────────────
@@ -40,8 +48,9 @@ public class ComponentSmokeEffect : MonoBehaviour
     private ArduinoPin          _pin;
     private ElectricalComponent _ec;
 
-    private float    _baseEmissionRate;
+    private float    _smokeBaseRate;
     private bool     _smokingActive;
+    private bool     _sparksActive;
     private Coroutine _fadeCoroutine;
 
     // ─────────────────────────────────────────────
@@ -57,22 +66,26 @@ public class ComponentSmokeEffect : MonoBehaviour
         if (circuitManager == null)
             circuitManager = GetComponentInParent<CircuitManager>(true);
 
-        if (smokeEffect == null)
-            smokeEffect = CreateSmokeParticles();
+        if (smokeEffect == null) smokeEffect = CreateSmokeParticles();
+        if (sparkEffect == null) sparkEffect = CreateSparkParticles();
 
+        // Rotar el GO del humo para que su eje Y apunte en smokeDirection (local space)
         if (smokeEffect != null)
         {
-            _baseEmissionRate = smokeEffect.emission.rateOverTime.constant;
+            var dir = smokeDirection == Vector3.zero ? Vector3.up : smokeDirection.normalized;
+            smokeEffect.transform.localRotation = Quaternion.FromToRotation(Vector3.up, dir);
+            _smokeBaseRate = smokeEffect.emission.rateOverTime.constant;
             smokeEffect.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
         }
+        if (sparkEffect != null)
+            sparkEffect.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
     }
 
     void OnEnable()  => CircuitManager.OnCircuitChanged += Refresh;
-
     void OnDisable()
     {
         CircuitManager.OnCircuitChanged -= Refresh;
-        StopSmoke();
+        StopAll();
     }
 
     // ─────────────────────────────────────────────
@@ -80,161 +93,285 @@ public class ComponentSmokeEffect : MonoBehaviour
     // ─────────────────────────────────────────────
     void Refresh()
     {
-        if (smokeEffect == null || circuitManager == null) return;
+        if (circuitManager == null) return;
 
-        // Usar corriente real, no sourceVoltage: cuando el switch está OFF,
-        // CircuitSwitch presenta 1 MΩ → I ≈ 9 μA, bien por debajo del umbral.
-        bool shouldSmoke = Mathf.Abs(circuitManager.totalCurrent) > 0.0005f && IsDamaged();
+        // Sin corriente real (switch apagado) → nada
+        bool circuitLive = Mathf.Abs(circuitManager.totalCurrent) > 0.0005f;
 
-        if (shouldSmoke && !_smokingActive)
+        bool damaged    = circuitLive && IsDamaged();
+        bool overloaded = circuitLive && IsOverloaded();
+
+        // ── Humo ──────────────────────────────────
+        if (smokeEffect != null)
         {
-            _smokingActive = true;
-            if (_fadeCoroutine != null) StopCoroutine(_fadeCoroutine);
-            _fadeCoroutine = StartCoroutine(FadeInSmoke());
+            if (damaged && !_smokingActive)
+            {
+                _smokingActive = true;
+                if (_fadeCoroutine != null) StopCoroutine(_fadeCoroutine);
+                _fadeCoroutine = StartCoroutine(FadeInSmoke());
+            }
+            else if (!damaged && _smokingActive)
+            {
+                StopSmoke();
+            }
         }
-        else if (!shouldSmoke && _smokingActive)
+
+        // ── Chispas (solo en sobrecarga) ──────────
+        if (sparkEffect != null)
         {
-            StopSmoke();
+            if (overloaded && !_sparksActive)
+            {
+                _sparksActive = true;
+                sparkEffect.Play(true);   // withChildren para prefabs CFXR multi-PS
+            }
+            else if (!overloaded && _sparksActive)
+            {
+                _sparksActive = false;
+                sparkEffect.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+            }
         }
     }
 
+    // Cualquier falla → humo
     bool IsDamaged()
     {
-        if (_ec        != null && _ec.isOpenCircuit)                                     return true;
-        if (_resistor  != null && (_resistor.hasFault || _resistor.isOverloaded))        return true;
+        if (_ec        != null && _ec.isOpenCircuit)                              return true;
+        if (_resistor  != null && (_resistor.hasFault || _resistor.isOverloaded)) return true;
         if (_led       != null && (_led.polarityInverted ||
                                    _led.state == LEDState.Overload ||
-                                   _led.state == LEDState.NearOverload))                 return true;
-        if (_capacitor != null && _capacitor.polarityInverted)                           return true;
-        if (_source    != null && _source.hasFault)                                      return true;
-        if (_pin       != null && (_pin.hasFault || _pin.hasLooseCable))                 return true;
+                                   _led.state == LEDState.NearOverload))          return true;
+        if (_capacitor != null && _capacitor.polarityInverted)                    return true;
+        if (_source    != null && _source.hasFault)                               return true;
+        if (_pin       != null && (_pin.hasFault || _pin.hasLooseCable))          return true;
+        return false;
+    }
+
+    // Solo sobrecarga severa → chispas
+    bool IsOverloaded()
+    {
+        if (_resistor  != null && _resistor.isOverloaded)           return true;
+        if (_led       != null && _led.state == LEDState.Overload)  return true;
+        if (_capacitor != null && _capacitor.polarityInverted &&
+            Mathf.Abs(circuitManager.totalCurrent) > 0.05f)         return true;
+        if (_pin       != null && _pin.hasFault &&
+            Mathf.Abs(circuitManager.totalCurrent) > 0.05f)         return true;
         return false;
     }
 
     // ─────────────────────────────────────────────
-    //  Corrutina de fade-in
+    //  Fade-in humo
     // ─────────────────────────────────────────────
     IEnumerator FadeInSmoke()
     {
+        // withChildren:true activa los sub-efectos de prefabs CFXR (múltiples PS hijos)
+        smokeEffect.Play(true);
+
+        // Fade-in en el PS raíz (afecta la densidad visible del efecto)
         var emission = smokeEffect.emission;
         emission.rateOverTime = 0f;
-        smokeEffect.Play();
 
         float elapsed = 0f;
         while (elapsed < fadeInDuration)
         {
             if (this == null || smokeEffect == null) yield break;
             elapsed += Time.deltaTime;
-            emission.rateOverTime = Mathf.Lerp(0f, _baseEmissionRate, elapsed / fadeInDuration);
+            emission.rateOverTime = Mathf.Lerp(0f, _smokeBaseRate, elapsed / fadeInDuration);
             yield return null;
         }
-
-        emission.rateOverTime = _baseEmissionRate;
+        emission.rateOverTime = _smokeBaseRate;
         _fadeCoroutine = null;
     }
 
     void StopSmoke()
     {
         _smokingActive = false;
-        if (_fadeCoroutine != null)
-        {
-            StopCoroutine(_fadeCoroutine);
-            _fadeCoroutine = null;
-        }
+        if (_fadeCoroutine != null) { StopCoroutine(_fadeCoroutine); _fadeCoroutine = null; }
+        // withChildren:true detiene también los sub-efectos CFXR
         smokeEffect?.Stop(true, ParticleSystemStopBehavior.StopEmitting);
     }
 
+    void StopAll()
+    {
+        StopSmoke();
+        _sparksActive = false;
+        sparkEffect?.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+    }
+
     // ─────────────────────────────────────────────
-    //  Autocreación del ParticleSystem
+    //  Autocreación: HUMO
     // ─────────────────────────────────────────────
     ParticleSystem CreateSmokeParticles()
     {
         var go = new GameObject("Smoke_VFX");
         go.transform.SetParent(transform);
-        go.transform.localPosition = Vector3.up * 0.05f;
+        go.transform.localPosition = Vector3.up * 0.06f;
         go.transform.localRotation = Quaternion.identity;
         go.transform.localScale    = Vector3.one;
 
         var ps = go.AddComponent<ParticleSystem>();
-
-        // Detener antes de configurar: AddComponent arranca el sistema de inmediato
-        // y Unity no permite cambiar 'duration' mientras está reproduciendo.
         ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
 
-        // ── Main ──────────────────────────────────
         var main = ps.main;
-        main.playOnAwake      = false;
-        main.loop             = true;
-        main.duration         = 2f;
-        main.startLifetime    = new ParticleSystem.MinMaxCurve(1.2f, 2.5f);
-        main.startSpeed       = new ParticleSystem.MinMaxCurve(0.04f, 0.12f);
-        main.startSize        = new ParticleSystem.MinMaxCurve(0.03f, 0.07f);
-        main.startColor       = new ParticleSystem.MinMaxGradient(
-                                    new Color(0.55f, 0.55f, 0.55f, 0.70f),
-                                    new Color(0.25f, 0.25f, 0.25f, 0.40f));
-        main.gravityModifier  = -0.04f;   // sube lentamente
-        main.maxParticles     = 30;
-        main.simulationSpace  = ParticleSystemSimulationSpace.World;
+        main.playOnAwake     = false;
+        main.loop            = true;
+        main.duration        = 2f;
+        main.startLifetime   = new ParticleSystem.MinMaxCurve(1.5f, 3.0f);
+        main.startSpeed      = new ParticleSystem.MinMaxCurve(0.06f, 0.18f);
+        main.startSize       = new ParticleSystem.MinMaxCurve(0.06f, 0.14f);  // más grande
+        main.startColor      = new ParticleSystem.MinMaxGradient(
+                                   new Color(0.55f, 0.55f, 0.55f, 0.80f),
+                                   new Color(0.20f, 0.20f, 0.20f, 0.45f));
+        main.gravityModifier = 0f;       // sin gravedad mundial: la dirección la da el Cone
+        main.maxParticles    = 60;
+        main.simulationSpace = ParticleSystemSimulationSpace.Local; // respeta la rotación del GO
 
-        // ── Emission ──────────────────────────────
         var emission = ps.emission;
-        emission.rateOverTime = 8f;
+        emission.rateOverTime = 18f;                                           // más emisión
 
-        // ── Shape ─────────────────────────────────
+        // Cone: emite a lo largo del eje Y local del GO → smokeDirection lo rota en Awake
+        var shape = ps.shape;
+        shape.enabled   = true;
+        shape.shapeType = ParticleSystemShapeType.Cone;
+        shape.angle     = 18f;   // apertura del cono (más estrecho = más columna)
+        shape.radius    = 0.008f;
+
+        var sol = ps.sizeOverLifetime;
+        sol.enabled = true;
+        sol.size = new ParticleSystem.MinMaxCurve(1f,
+            new AnimationCurve(new Keyframe(0f, 0.2f), new Keyframe(1f, 1f)));
+
+        var col = ps.colorOverLifetime;
+        col.enabled = true;
+        var g = new Gradient();
+        g.SetKeys(
+            new GradientColorKey[] {
+                new GradientColorKey(new Color(0.65f, 0.60f, 0.55f), 0f),
+                new GradientColorKey(new Color(0.15f, 0.15f, 0.15f), 1f)
+            },
+            new GradientAlphaKey[] {
+                new GradientAlphaKey(0.90f, 0f),
+                new GradientAlphaKey(0.00f, 1f)
+            });
+        col.color = new ParticleSystem.MinMaxGradient(g);
+
+        ApplyMaterial(go, smokeMaterial,
+            "Universal Render Pipeline/Particles/Unlit",
+            "Particles/Standard Unlit",
+            "Legacy Shaders/Particles/Alpha Blended",
+            additive: false);
+
+        return ps;
+    }
+
+    // ─────────────────────────────────────────────
+    //  Autocreación: CHISPAS
+    // ─────────────────────────────────────────────
+    ParticleSystem CreateSparkParticles()
+    {
+        var go = new GameObject("Sparks_VFX");
+        go.transform.SetParent(transform);
+        go.transform.localPosition = Vector3.up * 0.02f;
+        go.transform.localRotation = Quaternion.identity;
+        go.transform.localScale    = Vector3.one;
+
+        var ps = go.AddComponent<ParticleSystem>();
+        ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+
+        var main = ps.main;
+        main.playOnAwake     = false;
+        main.loop            = true;
+        main.duration        = 1f;
+        main.startLifetime   = new ParticleSystem.MinMaxCurve(0.15f, 0.45f);
+        main.startSpeed      = new ParticleSystem.MinMaxCurve(0.8f, 2.5f);
+        main.startSize       = new ParticleSystem.MinMaxCurve(0.003f, 0.009f);
+        main.startColor      = new ParticleSystem.MinMaxGradient(
+                                   new Color(1.0f, 0.9f, 0.3f, 1f),   // amarillo brillante
+                                   new Color(1.0f, 0.5f, 0.1f, 1f));  // naranja
+        main.gravityModifier = 1.8f;    // caen como chispas reales
+        main.maxParticles    = 80;
+        main.simulationSpace = ParticleSystemSimulationSpace.World;
+
+        var emission = ps.emission;
+        emission.rateOverTime = 35f;
+
+        // Ráfagas ocasionales para efecto errático
+        emission.SetBursts(new ParticleSystem.Burst[]
+        {
+            new ParticleSystem.Burst(0f,   8, 15, 3, 0.4f),
+            new ParticleSystem.Burst(0.5f, 5, 12, 2, 0.3f),
+        });
+
         var shape = ps.shape;
         shape.enabled   = true;
         shape.shapeType = ParticleSystemShapeType.Sphere;
-        shape.radius    = 0.008f;
+        shape.radius    = 0.006f;
 
-        // ── Size over lifetime (crece al subir) ───
+        // Las chispas no crecen, se mantienen pequeñas
         var sol = ps.sizeOverLifetime;
         sol.enabled = true;
-        var sizeCurve = new AnimationCurve(
-            new Keyframe(0f, 0.25f),
-            new Keyframe(1f, 1.00f));
-        sol.size = new ParticleSystem.MinMaxCurve(1f, sizeCurve);
+        sol.size = new ParticleSystem.MinMaxCurve(1f,
+            new AnimationCurve(new Keyframe(0f, 1f), new Keyframe(1f, 0f)));
 
-        // ── Color over lifetime (se desvanece) ────
+        // Color: blanco brillante → naranja → apagado
         var col = ps.colorOverLifetime;
         col.enabled = true;
-        var gradient = new Gradient();
-        gradient.SetKeys(
-            new GradientColorKey[]
-            {
-                new GradientColorKey(new Color(0.6f, 0.6f, 0.6f), 0.0f),
-                new GradientColorKey(new Color(0.2f, 0.2f, 0.2f), 1.0f)
+        var g = new Gradient();
+        g.SetKeys(
+            new GradientColorKey[] {
+                new GradientColorKey(new Color(1f, 1f, 0.8f), 0.0f),
+                new GradientColorKey(new Color(1f, 0.4f, 0f), 0.5f),
+                new GradientColorKey(new Color(0.3f, 0.1f, 0f), 1.0f)
             },
-            new GradientAlphaKey[]
-            {
-                new GradientAlphaKey(0.85f, 0.0f),
-                new GradientAlphaKey(0.00f, 1.0f)
+            new GradientAlphaKey[] {
+                new GradientAlphaKey(1f, 0.0f),
+                new GradientAlphaKey(0f, 1.0f)
             });
-        col.color = new ParticleSystem.MinMaxGradient(gradient);
+        col.color = new ParticleSystem.MinMaxGradient(g);
 
-        // ── Renderer / Material ───────────────────
+        // Stretch para que las chispas parezcan líneas de luz al moverse
         var rend = go.GetComponent<ParticleSystemRenderer>();
-        rend.renderMode = ParticleSystemRenderMode.Billboard;
+        rend.renderMode       = ParticleSystemRenderMode.Stretch;
+        rend.velocityScale    = 0.15f;
+        rend.lengthScale      = 1.5f;
 
-        Material mat = smokeMaterial;
+        ApplyMaterial(go, sparkMaterial,
+            "Universal Render Pipeline/Particles/Unlit",
+            "Particles/Additive",
+            "Legacy Shaders/Particles/Additive",
+            additive: true);
+
+        return ps;
+    }
+
+    // ─────────────────────────────────────────────
+    //  Helper material
+    // ─────────────────────────────────────────────
+    void ApplyMaterial(GameObject go, Material custom,
+                       string shader1, string shader2, string shader3,
+                       bool additive)
+    {
+        var rend = go.GetComponent<ParticleSystemRenderer>();
+        Material mat = custom;
         if (mat == null)
         {
-            // Intenta URP primero, luego fallbacks
-            Shader shader = Shader.Find("Universal Render Pipeline/Particles/Unlit")
-                         ?? Shader.Find("Particles/Standard Unlit")
-                         ?? Shader.Find("Legacy Shaders/Particles/Alpha Blended");
-
-            if (shader != null)
+            Shader sh = Shader.Find(shader1) ?? Shader.Find(shader2) ?? Shader.Find(shader3);
+            if (sh != null)
             {
-                mat = new Material(shader);
-                // Surface Type = Transparent en URP
-                if (mat.HasProperty("_Surface")) mat.SetFloat("_Surface", 1f);
-                if (mat.HasProperty("_Blend"))   mat.SetFloat("_Blend",   0f);
+                mat = new Material(sh);
+                if (additive)
+                {
+                    if (mat.HasProperty("_Surface")) mat.SetFloat("_Surface", 1f);
+                    if (mat.HasProperty("_Blend"))   mat.SetFloat("_Blend",   3f); // Additive en URP
+                }
+                else
+                {
+                    if (mat.HasProperty("_Surface")) mat.SetFloat("_Surface", 1f);
+                    if (mat.HasProperty("_Blend"))   mat.SetFloat("_Blend",   0f);
+                }
                 mat.renderQueue = 3000;
             }
         }
         if (mat != null) rend.material = mat;
-
-        return ps;
     }
 
     // ─────────────────────────────────────────────
@@ -248,5 +385,5 @@ public class ComponentSmokeEffect : MonoBehaviour
         _fadeCoroutine = StartCoroutine(FadeInSmoke());
     }
 
-    public void ForceStop() => StopSmoke();
+    public void ForceStop() => StopAll();
 }
