@@ -117,6 +117,7 @@
     <Compile Include="Assets\Scripts\Gameplay\LevelType.cs" />
     <Compile Include="Assets\Scripts\Gameplay\ComponentSlot.cs" />
     <Compile Include="Assets\UnityTechnologies\StarterAssets\Mobile\Scripts\VirtualInputs\UIVirtualButton.cs" />
+    <Compile Include="Assets\Scripts\Electrical\AutoSmokeSetup.cs" />
     <Compile Include="Assets\Scripts\Gameplay\MultimeterDebugHelper.cs" />
     <Compile Include="Assets\Scripts\Desktop\Technicianmanualdisplay.cs" />
     <Compile Include="Assets\UnityTechnologies\StarterAssets\InputSystem\StarterAssetsInputs.cs" />

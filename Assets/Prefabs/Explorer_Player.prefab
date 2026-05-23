@@ -79,6 +79,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
   useKatVR: 0
   walkSpeed: 2
+  enableSnapTurn: 0
   snapTurnAngle: 45
   snapTurnThreshold: 0.5
   katSerialNumber: 
@@ -1289,7 +1290,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5826056641483426609, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_LeftHand
-      value:
+      value: 
       objectReference: {fileID: 4291253371769086699}
     - target: {fileID: 5826056641483426609, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_RightHand

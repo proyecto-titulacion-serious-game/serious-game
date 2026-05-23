@@ -20,6 +20,10 @@ public class CircuitSwitch : ElectricalComponent
     [Header("Estado inicial")]
     public bool isOn = false;   // empieza apagado — jugador debe activarlo
 
+    [Header("Debug (sin VR)")]
+    [Tooltip("Tecla para alternar el switch desde el teclado. None = desactivado.")]
+    public KeyCode debugKey = KeyCode.S;
+
     [Header("Colores de feedback visual")]
     public Color colorOff = new Color(0.80f, 0.20f, 0.10f);   // rojo = apagado
     public Color colorOn  = new Color(0.20f, 0.85f, 0.30f);   // verde = encendido
@@ -53,16 +57,26 @@ public class CircuitSwitch : ElectricalComponent
         _interactable.selectEntered.RemoveListener(OnActivated);
     }
 
-    void OnActivated(SelectEnterEventArgs args)
+    void Update()
+    {
+        if (debugKey != KeyCode.None && Input.GetKeyDown(debugKey))
+            Toggle();
+    }
+
+    /// <summary>Alterna el switch desde código o desde el Inspector (clic derecho → Toggle).</summary>
+    [ContextMenu("Toggle")]
+    public void Toggle()
     {
         isOn = !isOn;
-        haptics?.PlayLight();
         UpdateVisual();
-
-        // Notificar al CircuitManager para que resimule el circuito
         GetComponentInParent<CircuitManager>()?.MarkDirty();
+        Debug.Log($"[CircuitSwitch] '{name}' → {(isOn ? "ON  ✓" : "OFF ✗")} (debug)");
+    }
 
-        Debug.Log($"[CircuitSwitch] '{name}' → {(isOn ? "ON  ✓" : "OFF ✗")}");
+    void OnActivated(SelectEnterEventArgs args)
+    {
+        haptics?.PlayLight();
+        Toggle();
     }
 
     // ── ElectricalComponent ───────────────────────────────────────────

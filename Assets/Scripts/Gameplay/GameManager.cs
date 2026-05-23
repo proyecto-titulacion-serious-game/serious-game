@@ -296,7 +296,7 @@ public class GameManager : MonoBehaviour
             case LevelType.OhmLaw:
                 foreach (var comp in allComponents)
                 {
-                    if (comp is VoltageSource || comp is Resistor || comp is LED)
+                    if (comp is VoltageSource || comp is Resistor || comp is LED || comp is CircuitSwitch)
                         comp.gameObject.SetActive(true);
                     else
                         comp.gameObject.SetActive(false);
@@ -306,7 +306,7 @@ public class GameManager : MonoBehaviour
             case LevelType.Parallel:
                 foreach (var comp in allComponents)
                 {
-                    if (comp is VoltageSource || comp is Resistor || comp is LED)
+                    if (comp is VoltageSource || comp is Resistor || comp is LED || comp is CircuitSwitch)
                         comp.gameObject.SetActive(true);
                     else
                         comp.gameObject.SetActive(false);
