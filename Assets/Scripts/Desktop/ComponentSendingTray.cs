@@ -95,6 +95,13 @@ public class ComponentSendingTray : MonoBehaviour
         UpdateUI();
     }
 
+    void OnDestroy()
+    {
+        btnEnviar?.onClick.RemoveAllListeners();
+        inputValor?.onSubmit.RemoveAllListeners();
+        togglePolaridad?.onValueChanged.RemoveAllListeners();
+    }
+
     void Update()
     {
         if (_pending == null) return;
@@ -214,6 +221,7 @@ public class ComponentSendingTray : MonoBehaviour
                 else if (delivery != null)
                 {
                     delivery.SendLED(correcta, _pending.deliveredPrefab);
+                    OnComponentSentLocal?.Invoke(ComponentType.LED, valorLED, _pending?.deliveredPrefab);
                     exito = true;
                 }
                 else if (correcta)
@@ -243,6 +251,7 @@ public class ComponentSendingTray : MonoBehaviour
                 else if (delivery != null)
                 {
                     delivery.SendCapacitor(correcta, _pending.deliveredPrefab);
+                    OnComponentSentLocal?.Invoke(ComponentType.Capacitor, valorCap, _pending?.deliveredPrefab);
                     exito = true;
                 }
                 else if (correcta)
@@ -330,6 +339,7 @@ public class ComponentSendingTray : MonoBehaviour
         else if (delivery != null)
         {
             delivery.SendResistor(valorEscrito, _pending?.deliveredPrefab);
+            OnComponentSentLocal?.Invoke(ComponentType.Resistor, valorEscrito, _pending?.deliveredPrefab);
             Set(txtFeedback, $"Resistencia de {valorEscrito:F0} ohm enviada.");
             return true;
         }
@@ -378,6 +388,7 @@ public class ComponentSendingTray : MonoBehaviour
         else if (delivery != null)
         {
             delivery.SendArduinoPin(pinEscrito, _pending?.deliveredPrefab);
+            OnComponentSentLocal?.Invoke(ComponentType.ArduinoPin, pinEscrito, _pending?.deliveredPrefab);
             Set(txtFeedback, $"Pin D{pinEscrito} enviado.");
             return true;
         }

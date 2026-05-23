@@ -4,7 +4,7 @@ public class CircuitAnalyzer
 {
     public string AnalyzeVoltage(float measured, float target, float tolerance)
     {
-        if (measured == 0)
+        if (Mathf.Abs(measured) < 0.001f)
             return "[!] No hay medicion. Conecta el multimetro.";
 
         if (Mathf.Abs(measured - target) <= tolerance)
@@ -36,6 +36,8 @@ public class CircuitAnalyzer
 
     string AnalyzeParallel(CircuitManager circuit)
     {
+        if (circuit == null) return "[?] Circuito no disponible.";
+
         bool anyLedOff = false;
 
         foreach (var comp in circuit.components)

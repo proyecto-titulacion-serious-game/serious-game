@@ -100,6 +100,9 @@ public class TechnicianWorkstation : MonoBehaviour
 
     void RefreshDiagnosticPanel()
     {
+        // Siempre obtener la referencia actualizada: GameManager.circuit cambia en cada reto
+        // y ForceSimulate() dispara este callback ANTES de que OnLevelLoaded la actualice.
+        if (gameManager != null) circuit = gameManager.circuit;
         if (circuit == null) return;
 
         Set(txtDiagnostico,     _diagnostic.GetDiagnosis(circuit.components, circuit.totalCurrent));

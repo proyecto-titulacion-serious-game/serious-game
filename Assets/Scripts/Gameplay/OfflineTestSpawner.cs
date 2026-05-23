@@ -23,8 +23,12 @@ public class OfflineTestSpawner : MonoBehaviour
 {
     [Header("Componente a simular")]
     public ComponentType testType  = ComponentType.Resistor;
-    [Tooltip("Ohms para Resistor | 1/-1 para LED/Capacitor | pin# para Arduino")]
-    public float         testValue = 100f;
+    [Tooltip("Ohms para Resistor | 1/-1 para LED/Capacitor | pin# para Arduino\n" +
+             "Reto 1 — Resistor correcto: 850  |  incorrecto: 10\n" +
+             "Reto 2 — LED correcto: 1  |  invertido: -1\n" +
+             "Reto 3 — Capacitor correcto: 1  |  invertido: -1\n" +
+             "Reto 4 — ArduinoPin correcto: 2")]
+    public float         testValue = 850f;
 
     [Header("Spawn automático al inicio")]
     [Tooltip("Si está activo, spawnea el componente automáticamente al iniciar la escena.")]

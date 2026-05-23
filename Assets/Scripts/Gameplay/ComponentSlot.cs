@@ -33,15 +33,26 @@ public class ComponentSlot : MonoBehaviour
     [Header("Anclaje al instalar")]
     public Transform installAnchor;
 
+    [Header("Componente dañado a reemplazar (opcional)")]
+    [Tooltip("Arrastra aquí el GameObject del componente defectuoso visible en la escena. " +
+             "Se ocultará automáticamente cuando el Explorador instale el reemplazo.")]
+    public GameObject damagedComponent;
+
     [Header("Estado (solo lectura)")]
     [SerializeField] private bool       _hasComponent = false;
     [SerializeField] private GameObject _installed;
+
+    private GrabbableComponent _hoveringGC;
+
+    /// <summary>El GameObject actualmente instalado en este slot (null si vacío).</summary>
+    public GameObject InstalledObject => _installed;
 
     // ─────────────────────────────────────────────
     //  Internos
     // ─────────────────────────────────────────────
     private MaterialPropertyBlock _mpb;
-    private static readonly int   _colorID = Shader.PropertyToID("_BaseColor");
+    private static readonly int _colorID       = Shader.PropertyToID("_BaseColor"); // URP
+    private static readonly int _colorLegacyID = Shader.PropertyToID("_Color");     // Built-in fallback
 
     // ─────────────────────────────────────────────
     //  Unity Lifecycle
@@ -66,47 +77,61 @@ public class ComponentSlot : MonoBehaviour
     {
         if (_hasComponent) return;
 
-        ComponentType incoming = DetectComponentType(other.gameObject);
-        if (incoming == ComponentType.None) return;
+        var gc = other.GetComponentInParent<GrabbableComponent>();
+        if (gc == null) return;
 
+        // Sólo aceptar componentes mientras hay una entrega pendiente.
+        // Evita que componentes de escena (ej. Resistor_Faulty) se auto-instalen al inicio.
+        if (delivery != null && !delivery.HasPendingDelivery()) return;
+
+        ComponentType incoming = DetectComponentType(gc.gameObject);
         bool matches = MatchesSlotType(incoming, acceptedType);
 
         if (matches)
         {
-            InstallComponent(other.gameObject);
-            SetColor(colorCorrect);
+            _hoveringGC = gc;
+            SetColor(colorHover);
+            gc.Released += OnComponentReleasedInSlot;
 
-            // OnExplorerInstalled valida el valor y llama RegisterRepairAction solo si es correcto.
-            delivery?.OnExplorerInstalled(this);
-
-            Debug.Log($"[Slot {name}] Instalado: {incoming}");
+            // Si el usuario soltó el componente justo antes de entrar al trigger
+            if (!gc.IsGrabbed)
+                OnComponentReleasedInSlot(gc);
         }
         else
         {
             SetColor(colorWrong);
-
-            // ── CORRECCIÓN 3: registrar intento incorrecto ──
-            gameManager?.RegisterWrongAttempt($"Componente incorrecto: {incoming} en slot de {acceptedType}");
-
-            // Restaurar color tras un momento (cancelar cualquier reset pendiente primero)
+            gameManager?.RegisterWrongAttempt(
+                $"Componente incorrecto: {incoming} en slot de {acceptedType}");
             CancelInvoke(nameof(ResetColor));
             Invoke(nameof(ResetColor), 1.2f);
-
             Debug.Log($"[Slot {name}] Tipo incorrecto: {incoming} (esperaba {acceptedType})");
         }
     }
 
-    void OnTriggerStay(Collider other)
-    {
-        if (_hasComponent) return;
-        if (DetectComponentType(other.gameObject) == ComponentType.None) return;
-        SetColor(colorHover);
-    }
+    void OnTriggerStay(Collider other) { }
 
     void OnTriggerExit(Collider other)
     {
         if (_hasComponent) return;
-        SetColor(colorNormal);
+        var gc = other.GetComponentInParent<GrabbableComponent>();
+        if (gc != null && gc == _hoveringGC)
+        {
+            gc.Released -= OnComponentReleasedInSlot;
+            _hoveringGC = null;
+            SetColor(colorNormal);
+        }
+    }
+
+    void OnComponentReleasedInSlot(GrabbableComponent gc)
+    {
+        if (gc != null) gc.Released -= OnComponentReleasedInSlot;
+        _hoveringGC = null;
+        if (_hasComponent) return;
+
+        InstallComponent(gc.gameObject);
+        SetColor(colorCorrect);
+        delivery?.OnExplorerInstalled(this);
+        Debug.Log($"[Slot {name}] Instalado al soltar: {gc.name}");
     }
 
     // ─────────────────────────────────────────────
@@ -127,8 +152,11 @@ public class ComponentSlot : MonoBehaviour
             rb.useGravity  = false;
         }
 
-        // Deshabilitar grab para que no se pueda sacar del slot una vez instalado
         comp.GetComponent<GrabbableComponent>()?.DisableGrab();
+
+        // Ocultar el componente dañado original que este slot reemplaza
+        if (damagedComponent != null)
+            damagedComponent.SetActive(false);
     }
 
     public void ReleaseComponent()
@@ -180,6 +208,7 @@ public class ComponentSlot : MonoBehaviour
         if (slotRenderer == null) return;
         slotRenderer.GetPropertyBlock(_mpb);
         _mpb.SetColor(_colorID, c);
+        _mpb.SetColor(_colorLegacyID, c);
         slotRenderer.SetPropertyBlock(_mpb);
     }
 

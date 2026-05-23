@@ -73,6 +73,12 @@ public class Multimeter : MonoBehaviour
     private ElectricalNode _nodeBlack;
 
     // ─────────────────────────────────────────────
+    //  Eventos
+    // ─────────────────────────────────────────────
+    /// <summary>Se dispara la primera vez que ambas puntas están conectadas y se obtiene una lectura.</summary>
+    public static event System.Action OnReadingTaken;
+
+    // ─────────────────────────────────────────────
     //  XR
     // ─────────────────────────────────────────────
     private XRGrabInteractable _grab;
@@ -88,6 +94,13 @@ public class Multimeter : MonoBehaviour
         _grab.selectEntered.AddListener(OnGrabbed);
         _grab.selectExited.AddListener(OnReleased);
         _indicatorMpb = new MaterialPropertyBlock();
+    }
+
+    void OnDestroy()
+    {
+        if (_grab == null) return;
+        _grab.selectEntered.RemoveListener(OnGrabbed);
+        _grab.selectExited.RemoveListener(OnReleased);
     }
 
     void Update()
@@ -229,7 +242,9 @@ public class Multimeter : MonoBehaviour
             return;
         }
 
+        bool wasReading = _isReading;
         _isReading = true;
+        if (!wasReading) OnReadingTaken?.Invoke();
 
         float vDiff = _nodeRed.voltage - _nodeBlack.voltage;
         float i     = _nodeRed.current;   // ← funciona tras el Parche 1

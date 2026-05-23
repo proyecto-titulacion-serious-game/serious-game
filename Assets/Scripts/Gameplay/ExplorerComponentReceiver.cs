@@ -112,6 +112,11 @@ public class ExplorerComponentReceiver : MonoBehaviour
         if (_componenteActual != null)
             Destroy(_componenteActual);
 
+        // If delivery already spawned a ghost (from the delivery path in ComponentSendingTray),
+        // cancel it so we spawn at the correct Explorer location instead.
+        if (delivery != null && delivery.HasPendingDelivery())
+            delivery.CancelDelivery();
+
         // Prioridad: prefab enviado desde el Técnico → prefab base asignado en Inspector
         GameObject prefab = prefabOverride != null ? prefabOverride : tipo switch
         {

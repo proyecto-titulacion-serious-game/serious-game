@@ -134,6 +134,8 @@ public class TechnicianActions : MonoBehaviour
     /// </summary>
     public void FixParallelCircuit()
     {
+        if (circuit == null) return;
+
         if (!demoMode && instructionSystem != null && !instructionSystem.CanRepairParallel())
         {
             Debug.Log("[TechnicianActions] Primero mide la rama rota.");
@@ -163,6 +165,8 @@ public class TechnicianActions : MonoBehaviour
     /// </summary>
     public bool ApplyResistorValue(float value)
     {
+        if (circuit == null) return false;
+
         foreach (var comp in circuit.components)
         {
             if (comp is Resistor r)

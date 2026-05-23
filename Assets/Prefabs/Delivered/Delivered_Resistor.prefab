@@ -303,8 +303,17 @@ MonoBehaviour:
   nodeB: {fileID: 0}
   current: 0
   voltageDrop: 0
+  isOpenCircuit: 0
   resistance: 100
   correctResistance: 100
-  faultyResistance: 10
+  faultyResistance: 100
   hasFault: 0
   tolerancePercent: 5
+  powerRatingWatts: 0.25
+  colorNormal: {r: 0.76, g: 0.6, b: 0.42, a: 1}
+  colorFault: {r: 1, g: 0.55, b: 0, a: 1}
+  colorOverload: {r: 1, g: 0.1, b: 0.05, a: 1}
+  colorOpen: {r: 0.25, g: 0.25, b: 0.25, a: 1}
+  smokeEffect: {fileID: 0}
+  _dissipatedPower: 0
+  _isOverloaded: 0

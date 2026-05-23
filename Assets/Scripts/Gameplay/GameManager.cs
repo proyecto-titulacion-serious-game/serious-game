@@ -59,7 +59,7 @@ public class GameManager : MonoBehaviour
     // ─────────────────────────────────────────────
     public LevelType currentLevel    => _currentLevel;
     public bool      levelCompleted  => _levelCompleted;
-    public float     currentTimeLimit => timeLimits[_currentIndex];
+    public float     currentTimeLimit => _currentIndex < timeLimits.Length ? timeLimits[_currentIndex] : 600f;
     public float     remainingTime   => _remainingTime;
     public bool      timerActive     => _timerActive;
 
@@ -373,7 +373,7 @@ public class GameManager : MonoBehaviour
 
     void CheckReto1()
     {
-        if (!_repairPerformed) return;
+        if (!_repairPerformed || circuit == null) return;
 
         foreach (var comp in circuit.components)
         {
@@ -444,7 +444,7 @@ public class GameManager : MonoBehaviour
 
     void CheckReto2()
     {
-        if (!_repairPerformed) return;
+        if (!_repairPerformed || circuit == null) return;
 
         if (circuit.AreAllLEDsOn())
             CompleteLevel(true);
@@ -489,7 +489,7 @@ public class GameManager : MonoBehaviour
 
     void CheckReto3()
     {
-        if (!_repairPerformed) return;
+        if (!_repairPerformed || circuit == null) return;
 
         bool ledFixed = true, capFixed = true, resFixed = true;
 
@@ -539,7 +539,7 @@ public class GameManager : MonoBehaviour
 
     void CheckReto4()
     {
-        if (!_repairPerformed) return;
+        if (!_repairPerformed || circuit == null) return;
 
         bool allPinsCorrect = true;
         bool resistorFixed  = true;

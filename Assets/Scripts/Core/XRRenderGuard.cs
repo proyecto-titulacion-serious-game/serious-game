@@ -76,7 +76,7 @@ public class XRRenderGuard : MonoBehaviour
     void ApplyFallbackHeight()
     {
         var pos = transform.localPosition;
-        if (pos.y != fallbackEyeHeight)
+        if (Mathf.Abs(pos.y - fallbackEyeHeight) > 0.001f)
         {
             pos.y = fallbackEyeHeight;
             transform.localPosition = pos;

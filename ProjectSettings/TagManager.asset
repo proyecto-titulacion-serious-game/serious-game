@@ -7,6 +7,7 @@ TagManager:
   - RightHand
   - LeftHand
   - TechnicianCamera
+  - CinemachineTarget
   layers:
   - Default
   - TransparentFX
@@ -38,7 +39,7 @@ TagManager:
   - 
   - 
   - 
-  - 
+  - XR Simulation
   - 
   m_SortingLayers:
   - name: Default

@@ -31,23 +31,33 @@ public class ObjectiveSystem : MonoBehaviour
     public static event Action<SessionResult> OnSessionEnded;
 
     // ─────────────────────────────────────────────
+    //  Flags de interacción
+    // ─────────────────────────────────────────────
+    // Evitan que objetivos que requieren acción del jugador se completen solos
+    private bool _multimeterUsed = false;
+
+    // ─────────────────────────────────────────────
     //  Unity Lifecycle
     // ─────────────────────────────────────────────
     void Start()
     {
-        GameManager.OnLevelLoaded    += BuildObjectivesForLevel;
-        GameManager.OnLevelCompleted += HandleLevelCompleted;
-        GameManager.OnGameCompleted  += HandleGameCompleted;
+        GameManager.OnLevelLoaded       += BuildObjectivesForLevel;
+        GameManager.OnLevelCompleted    += HandleLevelCompleted;
+        GameManager.OnGameCompleted     += HandleGameCompleted;
         CircuitManager.OnCircuitChanged += AutoCompleteByCircuitState;
+        Multimeter.OnReadingTaken       += OnMultimeterUsed;
     }
 
     void OnDestroy()
     {
-        GameManager.OnLevelLoaded    -= BuildObjectivesForLevel;
-        GameManager.OnLevelCompleted -= HandleLevelCompleted;
-        GameManager.OnGameCompleted  -= HandleGameCompleted;
+        GameManager.OnLevelLoaded       -= BuildObjectivesForLevel;
+        GameManager.OnLevelCompleted    -= HandleLevelCompleted;
+        GameManager.OnGameCompleted     -= HandleGameCompleted;
         CircuitManager.OnCircuitChanged -= AutoCompleteByCircuitState;
+        Multimeter.OnReadingTaken       -= OnMultimeterUsed;
     }
+
+    void OnMultimeterUsed() => _multimeterUsed = true;
 
     // ─────────────────────────────────────────────
     //  Construcción de objetivos por reto
@@ -56,8 +66,9 @@ public class ObjectiveSystem : MonoBehaviour
     void BuildObjectivesForLevel(LevelType level)
     {
         _objectives.Clear();
-        _totalScore = 0;
-        _maxScore   = 0;
+        _totalScore      = 0;
+        _maxScore        = 0;
+        _multimeterUsed  = false;
 
         switch (level)
         {
@@ -169,22 +180,22 @@ public class ObjectiveSystem : MonoBehaviour
         switch (gameManager.currentLevel)
         {
             case LevelType.OhmLaw:
-                // Obj 0: multímetro conectado a dos nodos (detectar corriente en circuito)
-                if (circuit.totalCurrent > 0f)
+                // Obj 0: multímetro conectado a dos nodos — solo si el jugador usó el multímetro
+                if (_multimeterUsed)
                     CompleteObjectiveOnce(0);
-                // Obj 1: voltaje leído (hay voltaje en nodos)
-                if (circuit.sourceVoltage > 0f)
+                // Obj 1: voltaje leído — solo tras usar el multímetro y obtener lectura > 0
+                if (_multimeterUsed && circuit.totalCurrent > 0f)
                     CompleteObjectiveOnce(1);
                 // Obj 2: resistencia seleccionada → delegado a TechnicianActions
                 // Obj 3: reparación aplicada → se completa en HandleLevelCompleted
                 break;
 
             case LevelType.Parallel:
-                // Obj 0: se midió voltaje (multímetro en uso)
-                if (circuit.totalCurrent > 0f)
+                // Obj 0: multímetro en uso — solo si el jugador conectó las puntas
+                if (_multimeterUsed)
                     CompleteObjectiveOnce(0);
-                // Obj 1: rama rota identificada (algún LED apagado al inicio)
-                if (circuit.sourceVoltage > 0f)
+                // Obj 1: rama rota identificada — solo tras medir y haber un LED apagado
+                if (_multimeterUsed && circuit.totalCurrent > 0f)
                     CompleteObjectiveOnce(1);
                 // Obj 2: reparación → HandleLevelCompleted
                 break;

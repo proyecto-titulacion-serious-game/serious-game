@@ -58776,11 +58776,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ExplorerComponentReceiver
   puntoDeEntrega: {fileID: 176150879}
-  resistorPrefab: {fileID: 0}
-  ledPrefab: {fileID: 0}
-  capacitorPrefab: {fileID: 0}
-  arduinoPinPrefab: {fileID: 0}
-  delivery: {fileID: 0}
+  resistorPrefab: {fileID: 2414145904669836311, guid: 9e7ab834969c64e41884081a6ac4633e, type: 3}
+  ledPrefab: {fileID: 8101690486802690680, guid: 91f5e47fa1561b0418247a2dbc3f3a59, type: 3}
+  capacitorPrefab: {fileID: 123309205590929796, guid: 5990932cbd65d1148b6f9cf3d078d7c0, type: 3}
+  arduinoPinPrefab: {fileID: 2582350800741640194, guid: 03b87575f304ff54585f96f7540ce6b8, type: 3}
+  delivery: {fileID: 276769958}
 --- !u!114 &1132147253
 MonoBehaviour:
   m_ObjectHideFlags: 0

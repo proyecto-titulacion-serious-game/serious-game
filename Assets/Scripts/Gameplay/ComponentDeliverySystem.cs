@@ -176,6 +176,13 @@ public class ComponentDeliverySystem : MonoBehaviour
 
         if (valueCorrect)
         {
+            // Deshabilitar el script eléctrico del componente entregado para que
+            // el rescan de RegisterRepairAction no lo cuente como segundo componente
+            // del circuito (el circuito se actualiza sobre el componente original de la escena).
+            if (slot.InstalledObject != null &&
+                slot.InstalledObject.TryGetComponent<ElectricalComponent>(out var ec))
+                ec.enabled = false;
+
             ApplyRepairToCircuit();
             OnRepairValidated?.Invoke(true);
             gameManager?.RegisterRepairAction();

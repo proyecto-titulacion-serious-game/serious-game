@@ -79,6 +79,11 @@ public class PlayerController : MonoBehaviour
     private InputAction _snapTurnAct;
     private bool        _snapTurnHeld;
 
+    // Fallback when moveAction reference is unassigned in Inspector
+    private InputAction _moveFallback;
+
+    InputAction MoveAction => moveAction?.action ?? _moveFallback;
+
     // ─────────────────────────────────────────────
     //  Unity Lifecycle
     // ─────────────────────────────────────────────
@@ -89,26 +94,50 @@ public class PlayerController : MonoBehaviour
 
         if (headCamera == null)
             headCamera = Camera.main;
+
+        if (moveAction?.action == null)
+            TryAutoFindMoveAction();
+    }
+
+    void TryAutoFindMoveAction()
+    {
+        foreach (var asset in Resources.FindObjectsOfTypeAll<InputActionAsset>())
+        {
+            var act = asset.FindAction("XRI Left Locomotion/Move")
+                   ?? asset.FindAction("Move");
+            if (act != null)
+            {
+                _moveFallback = act;
+                Debug.Log($"[PlayerController] moveAction auto-asignado desde '{asset.name}'.");
+                return;
+            }
+        }
+        Debug.LogWarning("[PlayerController] moveAction no encontrado automáticamente. " +
+                         "Asigna 'XRI Left Locomotion/Move' en el Inspector.");
     }
 
     void OnEnable()
     {
-        if (moveAction != null)
+        var act = MoveAction;
+        if (act != null)
         {
-            moveAction.action.actionMap?.Enable();
-            moveAction.action.Enable();
+            act.actionMap?.Enable();
+            act.Enable();
         }
         _snapTurnAct?.Enable();
     }
 
     void OnDisable()
     {
-        moveAction?.action.Disable();
+        MoveAction?.Disable();
         _snapTurnAct?.Disable();
     }
 
     void Start()
     {
+        // Asegurar CharacterController antes de cualquier operación
+        EnsureCharacterController();
+        
 #if !UNITY_EDITOR
         if (!XRSettings.isDeviceActive)
         {
@@ -118,15 +147,18 @@ public class PlayerController : MonoBehaviour
             return;
         }
 #endif
-        DisableConflictingXRILocomotion();
-
+        // Inicializar KAT VR PRIMERO para que useKatVR refleje si hay hardware real.
+        // Si KAT falla, useKatVR quedará false antes de evaluar qué providers deshabilitar.
         if (useKatVR) InitKatVR();
 
+        DisableConflictingXRILocomotion();
+
         // Asegurar que la acción de movimiento esté habilitada
-        if (moveAction != null)
+        var moveAct = MoveAction;
+        if (moveAct != null)
         {
-            moveAction.action.actionMap?.Enable();   // habilita el action map completo
-            moveAction.action.Enable();
+            moveAct.actionMap?.Enable();
+            moveAct.Enable();
         }
         else
         {
@@ -142,40 +174,48 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
-    /// Desactiva los providers de locomoción de XRI para que no conflictúen
-    /// con el CharacterController que maneja este script.
+    /// Desactiva los providers de locomoción de XRI solo cuando KAT VR está activo.
+    /// En modo joystick normal el ContinuousMoveProvider de XRI maneja el movimiento.
     /// </summary>
     void DisableConflictingXRILocomotion()
     {
-        // Buscar en el GameObject propio y en padres (XR Origin)
-        var moveProviders = GetComponentsInParent<ContinuousMoveProvider>(true);
+        // Solo tomar el control cuando KAT VR está activo. En modo joystick estándar
+        // el ContinuousMoveProvider de XRI (ya configurado en el XR Rig) maneja el
+        // thumbstick izquierdo nativamente sin conflictos.
+        if (!useKatVR) return;
+
+        // Buscar en el XR Rig (hijo) y en padres — GetComponentsInParent solo sube,
+        // así que buscamos también hacia abajo desde el rig para cubrir la jerarquía real.
+        Transform searchRoot = xrRig != null ? xrRig : transform;
+
+        var moveProviders = searchRoot.GetComponentsInChildren<ContinuousMoveProvider>(true);
         foreach (var p in moveProviders)
         {
             if (p.enabled)
             {
                 p.enabled = false;
-                Debug.Log($"[PlayerController] ContinuousMoveProvider '{p.name}' desactivado " +
+                Debug.Log($"[PlayerController] ContinuousMoveProvider '{p.gameObject.name}' desactivado " +
                           "(PlayerController toma control del movimiento).");
             }
         }
 
-        var continuousTurn = GetComponentsInParent<ContinuousTurnProvider>(true);
+        var continuousTurn = searchRoot.GetComponentsInChildren<ContinuousTurnProvider>(true);
         foreach (var p in continuousTurn)
         {
             if (p.enabled)
             {
                 p.enabled = false;
-                Debug.Log($"[PlayerController] ContinuousTurnProvider '{p.name}' desactivado.");
+                Debug.Log($"[PlayerController] ContinuousTurnProvider '{p.gameObject.name}' desactivado.");
             }
         }
 
-        var snapTurn = GetComponentsInParent<SnapTurnProvider>(true);
+        var snapTurn = searchRoot.GetComponentsInChildren<SnapTurnProvider>(true);
         foreach (var p in snapTurn)
         {
             if (p.enabled)
             {
                 p.enabled = false;
-                Debug.Log($"[PlayerController] SnapTurnProvider '{p.name}' desactivado.");
+                Debug.Log($"[PlayerController] SnapTurnProvider '{p.gameObject.name}' desactivado.");
             }
         }
     }
@@ -184,42 +224,91 @@ public class PlayerController : MonoBehaviour
     public void DiagnosticarMovimiento()
     {
         Debug.Log("════ [PlayerController] DIAGNÓSTICO DE MOVIMIENTO ════");
+        
+        // Verificar componente crítico primero
+        EnsureCharacterController();
+        
+        Debug.Log($"  GameObject      = {gameObject.name}");
+        Debug.Log($"  GameObject activo = {gameObject.activeInHierarchy}");
+        Debug.Log($"  Component activo = {enabled}");
         Debug.Log($"  useKatVR        = {useKatVR}");
-        Debug.Log($"  moveAction      = {(moveAction != null ? moveAction.name : "⚠ NULL — asignar en Inspector")}");
+        Debug.Log($"  moveAction      = {(MoveAction != null ? MoveAction.name : "⚠ NULL — asignar en Inspector")}");
 
         if (moveAction != null)
         {
-            bool enabled_ = moveAction.action.enabled;
-            Vector2 val   = moveAction.action.ReadValue<Vector2>();
-            Debug.Log($"  action enabled  = {enabled_}");
-            Debug.Log($"  action value    = {val}  (mueve el joystick izquierdo ahora para ver si cambia)");
-            Debug.Log($"  action map      = {moveAction.action.actionMap?.name ?? "sin action map"}");
-            Debug.Log($"  bindings        = {moveAction.action.bindings.Count}");
+            try
+            {
+                bool enabled_ = moveAction.action.enabled;
+                Vector2 val   = moveAction.action.ReadValue<Vector2>();
+                Debug.Log($"  action enabled  = {enabled_}");
+                Debug.Log($"  action value    = {val}  (mueve el joystick izquierdo ahora para ver si cambia)");
+                Debug.Log($"  action map      = {moveAction.action.actionMap?.name ?? "sin action map"}");
+                Debug.Log($"  bindings        = {moveAction.action.bindings.Count}");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"  ⚠ Error leyendo moveAction: {e.Message}");
+            }
         }
 
         Debug.Log($"  headCamera      = {(headCamera != null ? headCamera.name : "⚠ NULL")}");
         Debug.Log($"  xrRig           = {(xrRig != null ? xrRig.name : "⚠ NULL")}");
-        Debug.Log($"  CharacterController.enabled = {_cc?.enabled}");
-        Debug.Log($"  CharacterController.isGrounded = {_cc?.isGrounded}");
+        
+        if (_cc != null)
+        {
+            Debug.Log($"  CharacterController.enabled = {_cc.enabled}");
+            Debug.Log($"  CharacterController.isGrounded = {_cc.isGrounded}");
+            Debug.Log($"  CharacterController.height = {_cc.height}");
+            Debug.Log($"  CharacterController.radius = {_cc.radius}");
+        }
+        else
+        {
+            Debug.LogError("  ❌ CharacterController is NULL - ejecutar Tools → TITA → Fix PlayerController Components");
+        }
+        
         Debug.Log($"  _frozen         = {_frozen}");
         Debug.Log("════════════════════════════════════════════════════════");
+    }
+    
+    /// <summary>
+    /// Asegura que CharacterController esté asignado correctamente
+    /// </summary>
+    void EnsureCharacterController()
+    {
+        if (_cc == null)
+        {
+            _cc = GetComponent<CharacterController>();
+            if (_cc == null)
+            {
+                Debug.LogError($"[PlayerController] {gameObject.name} no tiene CharacterController. " +
+                               "Ejecutar Tools → TITA → Fix PlayerController Components para corregir.");
+            }
+        }
     }
 
     void Update()
     {
+        // Asegurar que CharacterController esté disponible
+        EnsureCharacterController();
+        if (_cc == null) return; // Skip update si no hay CharacterController
+        
         _isGrounded = _cc.isGrounded;
         _usedSimpleMove = false;
         _katActive = false;
 
         if (!_frozen)
         {
+            // En modo KAT VR el CharacterController mueve al jugador.
+            // En modo joystick estándar el ContinuousMoveProvider de XRI lo hace:
+            // no aplicamos movimiento aquí para evitar doble desplazamiento.
             if (useKatVR) HandleKatVRLocomotion();
-            else          HandleJoystickLocomotion();
 
             HandleSnapTurn();
         }
 
-        if (!_usedSimpleMove)
+        // La gravedad solo aplica en modo KAT VR donde usamos CharacterController.
+        // XRI gestiona la altura del jugador a través del tracking del visor.
+        if (useKatVR && !_usedSimpleMove)
             ApplyGravity();
     }
 
@@ -240,28 +329,39 @@ public class PlayerController : MonoBehaviour
 
     void InitKatVR()
     {
-        int deviceCount = KATNativeSDK.DeviceCount();
-        if (deviceCount == 0)
+        try
         {
-            Debug.LogWarning("[PlayerController] KAT VR: sin dispositivos detectados. Usando joystick como fallback.");
-            useKatVR = false;
-            return;
-        }
+            int deviceCount = KATNativeSDK.DeviceCount();
+            if (deviceCount == 0)
+            {
+                Debug.LogWarning("[PlayerController] KAT VR: sin dispositivos detectados. Usando joystick como fallback.");
+                useKatVR = false;
+                return;
+            }
 
-        KATNativeSDK.TreadMillData data = KATNativeSDK.GetWalkStatus(katSerialNumber);
-        if (!data.connected)
+            KATNativeSDK.TreadMillData data = KATNativeSDK.GetWalkStatus(katSerialNumber);
+            if (!data.connected)
+            {
+                Debug.LogWarning("[PlayerController] KAT VR: dispositivo no conectado. Usando joystick como fallback.");
+                useKatVR = false;
+                return;
+            }
+
+            Debug.Log($"[PlayerController] KAT VR conectado: {data.deviceName}");
+            CalibrateOrientation(data);
+        }
+        catch (System.Exception e)
         {
-            Debug.LogWarning("[PlayerController] KAT VR: dispositivo no conectado. Usando joystick como fallback.");
+            Debug.LogWarning($"[PlayerController] KAT VR no disponible ({e.GetType().Name}). Usando joystick como fallback.");
             useKatVR = false;
-            return;
         }
-
-        Debug.Log($"[PlayerController] KAT VR conectado: {data.deviceName}");
-        CalibrateOrientation(data);
     }
 
     void HandleKatVRLocomotion()
     {
+        EnsureCharacterController();
+        if (_cc == null) return;
+        
         KATNativeSDK.TreadMillData data = KATNativeSDK.GetWalkStatus(katSerialNumber);
 
         if (!data.connected || data.deviceDatas == null || data.deviceDatas.Length == 0)
@@ -304,14 +404,17 @@ public class PlayerController : MonoBehaviour
 
     void HandleJoystickLocomotion()
     {
+        EnsureCharacterController();
+        if (_cc == null) return;
+        
         if (headCamera == null)
         {
             headCamera = Camera.main;
             if (headCamera == null) return;
         }
 
-        Vector2 stick = moveAction != null
-            ? moveAction.action.ReadValue<Vector2>()
+        Vector2 stick = MoveAction != null
+            ? MoveAction.ReadValue<Vector2>()
             : Vector2.zero;
 
         if (stick.sqrMagnitude < 0.001f) return;
@@ -384,6 +487,9 @@ public class PlayerController : MonoBehaviour
 
     void ApplyGravity()
     {
+        EnsureCharacterController();
+        if (_cc == null) return;
+        
         if (_isGrounded && _velocity.y < 0f)
             _velocity.y = -2f;
 

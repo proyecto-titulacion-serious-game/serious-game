@@ -1,0 +1,299 @@
+using System;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
+using System.Threading;
+using UnityEngine;
+
+/// <summary>
+/// Servidor HTTP embebido que sirve el dashboard del docente.
+/// Accesible desde cualquier navegador en la red LAN.
+///
+/// SETUP:
+///   1. Añadir al mismo GO que SessionDataExporter (ej. NetworkManager).
+///   2. Asignar dataExporter en el Inspector (o se busca automáticamente).
+///   3. Al entrar en Play Mode, Unity imprime la URL en la consola.
+///   4. El docente abre esa URL en cualquier navegador del laboratorio.
+///
+/// PUERTOS Y PERMISOS (Windows):
+///   localhostOnly = true  → solo el PC local, sin permisos extra.
+///   localhostOnly = false → toda la LAN; ejecutar Unity como admin O:
+///     netsh http add urlacl url=http://+:8080/ user=Everyone
+///
+/// RUTAS:
+///   GET  /            → Dashboard HTML
+///   GET  /api/results → JSON con resultados de la última sesión
+///   GET  /api/status  → JSON con estado actual
+///   POST /api/code    → Genera un código de acceso de 4 dígitos
+/// </summary>
+public class DashboardServer : MonoBehaviour
+{
+    [Header("Configuración")]
+    public int  port          = 8080;
+    [Tooltip("true = solo localhost (sin permisos extra). false = toda la LAN.")]
+    public bool localhostOnly = true;
+
+    [Header("Referencias")]
+    public SessionDataExporter dataExporter;
+
+    // ─────────────────────────────────────────────
+    private HttpListener  _listener;
+    private Thread        _thread;
+    private volatile bool _running;
+
+    // ─────────────────────────────────────────────
+    void Start()
+    {
+        if (dataExporter == null)
+            dataExporter = FindAnyObjectByType<SessionDataExporter>(FindObjectsInactive.Include);
+        StartServer();
+    }
+
+    void OnDestroy() => StopServer();
+
+    // ─────────────────────────────────────────────
+    void StartServer()
+    {
+        string prefix = localhostOnly ? $"http://localhost:{port}/" : $"http://+:{port}/";
+        try
+        {
+            _listener = new HttpListener();
+            _listener.Prefixes.Add(prefix);
+            _listener.Start();
+            _running = true;
+            _thread = new Thread(ListenLoop) { IsBackground = true, Name = "DashboardHTTP" };
+            _thread.Start();
+            string ip = localhostOnly ? "localhost" : GetLocalIP();
+            Debug.Log($"[DashboardServer] Panel docente en: http://{ip}:{port}/");
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[DashboardServer] No se pudo iniciar: {e.Message}\n" +
+                             "Activa 'localhostOnly' o ejecuta Unity como administrador.");
+        }
+    }
+
+    void StopServer()
+    {
+        _running = false;
+        try { _listener?.Stop(); } catch { }
+        _thread?.Join(500);
+    }
+
+    void ListenLoop()
+    {
+        while (_running)
+        {
+            try
+            {
+                var ctx = _listener.GetContext();
+                ThreadPool.QueueUserWorkItem(_ => HandleRequest(ctx));
+            }
+            catch (HttpListenerException) { break; }
+            catch (Exception e) { Debug.LogWarning($"[DashboardServer] {e.Message}"); }
+        }
+    }
+
+    // ─────────────────────────────────────────────
+    void HandleRequest(HttpListenerContext ctx)
+    {
+        try
+        {
+            string path   = ctx.Request.Url.AbsolutePath.ToLower().TrimEnd('/');
+            string method = ctx.Request.HttpMethod.ToUpper();
+
+            if (method == "POST" && path == "/api/code")
+            {
+                string code = new System.Random().Next(1000, 9999).ToString();
+                dataExporter?.SetAccessCode(code);
+                Respond(ctx, 200, "application/json", "{\"code\":\"" + code + "\"}");
+            }
+            else if (path == "/api/results")
+            {
+                var data = dataExporter?.GetSnapshot() ?? new SessionExportData();
+                Respond(ctx, 200, "application/json", JsonUtility.ToJson(data));
+            }
+            else if (path == "/api/status")
+            {
+                var data = dataExporter?.GetSnapshot() ?? new SessionExportData();
+                string json = "{" +
+                    "\"currentReto\":\"" + Escape(data.currentReto) + "\"," +
+                    "\"state\":\"" + Escape(data.state) + "\"," +
+                    "\"accessCode\":\"" + Escape(data.accessCode) + "\"}";
+                Respond(ctx, 200, "application/json", json);
+            }
+            else
+            {
+                Respond(ctx, 200, "text/html; charset=utf-8", DashboardHtml);
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[DashboardServer] Error en request: {e.Message}");
+        }
+    }
+
+    static void Respond(HttpListenerContext ctx, int status, string contentType, string body)
+    {
+        try
+        {
+            byte[] bytes = Encoding.UTF8.GetBytes(body);
+            ctx.Response.StatusCode      = status;
+            ctx.Response.ContentType     = contentType;
+            ctx.Response.ContentLength64 = bytes.Length;
+            ctx.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+            ctx.Response.OutputStream.Write(bytes, 0, bytes.Length);
+            ctx.Response.OutputStream.Close();
+        }
+        catch { }
+    }
+
+    static string Escape(string s) =>
+        (s ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"");
+
+    static string GetLocalIP()
+    {
+        try
+        {
+            foreach (var ip in Dns.GetHostEntry(Dns.GetHostName()).AddressList)
+                if (ip.AddressFamily == AddressFamily.InterNetwork)
+                    return ip.ToString();
+        }
+        catch { }
+        return "localhost";
+    }
+
+    // ─────────────────────────────────────────────
+    //  HTML del dashboard — sin comillas dobles en el contenido
+    //  (todas las attrs HTML y strings JS usan comilla simple)
+    // ─────────────────────────────────────────────
+    static readonly string DashboardHtml =
+        "<!DOCTYPE html>" +
+        "<html lang='es'>" +
+        "<head>" +
+        "<meta charset='UTF-8'>" +
+        "<meta name='viewport' content='width=device-width,initial-scale=1'>" +
+        "<title>TITA — Panel Docente</title>" +
+        "<style>" +
+        "*{box-sizing:border-box;margin:0;padding:0}" +
+        "body{font-family:monospace;background:#0d1117;color:#c9d1d9;padding:24px}" +
+        "h1{color:#58a6ff;margin-bottom:4px;font-size:1.6em}" +
+        ".sub{color:#8b949e;font-size:.85em;margin-bottom:24px}" +
+        ".grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}" +
+        "@media(max-width:600px){.grid{grid-template-columns:1fr}}" +
+        ".card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:20px}" +
+        ".card h2{color:#58a6ff;font-size:1em;margin-bottom:12px;text-transform:uppercase;letter-spacing:.05em}" +
+        ".code-display{font-size:2.8em;color:#f0c040;letter-spacing:.4em;text-align:center;padding:12px 0;font-weight:bold}" +
+        ".code-hint{font-size:.75em;color:#8b949e;text-align:center;margin-bottom:12px}" +
+        ".btn{background:#21262d;color:#c9d1d9;border:1px solid #30363d;padding:8px 16px;cursor:pointer;" +
+        "border-radius:6px;font-family:monospace;font-size:.9em;margin:4px 2px;transition:background .15s}" +
+        ".btn:hover{background:#388bfd;color:#fff;border-color:#388bfd}" +
+        ".btn-gen{background:#1f6feb;color:#fff;border-color:#1f6feb;width:100%}" +
+        ".btn-gen:hover{background:#388bfd}" +
+        ".stat{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #21262d}" +
+        ".stat:last-child{border-bottom:none}" +
+        ".stat-val{color:#3fb950;font-weight:bold}" +
+        ".badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.8em}" +
+        ".badge-ok{background:#1a4731;color:#3fb950}" +
+        ".badge-fail{background:#4a1919;color:#f85149}" +
+        ".badge-wait{background:#1c2128;color:#8b949e}" +
+        "table{width:100%;border-collapse:collapse;font-size:.9em}" +
+        "th{background:#21262d;padding:8px;text-align:left;font-weight:normal;color:#8b949e}" +
+        "td{padding:8px;border-bottom:1px solid #21262d}" +
+        "tr:last-child td{border-bottom:none}" +
+        ".ok{color:#3fb950}.fail{color:#f85149}" +
+        "#toast{position:fixed;bottom:20px;right:20px;background:#1f6feb;color:#fff;" +
+        "padding:10px 18px;border-radius:6px;display:none;font-size:.9em}" +
+        ".note{font-size:.75em;color:#8b949e;text-align:right;margin-top:8px}" +
+        "</style></head><body>" +
+        "<h1>TITA — Panel Docente</h1>" +
+        "<p class='sub'>Serious Game — Circuitos Eléctricos VR &nbsp;|&nbsp; <span id='clock'></span></p>" +
+        "<div class='grid'>" +
+        "  <div class='card'>" +
+        "    <h2>Código de Acceso</h2>" +
+        "    <div class='code-display' id='code'>----</div>" +
+        "    <p class='code-hint'>Dictar este código a los estudiantes para unirse a la sala</p>" +
+        "    <button class='btn btn-gen' onclick='generateCode()'>Generar nuevo código</button>" +
+        "    <button class='btn' style='width:100%;margin-top:4px' onclick='copyCode()'>Copiar código</button>" +
+        "  </div>" +
+        "  <div class='card'>" +
+        "    <h2>Estado de Sesión</h2>" +
+        "    <div class='stat'><span>Reto activo</span><span class='stat-val' id='s-reto'>—</span></div>" +
+        "    <div class='stat'><span>Estado</span><span id='s-state'><span class='badge badge-wait'>En espera</span></span></div>" +
+        "    <div class='stat'><span>Código sala</span><span class='stat-val' id='s-code'>----</span></div>" +
+        "    <p class='note'>Actualización automática cada 10 s</p>" +
+        "  </div>" +
+        "</div>" +
+        "<div class='card'>" +
+        "  <h2>Resultados de Sesión</h2>" +
+        "  <div id='results'><p style='color:#8b949e;padding:12px 0'>Sin datos — la sesión aún no ha finalizado.</p></div>" +
+        "</div>" +
+        "<div id='toast'></div>" +
+        "<script>" +
+        "function clock(){document.getElementById('clock').textContent=new Date().toLocaleTimeString('es-EC');}" +
+        "setInterval(clock,1000);clock();" +
+
+        "async function fetchStatus(){" +
+        "  try{" +
+        "    var d=(await(await fetch('/api/status')).json());" +
+        "    document.getElementById('s-reto').textContent=d.currentReto||'—';" +
+        "    var cls=d.state==='En progreso'?'badge-ok':d.state==='Sesion finalizada'?'badge-ok':'badge-wait';" +
+        "    document.getElementById('s-state').innerHTML='<span class=\\'badge '+cls+'\\'>'+d.state+'</span>';" +
+        "    document.getElementById('s-code').textContent=d.accessCode||'----';" +
+        "    document.getElementById('code').textContent=d.accessCode||'----';" +
+        "  }catch(e){}" +
+        "}" +
+
+        "async function fetchResults(){" +
+        "  try{" +
+        "    var d=(await(await fetch('/api/results')).json());" +
+        "    var el=document.getElementById('results');" +
+        "    if(!d.hasResult){el.innerHTML='<p style=\\'color:#8b949e\\'>Sin datos — sesión no finalizada.</p>';return;}" +
+        "    var s=d.summary;" +
+        "    var pct=Math.round((s.scorePercent||0)*100);" +
+        "    var t=fmt(s.totalTimeSeconds);" +
+        "    var h='<table><thead><tr><th>Reto</th><th>Resultado</th><th>Tiempo</th><th>Errores</th><th>Evaluación</th></tr></thead><tbody>';" +
+        "    if(d.records&&d.records.length){" +
+        "      for(var i=0;i<d.records.length;i++){" +
+        "        var r=d.records[i];var c=r.success?'ok':'fail';var ic=r.success?'OK':'X';" +
+        "        h+='<tr><td>'+r.levelName+'</td><td class=\\''+c+'\\'>'+ic+'</td><td>'+fmt(r.timeSeconds)+'</td><td>'+r.errors+'</td><td>'+r.evaluation+'</td></tr>';" +
+        "      }" +
+        "    }" +
+        "    h+='</tbody></table>';" +
+        "    h+='<div style=\\'margin-top:16px;padding:12px;background:#21262d;border-radius:6px\\'>';" +
+        "    h+='<b style=\\'color:#58a6ff\\'>Resumen</b> ';" +
+        "    h+='Score: <b style=\\'color:#f0c040\\'>'+s.totalScore+'/'+s.maxScore+' pts ('+pct+'%)</b> | ';" +
+        "    h+='Tiempo: <b>'+t+'</b> | ';" +
+        "    h+='Errores: <b style=\\'color:#f85149\\'>'+s.totalErrors+'</b> | ';" +
+        "    h+='<b style=\\'color:#3fb950\\'>'+(s.evaluation||'—')+'</b>';" +
+        "    h+='</div>';" +
+        "    if(d.timestamp)h+='<p style=\\'font-size:.75em;color:#8b949e;margin-top:8px\\'>Guardado: '+d.timestamp+'</p>';" +
+        "    el.innerHTML=h;" +
+        "  }catch(e){document.getElementById('results').textContent='Error al cargar resultados.';}" +
+        "}" +
+
+        "async function generateCode(){" +
+        "  var d=(await(await fetch('/api/code',{method:'POST'})).json());" +
+        "  document.getElementById('code').textContent=d.code;" +
+        "  document.getElementById('s-code').textContent=d.code;" +
+        "  toast('Código generado: '+d.code);" +
+        "}" +
+
+        "function copyCode(){" +
+        "  var c=document.getElementById('code').textContent;" +
+        "  if(c==='----')return;" +
+        "  navigator.clipboard.writeText(c).then(function(){toast('Código copiado');});" +
+        "}" +
+
+        "function fmt(s){if(!s)return'0:00';var m=Math.floor(s/60);return m+':'+String(Math.floor(s%60)).padStart(2,'0');}" +
+
+        "function toast(msg){" +
+        "  var el=document.getElementById('toast');" +
+        "  el.textContent=msg;el.style.display='block';" +
+        "  setTimeout(function(){el.style.display='none';},2500);" +
+        "}" +
+
+        "setInterval(function(){fetchStatus();fetchResults();},10000);" +
+        "fetchStatus();fetchResults();" +
+        "</script></body></html>";
+}

@@ -115,7 +115,7 @@ public class SpaceshipAmbientSystem : MonoBehaviour
         if (z == null) return;
 
         if (success)
-            StartCoroutine(RepairedThenNormal(z));
+            StartCoroutine(RepairedThenNormal(z), z);
         else
             TransitionTo(z, ZoneAmbientState.Normal);
     }

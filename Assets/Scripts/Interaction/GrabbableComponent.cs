@@ -55,7 +55,7 @@ public class GrabbableComponent : MonoBehaviour
     {
         _grab.selectEntered.RemoveListener(OnGrabbed);
         _grab.selectExited.RemoveListener(OnReleased);
-        CancelInvoke(nameof(EnableGravity));
+        CancelInvoke(nameof(OnReleasedNextFrame));
     }
 
     void OnGrabbed(SelectEnterEventArgs args)
@@ -75,10 +75,10 @@ public class GrabbableComponent : MonoBehaviour
     void OnReleased(SelectExitEventArgs args)
     {
         // XRGrabInteractable.OnSelectExited dispara este evento y luego llama Drop(),
-        // que restaura isKinematic al valor previo al grab (true). Si ponemos
-        // isKinematic = false aquí, Drop() lo sobreescribe en el mismo frame.
-        // Diferir un frame garantiza que nuestro cambio llegue después de Drop().
-        Invoke(nameof(EnableGravity), 0f);
+        // que restaura isKinematic al valor previo al grab (true). Diferir un frame
+        // garantiza que nuestro cambio llegue después de Drop() y que el slot pueda
+        // instalar antes de que la gravedad tome efecto.
+        Invoke(nameof(OnReleasedNextFrame), 0f);
 
         haptics?.PlayLight();
         playerInteraction?.OnReleaseComponent(selectable);
@@ -86,15 +86,24 @@ public class GrabbableComponent : MonoBehaviour
         Debug.Log($"[GrabbableComponent] Soltado: {name}");
     }
 
+    void OnReleasedNextFrame()
+    {
+        Released?.Invoke(this);  // el slot instala aquí si el componente está dentro
+        EnableGravity();         // si DisableGrab() fue llamado, retorna temprano
+    }
+
     void EnableGravity()
     {
-        // Si el componente fue instalado en un slot, DisableGrab() deshabilita
-        // el XRGrabInteractable. En ese caso no debe caer.
         if (!_grab.enabled) return;
-
         _rb.isKinematic = false;
         _rb.useGravity  = true;
     }
+
+    /// <summary>True mientras el componente está siendo sostenido por un interactor.</summary>
+    public bool IsGrabbed => _grab != null && _grab.isSelected;
+
+    /// <summary>Se dispara un frame después de soltar. ComponentSlot se suscribe para snap-on-release.</summary>
+    public event System.Action<GrabbableComponent> Released;
 
     /// <summary>Llamado por ComponentSlot tras instalación exitosa. El componente queda fijo.</summary>
     public void DisableGrab() => _grab.enabled = false;

@@ -11,7 +11,7 @@ using UnityEngine.XR.Interaction.Toolkit.Locomotion.Turning;
 /// <summary>
 /// Configura en un solo click todos los componentes VR del Explorador en la escena activa.
 ///
-/// Menu: Tools → TITA → Setup Completo VR Explorador
+/// Menu: Tools → TITA → [LEGACY] Setup Explorador VR Específico
 ///
 /// Qué hace:
 ///   1. PlayerController    — useKatVR, snapTurn, xrRig, headCamera, moveAction
@@ -24,7 +24,7 @@ using UnityEngine.XR.Interaction.Toolkit.Locomotion.Turning;
 /// </summary>
 public static class ExplorerVRSetupTool
 {
-    [MenuItem("Tools/TITA/Setup Completo VR Explorador")]
+    [MenuItem("Tools/TITA/[LEGACY] Setup Explorador VR Específico")]
     static void Run()
     {
         var log     = new StringBuilder();
