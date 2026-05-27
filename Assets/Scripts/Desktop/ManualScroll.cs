@@ -104,7 +104,6 @@ public class ManualScroll : MonoBehaviour,
         var kb = UnityEngine.InputSystem.Keyboard.current;
         if (kb != null) esc = kb.escapeKey.wasPressedThisFrame;
 #endif
-        if (!esc) esc = Input.GetKeyDown(KeyCode.Escape);
         if (esc) CloseManual();
     }
 

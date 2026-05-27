@@ -116,10 +116,6 @@ public class ComponentSendingTray : MonoBehaviour
                        || kb.numpadEnterKey.wasPressedThisFrame
                        || kb.spaceKey.wasPressedThisFrame;
 #endif
-        // Fallback para proyectos con ambos sistemas activos.
-        if (!sendPressed)
-            sendPressed = Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space);
-
         // Solo enviar con Space/Enter cuando el InputField NO está enfocado;
         // si está enfocado, el Enter lo maneja onSubmit directamente.
         bool inputFocused = inputValor != null && inputValor.isFocused;

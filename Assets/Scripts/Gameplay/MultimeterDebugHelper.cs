@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 /// <summary>
 /// Panel de diagnóstico del multímetro — no requiere VR ni teclado.
@@ -57,13 +58,15 @@ public class MultimeterDebugHelper : MonoBehaviour
     void Update()
     {
         if (_mm == null) return;
-        if (Input.GetKeyDown(KeyCode.Alpha1)) AssignProbeManual(red: true);
-        if (Input.GetKeyDown(KeyCode.Alpha2)) AssignProbeManual(red: false);
-        if (Input.GetKeyDown(KeyCode.Alpha0)) { _mm.ResetProbes(); Log("Probes reset."); }
-        if (Input.GetKeyDown(KeyCode.S))      ForceSimulate();
-        if (Input.GetKeyDown(KeyCode.E))      EmergencySetVoltage();
-        if (Input.GetKeyDown(KeyCode.R))      { TryFindCircuit(); ForceSimulate(); AssignProbes(); }
-        if (Input.GetKeyDown(KeyCode.I))      PrintDiagnostic();
+        var kb = Keyboard.current;
+        if (kb == null) return;
+        if (kb.digit1Key.wasPressedThisFrame) AssignProbeManual(red: true);
+        if (kb.digit2Key.wasPressedThisFrame) AssignProbeManual(red: false);
+        if (kb.digit0Key.wasPressedThisFrame) { _mm.ResetProbes(); Log("Probes reset."); }
+        if (kb.sKey.wasPressedThisFrame)      ForceSimulate();
+        if (kb.eKey.wasPressedThisFrame)      EmergencySetVoltage();
+        if (kb.rKey.wasPressedThisFrame)      { TryFindCircuit(); ForceSimulate(); AssignProbes(); }
+        if (kb.iKey.wasPressedThisFrame)      PrintDiagnostic();
     }
 
     // ─────────────────────────────────────────────

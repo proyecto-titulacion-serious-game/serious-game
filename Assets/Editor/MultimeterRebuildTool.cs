@@ -197,14 +197,21 @@ public static class MultimeterRebuildTool
 
     // Crea el material como asset persistente para que sobreviva al SaveAsPrefabAsset.
     // Un 'new Material()' sin guardarlo en AssetDatabase se pierde al serializar el prefab.
+    // Shader buscado por GUID hardcodeado para garantizar URP/Lit correcto en este proyecto.
     static void SetColor(GameObject go, Color color, string matName)
     {
         var r = go.GetComponent<Renderer>();
         if (r == null) return;
 
-        string path   = $"{MAT_FOLDER}/{matName}.mat";
-        var    shader = Shader.Find("Universal Render Pipeline/Lit")
-                     ?? Shader.Find("Standard");
+        string path = $"{MAT_FOLDER}/{matName}.mat";
+
+        // GUID verificado de Universal Render Pipeline/Lit en este proyecto.
+        // Fallback a Shader.Find si el GUID no resuelve (distinta instalación URP).
+        const string urpLitGuid = "933532a4fcc9baf4fa0491de14d08ed7";
+        var shader = AssetDatabase.LoadAssetAtPath<Shader>(
+                         AssetDatabase.GUIDToAssetPath(urpLitGuid))
+                  ?? Shader.Find("Universal Render Pipeline/Lit")
+                  ?? Shader.Find("Standard");
 
         var mat = new Material(shader);
         mat.SetColor("_BaseColor", color);

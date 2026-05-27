@@ -40,6 +40,7 @@ public class DashboardServer : MonoBehaviour
     private HttpListener  _listener;
     private Thread        _thread;
     private volatile bool _running;
+    private static readonly System.Random _rng = new System.Random();
 
     // ─────────────────────────────────────────────
     void Start()
@@ -104,7 +105,7 @@ public class DashboardServer : MonoBehaviour
 
             if (method == "POST" && path == "/api/code")
             {
-                string code = new System.Random().Next(1000, 9999).ToString();
+                string code = _rng.Next(1000, 10000).ToString();
                 dataExporter?.SetAccessCode(code);
                 Respond(ctx, 200, "application/json", "{\"code\":\"" + code + "\"}");
             }
@@ -149,7 +150,8 @@ public class DashboardServer : MonoBehaviour
     }
 
     static string Escape(string s) =>
-        (s ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"");
+        (s ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"")
+                 .Replace("\n", "\\n").Replace("\r", "\\r").Replace("\t", "\\t");
 
     static string GetLocalIP()
     {

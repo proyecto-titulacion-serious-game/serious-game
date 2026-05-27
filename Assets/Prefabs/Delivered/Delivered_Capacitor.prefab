@@ -303,6 +303,7 @@ MonoBehaviour:
   nodeB: {fileID: 0}
   current: 0
   voltageDrop: 0
+  isOpenCircuit: 0
   capacitance: 0.0001
   polarityInverted: 0
   shortCircuitResistance: 0.1

@@ -10,7 +10,7 @@ public class PlayerControllerFixer
     [MenuItem("Tools/TITA/Fix PlayerController Input Actions")]
     public static void FixPlayerControllerInputs()
     {
-        var playerController = Object.FindFirstObjectByType<PlayerController>();
+        var playerController = Object.FindAnyObjectByType<PlayerController>();
         if (playerController == null)
         {
             Debug.LogError("❌ No se encontró PlayerController en la escena actual");
@@ -111,7 +111,7 @@ public class PlayerControllerFixer
     {
         Debug.Log("=== VERIFICACIÓN INPUT ACTIONS ===");
         
-        var playerController = Object.FindFirstObjectByType<PlayerController>();
+        var playerController = Object.FindAnyObjectByType<PlayerController>();
         if (playerController != null)
         {
             playerController.DiagnosticarMovimiento();

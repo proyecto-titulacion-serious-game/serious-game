@@ -120,6 +120,7 @@ public class TechnicianActions : MonoBehaviour
                 pin.FixLooseCable();
                 circuit.MarkDirty();
                 gameManager?.RegisterRepairAction();
+                GameSession.Instance?.ReportarCableReparado();
                 Debug.Log("[TechnicianActions] Cable suelto reconectado.");
                 return;
             }

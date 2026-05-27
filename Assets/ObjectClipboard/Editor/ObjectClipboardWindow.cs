@@ -166,7 +166,9 @@ public class ObjectClipboardWindow : EditorWindow
                     description = EditorPrefs.GetString(keyDescription);
                     if (guid == "") // 씬오브젝트의 경우
                     {
+#pragma warning disable CS0618
                         Object idObj = EditorUtility.InstanceIDToObject(insId);
+#pragma warning restore CS0618
                         m_objects.Add(new ClippedObject(idObj, locked, description));
                     }
                     else // 프로젝트 오브트의 경우
@@ -230,7 +232,9 @@ public class ObjectClipboardWindow : EditorWindow
                 else
                 {
                     // 씬 하이러키 애셋
+#pragma warning disable CS0618
                     EditorPrefs.SetInt(keyInsID, m_objects[i].m_object.GetInstanceID());
+#pragma warning restore CS0618
                     EditorPrefs.SetString(keyGUID, "");
                 }
                 EditorPrefs.SetBool(keyLock, m_objects[i].m_locked);

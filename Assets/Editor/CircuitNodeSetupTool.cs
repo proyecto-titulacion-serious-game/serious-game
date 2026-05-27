@@ -205,7 +205,9 @@ public static class CircuitNodeSetupTool
             mat.renderQueue = 3000;
         }
 
+#pragma warning disable CS0618
         string matPath = $"Assets/Materials/Node_{go.name}_{go.GetInstanceID()}.mat";
+#pragma warning restore CS0618
         AssetDatabase.CreateAsset(mat, matPath);
 
         go.AddComponent<MeshRenderer>().sharedMaterial = mat;

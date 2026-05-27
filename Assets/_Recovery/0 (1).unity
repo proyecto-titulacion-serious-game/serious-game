@@ -779,6 +779,7 @@ MonoBehaviour:
   nodeB: {fileID: 342851797}
   current: 0
   voltageDrop: 0
+  isOpenCircuit: 0
   resistance: 50
   polarityInverted: 0
   minOperatingCurrent: 0.005
@@ -835,7 +836,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 9452ae1262a74094f8a68013fbcd1834, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -914,9 +915,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
   useKatVR: 0
   walkSpeed: 2
-  turnSpeed: 60
+  enableSnapTurn: 0
+  snapTurnAngle: 45
+  snapTurnThreshold: 0.5
+  katSerialNumber: 
+  katSpeedMultiplier: 1
   xrRig: {fileID: 242800858}
   headCamera: {fileID: 330585545}
+  moveAction: {fileID: 0}
   interaction: {fileID: 1271985260}
 --- !u!143 &242800857
 CharacterController:
@@ -1200,6 +1206,38 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a79441f348de89743a2939f4d699eac1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  m_RenderShadows: 1
+  m_RequiresDepthTextureOption: 0
+  m_RequiresOpaqueTextureOption: 0
+  m_CameraType: 0
+  m_Cameras: []
+  m_RendererIndex: -1
+  m_VolumeLayerMask:
+    serializedVersion: 2
+    m_Bits: 1
+  m_VolumeTrigger: {fileID: 0}
+  m_VolumeFrameworkUpdateModeOption: 2
+  m_RenderPostProcessing: 0
+  m_Antialiasing: 0
+  m_AntialiasingQuality: 2
+  m_StopNaN: 0
+  m_Dithering: 0
+  m_ClearDepth: 1
+  m_AllowXRRendering: 1
+  m_AllowHDROutput: 1
+  m_UseScreenCoordOverride: 0
+  m_ScreenSizeOverride: {x: 0, y: 0, z: 0, w: 0}
+  m_ScreenCoordScaleBias: {x: 0, y: 0, z: 0, w: 0}
+  m_RequiresDepthTexture: 0
+  m_RequiresColorTexture: 0
+  m_TaaSettings:
+    m_Quality: 3
+    m_FrameInfluence: 0.1
+    m_JitterScale: 1
+    m_MipBias: 0
+    m_VarianceClampScale: 0.9
+    m_ContrastAdaptiveSharpening: 0
+  m_Version: 2
 --- !u!1 &339081985
 GameObject:
   m_ObjectHideFlags: 0
@@ -1403,6 +1441,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ElectricalNode
   voltage: 0
+  current: 0
   connectedComponents: []
 --- !u!114 &342851798
 MonoBehaviour:
@@ -1492,7 +1531,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NodeInteractable
   nodeTarget: {fileID: 342851797}
   probeType: 0
-  playerInteraction: {fileID: 1271985260}
+  multimeter: {fileID: 0}
   nodeRenderer: {fileID: 342851801}
   hoverColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   selectedColor: {r: 0, g: 1, b: 1, a: 1}
@@ -1769,7 +1808,14 @@ MonoBehaviour:
   nodeB: {fileID: 342851797}
   current: 0
   voltageDrop: 0
+  isOpenCircuit: 0
   voltage: 9
+  faultMode: 0
+  overvoltageValue: 15
+  undervoltageValue: 3
+  colorNormal: {r: 0.15, g: 0.55, b: 1, a: 1}
+  colorOvervoltage: {r: 1, g: 0.2, b: 0.05, a: 1}
+  colorUndervoltage: {r: 1, g: 0.75, b: 0, a: 1}
 --- !u!4 &381994135
 Transform:
   m_ObjectHideFlags: 0
@@ -1950,6 +1996,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 1
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1 &434116710
 GameObject:
   m_ObjectHideFlags: 0
@@ -2017,12 +2080,11 @@ MonoBehaviour:
   m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
-  SortKey: 1564446297
+  SortKey: 2262388410
   ObjectInterest: 1
   Flags: 262145
   NestedObjects: []
-  NetworkedBehaviours:
-  - {fileID: 434116712}
+  NetworkedBehaviours: []
   ForceRemoteRenderTimeframe: 0
 --- !u!1 &450950018
 GameObject:
@@ -2740,11 +2802,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 568352386}
   m_CullTransparentMesh: 1
---- !u!4 &575661605 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 3407743669438547113, guid: c6b0e08f321c9384398b2e19e1dca6b0, type: 3}
-  m_PrefabInstance: {fileID: 3104267524022013641}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &580431455
 GameObject:
   m_ObjectHideFlags: 0
@@ -3086,7 +3143,7 @@ Transform:
   - {fileID: 1169140912}
   - {fileID: 342851803}
   - {fileID: 1369086215}
-  - {fileID: 575661605}
+  - {fileID: 3104267524022013642}
   - {fileID: 725568261}
   - {fileID: 2082670058}
   - {fileID: 1431616487}
@@ -3699,11 +3756,20 @@ MonoBehaviour:
   nodeB: {fileID: 1169140918}
   current: 0
   voltageDrop: 0
+  isOpenCircuit: 0
   resistance: 20
   correctResistance: 100
   faultyResistance: 10
   hasFault: 0
   tolerancePercent: 5
+  powerRatingWatts: 0.25
+  colorNormal: {r: 0.76, g: 0.6, b: 0.42, a: 1}
+  colorFault: {r: 1, g: 0.55, b: 0, a: 1}
+  colorOverload: {r: 1, g: 0.1, b: 0.05, a: 1}
+  colorOpen: {r: 0.25, g: 0.25, b: 0.25, a: 1}
+  smokeEffect: {fileID: 0}
+  _dissipatedPower: 0
+  _isOverloaded: 0
 --- !u!65 &829370693
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -3750,7 +3816,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 9452ae1262a74094f8a68013fbcd1834, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -4062,6 +4128,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 172515602e62fb746b5d573b38a5fe58, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  m_IsGlobal: 1
+  priority: 0
+  blendDistance: 0
+  weight: 1
+  sharedProfile: {fileID: 0}
 --- !u!4 &832575519
 Transform:
   m_ObjectHideFlags: 0
@@ -4215,6 +4286,12 @@ MonoBehaviour:
   multimeter: {fileID: 962336672}
   performance: {fileID: 1057423083}
   instructionSystem: {fileID: 732294738}
+  reto1Zone: {fileID: 0}
+  reto2Zone: {fileID: 0}
+  reto3Zone: {fileID: 0}
+  reto4Zone: {fileID: 0}
+  zoneTransitionDelay: 3
+  _debugMode: 0
   timeLimits:
   - 480
   - 600
@@ -4225,6 +4302,8 @@ MonoBehaviour:
   _levelCompleted: 0
   _repairPerformed: 0
   _wrongAttempts: 0
+  _remainingTime: 0
+  _timerActive: 0
 --- !u!4 &947230602
 Transform:
   m_ObjectHideFlags: 0
@@ -4250,6 +4329,8 @@ GameObject:
   m_Component:
   - component: {fileID: 962336671}
   - component: {fileID: 962336672}
+  - component: {fileID: 962336674}
+  - component: {fileID: 962336673}
   m_Layer: 0
   m_Name: Multimeter
   m_TagString: Untagged
@@ -4284,10 +4365,174 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0675a10c4f2ef1c4880345fabecf6569, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Multimeter
-  circuit: {fileID: 1580657766}
-  probeA: {fileID: 0}
-  probeB: {fileID: 0}
-  measuredVoltage: 0
+  txtVoltage: {fileID: 0}
+  txtCurrent: {fileID: 0}
+  txtStatus: {fileID: 0}
+  txtMode: {fileID: 0}
+  indicatorRed: {fileID: 0}
+  indicatorBlack: {fileID: 0}
+  mode: 0
+  hapticIntensity: 0.3
+  hapticDuration: 0.08
+  _measuredVoltage: 0
+  _measuredCurrent: 0
+  _isReading: 0
+--- !u!114 &962336673
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 962336670}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ad34abafad169848a38072baa96cdb2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.XR.Interaction.Toolkit::UnityEngine.XR.Interaction.Toolkit.Interactables.XRGrabInteractable
+  m_InteractionManager: {fileID: 0}
+  m_Colliders: []
+  m_InteractionLayers:
+    m_Bits: 1
+  m_DistanceCalculationMode: 1
+  m_SelectMode: 0
+  m_FocusMode: 1
+  m_CustomReticle: {fileID: 0}
+  m_AllowGazeInteraction: 0
+  m_AllowGazeSelect: 0
+  m_OverrideGazeTimeToSelect: 0
+  m_GazeTimeToSelect: 0.5
+  m_OverrideTimeToAutoDeselectGaze: 0
+  m_TimeToAutoDeselectGaze: 3
+  m_AllowGazeAssistance: 0
+  m_FirstHoverEntered:
+    m_PersistentCalls:
+      m_Calls: []
+  m_LastHoverExited:
+    m_PersistentCalls:
+      m_Calls: []
+  m_HoverEntered:
+    m_PersistentCalls:
+      m_Calls: []
+  m_HoverExited:
+    m_PersistentCalls:
+      m_Calls: []
+  m_FirstSelectEntered:
+    m_PersistentCalls:
+      m_Calls: []
+  m_LastSelectExited:
+    m_PersistentCalls:
+      m_Calls: []
+  m_SelectEntered:
+    m_PersistentCalls:
+      m_Calls: []
+  m_SelectExited:
+    m_PersistentCalls:
+      m_Calls: []
+  m_FirstFocusEntered:
+    m_PersistentCalls:
+      m_Calls: []
+  m_LastFocusExited:
+    m_PersistentCalls:
+      m_Calls: []
+  m_FocusEntered:
+    m_PersistentCalls:
+      m_Calls: []
+  m_FocusExited:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Activated:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Deactivated:
+    m_PersistentCalls:
+      m_Calls: []
+  m_StartingHoverFilters: []
+  m_StartingSelectFilters: []
+  m_StartingInteractionStrengthFilters: []
+  m_AutoFindParentInteractableInHierarchy: 0
+  m_ParentInteractableObject: {fileID: 0}
+  m_AttachTransform: {fileID: 0}
+  m_SecondaryAttachTransform: {fileID: 0}
+  m_UseDynamicAttach: 0
+  m_MatchAttachPosition: 1
+  m_MatchAttachRotation: 1
+  m_SnapToColliderVolume: 1
+  m_ReinitializeDynamicAttachEverySingleGrab: 1
+  m_AttachEaseInTime: 0.15
+  m_MovementType: 2
+  m_PredictedVisualsTransform: {fileID: 0}
+  m_VelocityDamping: 1
+  m_VelocityScale: 1
+  m_AngularVelocityDamping: 1
+  m_AngularVelocityScale: 1
+  m_TrackPosition: 1
+  m_SmoothPosition: 0
+  m_SmoothPositionAmount: 8
+  m_TightenPosition: 0.1
+  m_TrackRotation: 1
+  m_SmoothRotation: 0
+  m_SmoothRotationAmount: 8
+  m_TightenRotation: 0.1
+  m_TrackScale: 1
+  m_SmoothScale: 0
+  m_SmoothScaleAmount: 8
+  m_TightenScale: 0.1
+  m_ThrowOnDetach: 1
+  m_ThrowSmoothingDuration: 0.25
+  m_ThrowSmoothingCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  m_ThrowVelocityScale: 1.5
+  m_ThrowAngularVelocityScale: 1
+  m_ForceGravityOnDetach: 0
+  m_RetainTransformParent: 1
+  m_StartingSingleGrabTransformers: []
+  m_StartingMultipleGrabTransformers: []
+  m_AddDefaultGrabTransformers: 1
+  m_FarAttachMode: 0
+  m_LimitLinearVelocity: 0
+  m_LimitAngularVelocity: 0
+  m_MaxLinearVelocityDelta: 10
+  m_MaxAngularVelocityDelta: 20
+--- !u!54 &962336674
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 962336670}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
 --- !u!1 &1045456895
 GameObject:
   m_ObjectHideFlags: 0
@@ -4334,8 +4579,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ConnectionManager
   playerPrefab:
     RawGuidValue: d410e1df4653c80448871a64d20fc037
-  camaraTecnico: {fileID: 1045843096}
-  cascoVR: {fileID: 546218699}
+  rolAutomatico: 0
+  modoOffline: 0
+  connectionTimeoutSeconds: 12
+  entornoExplorador: {fileID: 0}
 --- !u!1 &1045843096
 GameObject:
   m_ObjectHideFlags: 0
@@ -5002,7 +5249,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NodeInteractable
   nodeTarget: {fileID: 1169140918}
   probeType: 0
-  playerInteraction: {fileID: 1271985260}
+  multimeter: {fileID: 0}
   nodeRenderer: {fileID: 1169140916}
   hoverColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   selectedColor: {r: 0, g: 1, b: 1, a: 1}
@@ -5097,6 +5344,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ElectricalNode
   voltage: 0
+  current: 0
   connectedComponents: []
 --- !u!1 &1199305050
 GameObject:
@@ -6730,6 +6978,8 @@ MonoBehaviour:
   topology: 0
   _totalCurrent: 0
   _sourceVoltage: 0
+  _totalPower: 0
+  isShortCircuited: 0
   simulationInterval: 0.05
 --- !u!4 &1580657767
 Transform:
@@ -7147,7 +7397,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NodeInteractable
   nodeTarget: {fileID: 1634616983}
   probeType: 0
-  playerInteraction: {fileID: 1271985260}
+  multimeter: {fileID: 0}
   nodeRenderer: {fileID: 1634616985}
   hoverColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   selectedColor: {r: 0, g: 1, b: 1, a: 1}
@@ -7164,6 +7414,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ElectricalNode
   voltage: 0
+  current: 0
   connectedComponents: []
 --- !u!135 &1634616984
 SphereCollider:
@@ -8430,8 +8681,9 @@ MonoBehaviour:
   componentsArea: {fileID: 0}
   hudVoltaje: {fileID: 0}
   hudCorriente: {fileID: 0}
-  hudEstado: {fileID: 0}
   hudReto: {fileID: 0}
+  txtDiagnostico: {fileID: 0}
+  txtAccionSiguiente: {fileID: 0}
 --- !u!1 &2081408591
 GameObject:
   m_ObjectHideFlags: 0
@@ -8608,6 +8860,10 @@ MonoBehaviour:
   txtDescripcion: {fileID: 340230210}
   btnEnviar: {fileID: 559009142}
   txtFeedback: {fileID: 1214685835}
+  inputValor: {fileID: 0}
+  txtInputLabel: {fileID: 0}
+  togglePolaridad: {fileID: 0}
+  txtToggleLabel: {fileID: 0}
   traySlot: {fileID: 0}
 --- !u!65 &2109381144
 BoxCollider:
@@ -8902,6 +9158,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: c6b0e08f321c9384398b2e19e1dca6b0, type: 3}
+--- !u!4 &3104267524022013642 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3526183810585383534, guid: c6b0e08f321c9384398b2e19e1dca6b0, type: 3}
+  m_PrefabInstance: {fileID: 3104267524022013641}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &3707649526479388241
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 0eb9e4a0e5e40b7408d63b570c1e7edc
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 112000000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 152800
+  packageName: UnityJapanOffice
+  packageVersion: 1.0.9
+  assetPath: Assets/UnityJapanOffice/Scenes/Base/LightingData.asset
+  uploadId: 829404

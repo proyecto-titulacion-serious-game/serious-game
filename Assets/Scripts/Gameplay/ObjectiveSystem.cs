@@ -259,14 +259,32 @@ public class ObjectiveSystem : MonoBehaviour
 
     void HandleGameCompleted()
     {
+        // Agregar totales desde todos los registros de reto (no solo el último nivel activo)
+        int   totalErrors = 0;
+        float totalTime   = 0f;
+
+        if (performance != null)
+        {
+            foreach (var r in performance.GetAllRecords())
+            {
+                totalErrors += r.errors;
+                totalTime   += r.timeSeconds;
+            }
+        }
+
+        string sessionEval =
+            totalErrors == 0 ? "[EXCELENTE] ¡Sin errores en toda la sesión!" :
+            totalErrors <= 3 ? $"[BUENO] {totalErrors} errores totales en la sesión" :
+                               $"[MEJORAR] {totalErrors} errores — repasar procedimientos";
+
         var result = new SessionResult
         {
-            totalScore      = _totalScore,
-            maxScore        = _maxScore,
-            scorePercent    = GetScorePercent(),
-            totalErrors     = performance?.GetErrors() ?? 0,
-            totalTimeSeconds = performance?.GetTime()  ?? 0f,
-            evaluation      = performance?.GetEvaluation() ?? "—"
+            totalScore       = _totalScore,
+            maxScore         = _maxScore,
+            scorePercent     = GetScorePercent(),
+            totalErrors      = totalErrors,
+            totalTimeSeconds = totalTime,
+            evaluation       = sessionEval
         };
 
         OnSessionEnded?.Invoke(result);

@@ -14,7 +14,7 @@ public class VRFixTester
         bool allPassed = true;
         
         // Test 1: Verificar que PlayerController existe
-        var playerController = Object.FindObjectOfType<PlayerController>();
+        var playerController = Object.FindAnyObjectByType<PlayerController>();
         if (playerController != null)
         {
             Debug.Log("✅ Test 1 PASSED: PlayerController encontrado");

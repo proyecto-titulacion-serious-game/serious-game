@@ -131,11 +131,15 @@ public class TechnicianController : MonoBehaviour
     {
         if (desactivarXRSiEsPC) DesinicializarXR();
 
-        // Activar cámara PC, desactivar XR Origin del Técnico
-        if (pcCamera           != null) pcCamera.gameObject.SetActive(true);
+        // NO activar pcCamera aquí — WorkstationSeat la activa al sentarse.
+        // Activarla aquí re-habilitaría la cámara que está desactivada por defecto
+        // y causaría pantalla gris o conflicto con WalkerCamera.
         if (xrOriginTechnician != null) xrOriginTechnician.SetActive(false);
 
-        Camera cam = pcCamera != null ? pcCamera : Camera.main;
+        // Usar Camera.main (WalkerCamera) para setup inicial; WorkstationSeat
+        // sobrescribe worldCamera al sentarse con la cámara de su puesto.
+        Camera cam = Camera.main;
+        if (cam == null) cam = pcCamera;
 
         if (cam != null)
         {
@@ -227,9 +231,12 @@ public class TechnicianController : MonoBehaviour
         var xrSettings = XRGeneralSettings.Instance;
         if (xrSettings == null || xrSettings.Manager == null) return;
         if (!xrSettings.Manager.isInitializationComplete) return;
-        xrSettings.Manager.StopSubsystems();
+        if (xrSettings.Manager.activeLoader == null) return;
+        // DeinitializeLoader() llama StopSubsystems internamente y luego pone
+        // isInitializationComplete=false, de modo que XRManagerSettings.OnDisable()
+        // encuentra el manager ya desinicializado y no intenta parar los subsistemas de nuevo.
         xrSettings.Manager.DeinitializeLoader();
-        Debug.Log("[TechnicianController] XR desactivado — modo PC.");
+        Debug.Log("[TechnicianController] XR desinicializado — modo PC.");
     }
 
     void EnsureEventSystem()

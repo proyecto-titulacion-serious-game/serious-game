@@ -376,7 +376,11 @@ public static class Vol2RetosBuilder
 
     // ─────────────────────────────────────────────────────────────────
     //  RETO 4 — Arduino / Microcontrolador
-    //  Batería → Transistor/Relay → ArduinoPin(pin incorrecto) → Display
+    //  Circuito SERIE: Batería → ArduinoPin(D4, hasFault+hasLooseCable)
+    //                          → Resistor_Buzzer(0 Ω, faltante) → GND
+    //  3 fallas:  1) Pin incorrecto D4→D2
+    //             2) Resistencia buzzer faltante (0 Ω → correcto 330 Ω)
+    //             3) Cable suelto en la protoboard
     // ─────────────────────────────────────────────────────────────────
     static void BuildReto4(GameObject zonesRoot)
     {
@@ -384,7 +388,7 @@ public static class Vol2RetosBuilder
         zone.SetActive(false);
 
         var cm = EnsureComponent<CircuitManager>(zone);
-        cm.topology = CircuitTopology.Mixed;
+        cm.topology = CircuitTopology.Series;
 
         CreatePCBBench(zone, 2.20f, 0.60f);
 
@@ -394,74 +398,89 @@ public static class Vol2RetosBuilder
         float np  = 0.025f;
 
         float xBat   = -0.90f;
-        float xRelay = -0.30f;
-        float xBoard =  0.40f;
-        float xDisp  =  0.95f;
+        float xBoard =  0.10f;   // Arduino board (pin D4→D2)
+        float xBuzz  =  0.60f;   // Resistor buzzer faltante (0 Ω → 330 Ω)
+        float xDisp  =  0.95f;   // Display decorativo
         float zOff   = -0.040f;
 
-        // ── Componentes ───────────────────────────────────────────────
+        // ── Componentes eléctricos ────────────────────────────────────
         var batGO = AddRemovable(zone, "Battery 9v", "Battery_9V",
                     new Vector3(xBat, yt, 0f), new Vector3(0.075f, 0.150f, 0.055f));
         var battery = EnsureComponent<VoltageSource>(batGO);
         battery.voltage = VOLTAGE;
 
-        // Transistor como relay
-        var relayGO = AddCircuitComp(zone, FBX_TRANS, SZ_TRAN,
-                      new Vector3(xRelay, yt, 0f), Vector3.zero, "Relay_Serie");
-        var relay = EnsureComponent<Resistor>(relayGO);
-        relay.resistance        = 100f;
-        relay.faultyResistance  = 100f;
-        relay.correctResistance = 100f;
-        relay.hasFault          = false;
+        // Transistor decorativo — NO componente eléctrico (solo visual)
+        AddCircuitComp(zone, FBX_TRANS, SZ_TRAN,
+                       new Vector3(-0.35f, yt, 0f), Vector3.zero, "Relay_Decor");
 
-        // Arduino board: prefab existente
-        var boardGO = AddRemovable(zone, "Controller Board", "Arduino_WrongPin",
+        // Arduino board: pin incorrecto D4 (correcto D2) + cable suelto.
+        // AddFixed (no GrabbableComponent): la placa faulty no debe ser agarrable;
+        // el Explorer instala el pin correcto enviado por el Técnico en el slot.
+        var boardGO = AddFixed(zone, "Controller Board", "Arduino_WrongPin",
                       new Vector3(xBoard, yt, 0f), new Vector3(0.25f, 0.045f, 0.20f));
         var pin = EnsureComponent<ArduinoPin>(boardGO);
-        pin.pinNumber        = 4;
+        pin.pinNumber        = 4;   // incorrecto
         pin.correctPinNumber = 2;
         pin.hasFault         = true;
+        pin.hasLooseCable    = true;
+
+        // Resistor del buzzer FALTANTE  (faultyResistance=0 Ω → correcto 330 Ω)
+        // También fijo: se reemplaza vía Slot_R4_Resistor.
+        var buzzGO = AddCircuitComp(zone, FBX_RES, SZ_RES,
+                     new Vector3(xBuzz, yt, 0f), Vector3.zero, "Resistor_Buzzer_Missing");
+        // Quitar interacción de agarre — el Explorer no debe agarrar el resistor faltante
+        Object.DestroyImmediate(buzzGO.GetComponent<GrabbableComponent>());
+        Object.DestroyImmediate(buzzGO.GetComponent<XRGrabInteractable>());
+        var buzzerR = EnsureComponent<Resistor>(buzzGO);
+        buzzerR.resistance        = 0f;
+        buzzerR.faultyResistance  = 0f;
+        buzzerR.correctResistance = 330f;
+        buzzerR.hasFault          = true;
 
         AddVisual(zone, "Segment Display", "Display_Arduino",
                   new Vector3(xDisp, yt, 0f), new Vector3(0.125f, 0.063f, 0.075f));
 
         // ── Nodos eléctricos ──────────────────────────────────────────
-        var nVCC    = MakeNode(zone, "Node_R4_VCC",    new Vector3(-0.60f, ny, zOff));
-        var nAfterR = MakeNode(zone, "Node_R4_AfterR", new Vector3(+0.05f, ny, zOff));
-        var nGND    = MakeNode(zone, "Node_R4_GND",    new Vector3(+1.00f, ny, zOff));
+        // Serie: BAT(nVCC→nGND) | PIN(nVCC→nAfterPin) | BUZZ(nAfterPin→nGND)
+        var nVCC      = MakeNode(zone, "Node_R4_VCC",      new Vector3(-0.50f, ny, zOff));
+        var nAfterPin = MakeNode(zone, "Node_R4_AfterPin", new Vector3(+0.35f, ny, zOff));
+        var nGND      = MakeNode(zone, "Node_R4_GND",      new Vector3(+1.00f, ny, zOff));
 
-        battery.nodeA = nVCC;    battery.nodeB  = nGND;
-        relay.nodeA   = nVCC;    relay.nodeB    = nAfterR;
-        pin.nodeA     = nAfterR; pin.nodeB      = nGND;
-        MarkDirty(batGO, relayGO, boardGO);
+        battery.nodeA  = nVCC;      battery.nodeB  = nGND;
+        pin.nodeA      = nVCC;      pin.nodeB      = nAfterPin;
+        buzzerR.nodeA  = nAfterPin; buzzerR.nodeB  = nGND;
+        MarkDirty(batGO, boardGO, buzzGO);
 
         // ── Cables ────────────────────────────────────────────────────
         float zPos = zOff + 0.040f;
-        Wire(zone, new Vector3(xBat,            yw, zOff), new Vector3(xRelay - 0.038f, yw, zOff), CRed,    "w4_vcc");
-        Wire(zone, new Vector3(xRelay + 0.038f, yw, zOff), new Vector3(xBoard - 0.063f, yw, zOff), CYellow, "w4_mid");
-        Wire(zone, new Vector3(xBoard + 0.063f, yw, zOff), new Vector3(xDisp,           yw, zOff), CYellow, "w4_out");
-        Wire(zone, new Vector3(xDisp,           yw, zOff), new Vector3(xDisp,           yw, zPos), CBlack,  "w4_gndZ");
-        Wire(zone, new Vector3(xDisp,           yw, zPos), new Vector3(xBat,            yw, zPos), CBlack,  "w4_gndRet");
-        Wire(zone, new Vector3(xBat,            yw, zPos), new Vector3(xBat,            yw, zOff), CBlack,  "w4_batZ");
+        Wire(zone, new Vector3(xBat,            yw, zOff), new Vector3(xBoard - 0.063f, yw, zOff), CRed,    "w4_vcc");
+        Wire(zone, new Vector3(xBoard + 0.063f, yw, zOff), new Vector3(xBuzz  - 0.030f, yw, zOff), CYellow, "w4_mid");
+        Wire(zone, new Vector3(xBuzz  + 0.030f, yw, zOff), new Vector3(xDisp,           yw, zOff), CYellow, "w4_out");
+        Wire(zone, new Vector3(xDisp,           yw, zOff), new Vector3(xDisp,            yw, zPos), CBlack,  "w4_gndZ");
+        Wire(zone, new Vector3(xDisp,           yw, zPos), new Vector3(xBat,             yw, zPos), CBlack,  "w4_gndRet");
+        Wire(zone, new Vector3(xBat,            yw, zPos), new Vector3(xBat,             yw, zOff), CBlack,  "w4_batZ");
 
         // ── NodePoints ────────────────────────────────────────────────
-        MakeNodePoint(zone, nVCC,    new Vector3(-0.60f, np, zOff),   CNode, "NP_R4_VCC");
-        MakeNodePoint(zone, nAfterR, new Vector3(+0.05f, np, zOff),   CNode, "NP_R4_AfterRelay");
-        MakeNodePoint(zone, nAfterR, new Vector3(xBoard, np, zOff),   CNode, "NP_R4_BoardIn");
-        MakeNodePoint(zone, nGND,    new Vector3(+1.00f, np, zOff),   CNode, "NP_R4_GND");
+        MakeNodePoint(zone, nVCC,      new Vector3(-0.50f, np, zOff), CNode, "NP_R4_VCC");
+        MakeNodePoint(zone, nAfterPin, new Vector3(+0.35f, np, zOff), CNode, "NP_R4_AfterPin");
+        MakeNodePoint(zone, nAfterPin, new Vector3(xBoard, np, zOff), CNode, "NP_R4_BoardIn");
+        MakeNodePoint(zone, nGND,      new Vector3(+1.00f, np, zOff), CNode, "NP_R4_GND");
 
-        AddSlot(zone, new Vector3(xBoard, yt + 0.08f, 0f),
-                ComponentSlotType.ArduinoPin, "Slot_R4_Arduino");
+        // ── Slots ─────────────────────────────────────────────────────
+        var slotPin = AddSlot(zone, new Vector3(xBoard, yt + 0.08f, 0f),
+                              ComponentSlotType.ArduinoPin, "Slot_R4_Arduino");
+        slotPin.damagedComponent = boardGO;   // se oculta al instalar el pin correcto
+
+        var slotRes = AddSlot(zone, new Vector3(xBuzz, yt + 0.08f, 0f),
+                              ComponentSlotType.Resistor, "Slot_R4_Resistor");
+        slotRes.damagedComponent = buzzGO;    // se oculta al instalar la resistencia 330 Ω
 
         // ── Cables decorativos ────────────────────────────────────────
-        // Cable saliendo del transistor/relay
-        AddDecorWire(zone, PFB_WIRE2, new Vector3(xRelay, yt + 0.06f, 0.04f),  new Vector3(0f, -10f, -40f), 0.40f, "DW_R4_RelayOut");
-        // Cable de entrada al Arduino board
-        AddDecorWire(zone, PFB_WIRE1, new Vector3(xBoard - 0.08f, yt + 0.05f, 0.06f), new Vector3(0f, 80f, 25f), 0.38f, "DW_R4_BoardIn");
-        // Stub GND en el display
-        AddDecorWire(zone, PFB_WIRE2, new Vector3(xDisp + 0.06f, yt + 0.04f, zPos),   new Vector3(0f, 160f, 20f), 0.36f, "DW_R4_DispGND");
+        AddDecorWire(zone, PFB_WIRE2, new Vector3(xBat + 0.04f, yt + 0.05f, 0.04f),   new Vector3(0f, -10f, -40f), 0.40f, "DW_R4_BatOut");
+        AddDecorWire(zone, PFB_WIRE1, new Vector3(xBoard - 0.08f, yt + 0.05f, 0.06f), new Vector3(0f,  80f,  25f), 0.38f, "DW_R4_BoardIn");
+        AddDecorWire(zone, PFB_WIRE2, new Vector3(xDisp + 0.06f, yt + 0.04f, zPos),   new Vector3(0f, 160f,  20f), 0.36f, "DW_R4_DispGND");
 
-        Debug.Log("[RetosBuilder] ✓ Reto 4 (Arduino/Relay)");
+        Debug.Log("[RetosBuilder] ✓ Reto 4 (Arduino — D4→D2 + R_Buzzer 0→330 Ω + cable suelto)");
     }
 
     // ─────────────────────────────────────────────
@@ -682,8 +701,8 @@ public static class Vol2RetosBuilder
     }
 
     // ── Slot de reemplazo ─────────────────────────────────────────────
-    static void AddSlot(GameObject zone, Vector3 localPos,
-                        ComponentSlotType slotType, string slotName, float size = 0.14f)
+    static ComponentSlot AddSlot(GameObject zone, Vector3 localPos,
+                                 ComponentSlotType slotType, string slotName, float size = 0.14f)
     {
         var slotGO = new GameObject(slotName);
         slotGO.transform.SetParent(zone.transform);
@@ -707,6 +726,7 @@ public static class Vol2RetosBuilder
         slot.slotRenderer = cube.GetComponent<Renderer>();
 
         Undo.RegisterCreatedObjectUndo(slotGO, slotName);
+        return slot;
     }
 
     // ─────────────────────────────────────────────

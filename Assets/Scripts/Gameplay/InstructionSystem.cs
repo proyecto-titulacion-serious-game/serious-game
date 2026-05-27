@@ -249,6 +249,7 @@ public class InstructionSystem : MonoBehaviour
             // Paso 0 → Técnico detecta el capacitor humeante.
             // Auto-avanza en el primer tick: el capacitor ya está invertido al inicio.
             case 0:
+                if (gameManager.circuit.components.Count == 0) { _needsValidation = true; break; }
                 foreach (var comp in gameManager.circuit.components)
                     if (comp is Capacitor cap && cap.polarityInverted)
                     { NextStep(); return; }
@@ -274,7 +275,7 @@ public class InstructionSystem : MonoBehaviour
             case 3:
                 bool resCorregida = true;
                 foreach (var comp in gameManager.circuit.components)
-                    if (comp is Resistor r && r.hasFault)
+                    if (comp is Resistor r && (r.hasFault || !Mathf.Approximately(r.resistance, 220f)))
                     { resCorregida = false; break; }
                 if (resCorregida && gameManager.circuit.components.Count > 0)
                     hasAppliedFix = true;
@@ -296,17 +297,17 @@ public class InstructionSystem : MonoBehaviour
                 if (multimeter?.probeA != null) NextStep();
                 break;
 
-            // Paso 1 → Pin del sensor corregido
+            // Paso 1 → Pin del sensor corregido (debe ser pin D2)
             case 1:
                 foreach (var comp in gameManager.circuit.components)
-                    if (comp is ArduinoPin pin && !pin.hasFault)
+                    if (comp is ArduinoPin pin && !pin.hasFault && pin.pinNumber == 2)
                     { NextStep(); return; }
                 break;
 
-            // Paso 2 → Resistencia del buzzer correcta
+            // Paso 2 → Resistencia del buzzer correcta (330Ω)
             case 2:
                 foreach (var comp in gameManager.circuit.components)
-                    if (comp is Resistor r && !r.hasFault)
+                    if (comp is Resistor r && !r.hasFault && Mathf.Approximately(r.resistance, 330f))
                     { NextStep(); return; }
                 break;
 

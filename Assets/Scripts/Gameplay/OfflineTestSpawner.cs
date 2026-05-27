@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 /// <summary>
 /// Herramienta de prueba para simular que el Técnico envía un componente
@@ -48,8 +49,16 @@ public class OfflineTestSpawner : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetKeyDown(spawnKey))
-            SpawnTestComponent();
+        var kb = Keyboard.current;
+        bool pressed = kb != null && (spawnKey switch
+        {
+            KeyCode.T      => kb.tKey.wasPressedThisFrame,
+            KeyCode.Space  => kb.spaceKey.wasPressedThisFrame,
+            KeyCode.Return => kb.enterKey.wasPressedThisFrame,
+            KeyCode.F1     => kb.f1Key.wasPressedThisFrame,
+            _              => kb.tKey.wasPressedThisFrame
+        });
+        if (pressed) SpawnTestComponent();
     }
 
     /// <summary>

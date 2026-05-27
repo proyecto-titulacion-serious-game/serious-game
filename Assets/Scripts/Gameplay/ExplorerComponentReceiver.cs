@@ -85,6 +85,7 @@ public class ExplorerComponentReceiver : MonoBehaviour
     {
         GameSession.OnComponenteRecibido          += HandleComponenteRecibido;
         GameSession.OnRetoChanged                 += HandleRetoChanged;
+        GameSession.OnCableFixed                  += HandleCableFixed;
         ComponentSendingTray.OnComponentSentLocal += HandleComponenteRecibidoLocal;
     }
 
@@ -92,6 +93,7 @@ public class ExplorerComponentReceiver : MonoBehaviour
     {
         GameSession.OnComponenteRecibido          -= HandleComponenteRecibido;
         GameSession.OnRetoChanged                 -= HandleRetoChanged;
+        GameSession.OnCableFixed                  -= HandleCableFixed;
         ComponentSendingTray.OnComponentSentLocal -= HandleComponenteRecibidoLocal;
     }
 
@@ -168,6 +170,24 @@ public class ExplorerComponentReceiver : MonoBehaviour
     // ─────────────────────────────────────────────
     //  Configuración del prefab instanciado
     // ─────────────────────────────────────────────
+
+    // Reto 4: el Técnico reparó el cable — propagar al circuito del Explorador
+    void HandleCableFixed()
+    {
+        var circuit = FindAnyObjectByType<CircuitManager>();
+        if (circuit == null) return;
+
+        foreach (var comp in circuit.components)
+        {
+            if (comp is ArduinoPin pin && pin.hasLooseCable)
+            {
+                pin.FixLooseCable();
+                circuit.MarkDirty();
+                Debug.Log("[Receiver] Cable suelto reparado remotamente (Reto 4).");
+                return;
+            }
+        }
+    }
 
     void ConfigurarComponente(GameObject obj, ComponentType tipo, float valor)
     {
