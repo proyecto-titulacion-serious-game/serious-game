@@ -198,6 +198,15 @@ public class ComponentSmokeEffect : MonoBehaviour
         _sparksActive = false;
         if (sparkEffect != null)
             sparkEffect.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+        // withChildren:true detiene también los sub-efectos CFXR
+        smokeEffect?.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+    }
+
+    void StopAll()
+    {
+        StopSmoke();
+        _sparksActive = false;
+        sparkEffect?.Stop(true, ParticleSystemStopBehavior.StopEmitting);
     }
 
     // ─────────────────────────────────────────────
