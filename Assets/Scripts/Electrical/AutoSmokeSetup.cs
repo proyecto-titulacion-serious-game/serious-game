@@ -32,8 +32,7 @@ public class AutoSmokeSetup : MonoBehaviour
     {
         int added = 0;
 
-        foreach (var comp in FindObjectsByType<ElectricalComponent>(
-                     FindObjectsInactive.Include, FindObjectsSortMode.None))
+        foreach (var comp in FindObjectsByType<ElectricalComponent>(FindObjectsInactive.Include))
         {
             bool isFaultable = comp is Resistor
                             || comp is LED

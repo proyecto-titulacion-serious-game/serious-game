@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
 
@@ -59,8 +60,19 @@ public class CircuitSwitch : ElectricalComponent
 
     void Update()
     {
-        if (debugKey != KeyCode.None && Input.GetKeyDown(debugKey))
-            Toggle();
+        if (debugKey != KeyCode.None)
+        {
+            var kb = Keyboard.current;
+            bool pressed = kb != null && (debugKey switch
+            {
+                KeyCode.E      => kb.eKey.wasPressedThisFrame,
+                KeyCode.T      => kb.tKey.wasPressedThisFrame,
+                KeyCode.Space  => kb.spaceKey.wasPressedThisFrame,
+                KeyCode.Return => kb.enterKey.wasPressedThisFrame,
+                _              => false
+            });
+            if (pressed) Toggle();
+        }
     }
 
     /// <summary>Alterna el switch desde código o desde el Inspector (clic derecho → Toggle).</summary>

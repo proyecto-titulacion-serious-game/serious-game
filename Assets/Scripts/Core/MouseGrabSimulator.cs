@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.XR.Management;
 
 /// <summary>
@@ -94,7 +95,8 @@ public class MouseGrabSimulator : MonoBehaviour
 
     void HandleGrab()
     {
-        if (!Input.GetMouseButtonDown(0)) return;
+        var mouse = Mouse.current;
+        if (mouse == null || !mouse.leftButton.wasPressedThisFrame) return;
 
         if (_isHolding)
         {
@@ -110,7 +112,9 @@ public class MouseGrabSimulator : MonoBehaviour
 
     void TryGrab()
     {
-        Ray ray = _cam.ScreenPointToRay(Input.mousePosition);
+        var mouse = Mouse.current;
+        if (mouse == null || _cam == null) return;
+        Ray ray = _cam.ScreenPointToRay(mouse.position.ReadValue());
 
         if (Physics.Raycast(ray, out RaycastHit hit, maxGrabDistance))
         {
@@ -164,7 +168,9 @@ public class MouseGrabSimulator : MonoBehaviour
         if (!_isHolding || _heldRb == null || _cam == null) return;
 
         // Posición objetivo: frente a la cámara en la dirección del mouse
-        Ray ray = _cam.ScreenPointToRay(Input.mousePosition);
+        var mouse = Mouse.current;
+        if (mouse == null) return;
+        Ray ray = _cam.ScreenPointToRay(mouse.position.ReadValue());
         Vector3 targetPos = ray.origin + ray.direction * _currentDistance;
 
         // Mover con física (suave)
@@ -176,8 +182,11 @@ public class MouseGrabSimulator : MonoBehaviour
     {
         if (!_isHolding) return;
 
-        float scroll = Input.GetAxis("Mouse ScrollWheel");
-        if (Mathf.Abs(scroll) > 0.01f)
+        var mouse = Mouse.current;
+        if (mouse == null) return;
+        // scroll.y ≈ 120 per notch; legacy GetAxis("Mouse ScrollWheel") ≈ 0.1 per notch
+        float scroll = mouse.scroll.ReadValue().y / 1200f;
+        if (Mathf.Abs(scroll) > 0.00001f)
         {
             _currentDistance += scroll * scrollSpeed;
             _currentDistance = Mathf.Clamp(_currentDistance, 0.3f, 5f);
@@ -190,22 +199,29 @@ public class MouseGrabSimulator : MonoBehaviour
 
     void HandleCameraMovement()
     {
+        var mouse = Mouse.current;
+        var kb    = Keyboard.current;
+
         // Rotar con click derecho
-        if (Input.GetMouseButton(1))
+        if (mouse != null && mouse.rightButton.isPressed)
         {
-            _rotX += Input.GetAxis("Mouse X") * lookSpeed;
-            _rotY -= Input.GetAxis("Mouse Y") * lookSpeed;
+            _rotX += mouse.delta.x.ReadValue() * lookSpeed * 0.1f;
+            _rotY -= mouse.delta.y.ReadValue() * lookSpeed * 0.1f;
             _rotY = Mathf.Clamp(_rotY, -80f, 80f);
             transform.rotation = Quaternion.Euler(_rotY, _rotX, 0f);
         }
 
         // Mover con WASD
-        float h = Input.GetAxis("Horizontal");
-        float v = Input.GetAxis("Vertical");
-        float up = 0f;
-
-        if (Input.GetKey(KeyCode.E)) up = 1f;
-        if (Input.GetKey(KeyCode.Q)) up = -1f;
+        float h = 0f, v = 0f, up = 0f;
+        if (kb != null)
+        {
+            if (kb.aKey.isPressed || kb.leftArrowKey.isPressed)  h -= 1f;
+            if (kb.dKey.isPressed || kb.rightArrowKey.isPressed) h += 1f;
+            if (kb.sKey.isPressed || kb.downArrowKey.isPressed)  v -= 1f;
+            if (kb.wKey.isPressed || kb.upArrowKey.isPressed)    v += 1f;
+            if (kb.eKey.isPressed) up =  1f;
+            if (kb.qKey.isPressed) up = -1f;
+        }
 
         Vector3 move = transform.right * h + transform.forward * v + Vector3.up * up;
         transform.position += move * moveSpeed * Time.deltaTime;

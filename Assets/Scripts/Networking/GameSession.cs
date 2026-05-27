@@ -15,34 +15,46 @@ using UnityEngine;
 ///   Técnico llama RPC_EnviarComponente → Explorador recibe OnComponenteRecibido
 ///   Explorador instala → llama RPC_ComponenteInstalado → Técnico recibe OnComponenteInstalado
 ///   Técnico avanza reto → llama RPC_CambiarReto → ambos reciben OnRetoChanged
+///   Técnico repara cable → llama RPC_FixLooseCable → ambos reciben OnCableFixed
 /// </summary>
 public class GameSession : NetworkBehaviour
 {
     // ─────────────────────────────────────────────
-    //  Singleton de red — acceso fácil desde cualquier script
+    //  Singleton de red
     // ─────────────────────────────────────────────
     public static GameSession Instance { get; private set; }
 
     // ─────────────────────────────────────────────
-    //  Estado compartido (sincronizado por Fusion)
+    //  Estado compartido
     // ─────────────────────────────────────────────
-    [Networked] public int           RetoActual          { get; set; }
-    [Networked] public NetworkBool   HayComponentePendiente { get; set; }
-    [Networked] public int           TipoComponentePendiente { get; set; }   // cast a ComponentType
-    [Networked] public float         ValorComponentePendiente { get; set; }
+    [Networked] public int          RetoActual              { get; set; }
+    [Networked] public NetworkBool  HayComponentePendiente  { get; set; }
+    [Networked] public int          TipoComponentePendiente { get; set; }
+    [Networked] public float        ValorComponentePendiente { get; set; }
+    [Networked] public TickTimer    HeartbeatTimer          { get; set; }
+
+    // Host resetea el timer cada N segundos; clientes detectan si supera el timeout.
+    private const float HeartbeatInterval = 5f;
+    private const float HeartbeatTimeout  = 10f;
 
     // ─────────────────────────────────────────────
-    //  Eventos locales — suscríbete desde otros scripts
+    //  Eventos locales
     // ─────────────────────────────────────────────
 
-    /// <summary>Explorador: se dispara cuando el Técnico envía un componente.</summary>
+    /// <summary>Explorador: el Técnico envió un componente.</summary>
     public static event System.Action<ComponentType, float> OnComponenteRecibido;
 
-    /// <summary>Técnico: se dispara cuando el Explorador instala (o falla).</summary>
+    /// <summary>Técnico: el Explorador instaló (o falló).</summary>
     public static event System.Action<bool>                 OnComponenteInstalado;
 
     /// <summary>Ambos: el reto cambió.</summary>
     public static event System.Action<int>                  OnRetoChanged;
+
+    /// <summary>Reto 4: el Técnico reparó el cable suelto.</summary>
+    public static event System.Action                       OnCableFixed;
+
+    /// <summary>El Host no ha respondido en más de HeartbeatTimeout segundos.</summary>
+    public static event System.Action                       OnHeartbeatTimeout;
 
     // ─────────────────────────────────────────────
     //  Lifecycle
@@ -52,6 +64,9 @@ public class GameSession : NetworkBehaviour
     {
         Instance = this;
         Debug.Log($"[GameSession] Spawned. IsMine={Object.HasStateAuthority}  Reto={RetoActual}");
+
+        if (Object.HasStateAuthority)
+            HeartbeatTimer = TickTimer.CreateFromSeconds(Runner, HeartbeatTimeout);
     }
 
     public override void Despawned(NetworkRunner runner, bool hasState)
@@ -59,11 +74,30 @@ public class GameSession : NetworkBehaviour
         if (Instance == this) Instance = null;
     }
 
+    public override void FixedUpdateNetwork()
+    {
+        if (Object.HasStateAuthority)
+        {
+            float? remaining = HeartbeatTimer.RemainingTime(Runner);
+            if (remaining == null || remaining < HeartbeatTimeout - HeartbeatInterval)
+                HeartbeatTimer = TickTimer.CreateFromSeconds(Runner, HeartbeatTimeout);
+        }
+        else
+        {
+            if (HeartbeatTimer.Expired(Runner))
+            {
+                Debug.LogWarning("[GameSession] Heartbeat timeout — Host no responde.");
+                OnHeartbeatTimeout?.Invoke();
+                // Silenciar hasta el próximo ciclo real para no spamear
+                HeartbeatTimer = TickTimer.CreateFromSeconds(Runner, HeartbeatTimeout * 100f);
+            }
+        }
+    }
+
     // ─────────────────────────────────────────────
-    //  API del Técnico → Explorador
+    //  Técnico → Explorador: enviar componente
     // ─────────────────────────────────────────────
 
-    /// <summary>Solo el Técnico (Host/StateAuthority) puede enviar componentes.</summary>
     public void EnviarComponente(ComponentType tipo, float valor)
     {
         if (!Object.HasStateAuthority) return;
@@ -84,12 +118,9 @@ public class GameSession : NetworkBehaviour
     }
 
     // ─────────────────────────────────────────────
-    //  API del Explorador → Técnico
+    //  Explorador → Técnico: instalación
     // ─────────────────────────────────────────────
 
-    /// <summary>
-    /// El Explorador llama esto al instalar un componente.
-    /// </summary>
     public void ReportarInstalacion(bool exito)
     {
         RPC_ComponenteInstalado(exito);
@@ -105,12 +136,30 @@ public class GameSession : NetworkBehaviour
     }
 
     // ─────────────────────────────────────────────
-    //  Cambio de reto (Host lo autoriza)
+    //  Reto 4: cable suelto
+    // ─────────────────────────────────────────────
+
+    /// <summary>Solo el Técnico (Host/StateAuthority) puede reparar el cable remotamente.</summary>
+    public void ReportarCableReparado()
+    {
+        if (!Object.HasStateAuthority) return;
+        RPC_FixLooseCable();
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_FixLooseCable()
+    {
+        OnCableFixed?.Invoke();
+        Debug.Log("[GameSession] Cable suelto reparado (Reto 4).");
+    }
+
+    // ─────────────────────────────────────────────
+    //  Cambio de reto
     // ─────────────────────────────────────────────
 
     public void AvanzarReto(int nuevoReto)
     {
-        if (!Object.HasStateAuthority) return;   // solo el Host (Técnico) puede avanzar
+        if (!Object.HasStateAuthority) return;
         RPC_CambiarReto(nuevoReto);
     }
 

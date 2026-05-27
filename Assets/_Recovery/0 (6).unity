@@ -11189,6 +11189,9 @@ MonoBehaviour:
   playerPrefab:
     RawGuidValue: d410e1df4653c80448871a64d20fc037
   rolAutomatico: 1
+  modoOffline: 0
+  connectionTimeoutSeconds: 12
+  entornoExplorador: {fileID: 0}
 --- !u!1001 &224350288
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -13739,12 +13742,11 @@ MonoBehaviour:
   m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
-  SortKey: 2929310298
+  SortKey: 540520487
   ObjectInterest: 1
   Flags: 262145
   NestedObjects: []
-  NetworkedBehaviours:
-  - {fileID: 276769960}
+  NetworkedBehaviours: []
   ForceRemoteRenderTimeframe: 0
 --- !u!114 &276769960
 MonoBehaviour:
@@ -14236,6 +14238,7 @@ MonoBehaviour:
   nodeB: {fileID: 2081882951}
   current: 0
   voltageDrop: 0
+  isOpenCircuit: 0
   resistance: 50
   polarityInverted: 0
   minOperatingCurrent: 0.005
@@ -17381,6 +17384,7 @@ MonoBehaviour:
   colorCorrect: {r: 0.2, g: 0.9, b: 0.3, a: 1}
   colorWrong: {r: 0.9, g: 0.2, b: 0.2, a: 1}
   installAnchor: {fileID: 0}
+  damagedComponent: {fileID: 0}
   _hasComponent: 0
   _installed: {fileID: 0}
 --- !u!135 &353738215
@@ -17820,6 +17824,7 @@ MonoBehaviour:
   colorCorrect: {r: 0.2, g: 0.9, b: 0.3, a: 1}
   colorWrong: {r: 0.9, g: 0.2, b: 0.2, a: 1}
   installAnchor: {fileID: 0}
+  damagedComponent: {fileID: 0}
   _hasComponent: 0
   _installed: {fileID: 0}
 --- !u!65 &362290218
@@ -19121,7 +19126,14 @@ MonoBehaviour:
   nodeB: {fileID: 2081882951}
   current: 0
   voltageDrop: 0
+  isOpenCircuit: 0
   voltage: 9
+  faultMode: 0
+  overvoltageValue: 15
+  undervoltageValue: 3
+  colorNormal: {r: 0.15, g: 0.55, b: 1, a: 1}
+  colorOvervoltage: {r: 1, g: 0.2, b: 0.05, a: 1}
+  colorUndervoltage: {r: 1, g: 0.75, b: 0, a: 1}
 --- !u!65 &386518448
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -21844,7 +21856,7 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 3980233701245012339, guid: 4473eb75c35c7bf42a9fa824604debb4, type: 3}
   m_PrefabInstance: {fileID: 433741885}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 433741889}
+  m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fcdfd3d082f0fec49bad7bd779a47b65, type: 3}
@@ -22895,12 +22907,16 @@ MonoBehaviour:
   nodeB: {fileID: 0}
   current: 0
   voltageDrop: 0
+  isOpenCircuit: 0
   capacitance: 0.0001
   polarityInverted: 0
   shortCircuitResistance: 0.1
   normalDCResistance: 1000000
   smokeEffect: {fileID: 0}
   smokeCurrentThreshold: 5
+  colorNormal: {r: 0.6, g: 0.6, b: 0.65, a: 1}
+  colorReversed: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  colorShortCircuit: {r: 1, g: 0.3, b: 0, a: 1}
   state: 0
 --- !u!23 &452422721
 MeshRenderer:
@@ -29109,6 +29125,7 @@ MonoBehaviour:
   nodeB: {fileID: 0}
   current: 0
   voltageDrop: 0
+  isOpenCircuit: 0
   pinNumber: 0
   correctPinNumber: 2
   isDigital: 1
@@ -29209,7 +29226,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -31246,7 +31263,7 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 3980233701245012339, guid: 4473eb75c35c7bf42a9fa824604debb4, type: 3}
   m_PrefabInstance: {fileID: 589044378}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 589044383}
+  m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fcdfd3d082f0fec49bad7bd779a47b65, type: 3}
@@ -34502,7 +34519,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 9452ae1262a74094f8a68013fbcd1834, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -36707,6 +36724,7 @@ MonoBehaviour:
   colorCorrect: {r: 0.2, g: 0.9, b: 0.3, a: 1}
   colorWrong: {r: 0.9, g: 0.2, b: 0.2, a: 1}
   installAnchor: {fileID: 0}
+  damagedComponent: {fileID: 0}
   _hasComponent: 0
   _installed: {fileID: 0}
 --- !u!65 &725518541
@@ -39607,7 +39625,14 @@ MonoBehaviour:
   nodeB: {fileID: 589044382}
   current: 0
   voltageDrop: 0
+  isOpenCircuit: 0
   voltage: 9
+  faultMode: 0
+  overvoltageValue: 15
+  undervoltageValue: 3
+  colorNormal: {r: 0.15, g: 0.55, b: 1, a: 1}
+  colorOvervoltage: {r: 1, g: 0.2, b: 0.05, a: 1}
+  colorUndervoltage: {r: 1, g: 0.75, b: 0, a: 1}
 --- !u!65 &764171135
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -39774,7 +39799,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 9452ae1262a74094f8a68013fbcd1834, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -45679,6 +45704,7 @@ MonoBehaviour:
   colorCorrect: {r: 0.2, g: 0.9, b: 0.3, a: 1}
   colorWrong: {r: 0.9, g: 0.2, b: 0.2, a: 1}
   installAnchor: {fileID: 0}
+  damagedComponent: {fileID: 0}
   _hasComponent: 0
   _installed: {fileID: 0}
 --- !u!65 &885161859
@@ -47700,6 +47726,7 @@ MonoBehaviour:
   nodeB: {fileID: 0}
   current: 0
   voltageDrop: 0
+  isOpenCircuit: 0
   pinNumber: 0
   correctPinNumber: 2
   isDigital: 1
@@ -47800,7 +47827,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -49393,7 +49420,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 9452ae1262a74094f8a68013fbcd1834, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -49512,7 +49539,14 @@ MonoBehaviour:
   nodeB: {fileID: 433741888}
   current: 0
   voltageDrop: 0
+  isOpenCircuit: 0
   voltage: 9
+  faultMode: 0
+  overvoltageValue: 15
+  undervoltageValue: 3
+  colorNormal: {r: 0.15, g: 0.55, b: 1, a: 1}
+  colorOvervoltage: {r: 1, g: 0.2, b: 0.05, a: 1}
+  colorUndervoltage: {r: 1, g: 0.75, b: 0, a: 1}
 --- !u!65 &962333823
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -53408,7 +53442,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -56748,10 +56782,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ExplorerComponentReceiver
   puntoDeEntrega: {fileID: 176150879}
+  slotResistor: {fileID: 0}
+  slotLED: {fileID: 0}
+  slotCapacitor: {fileID: 0}
+  slotArduinoPin: {fileID: 0}
   resistorPrefab: {fileID: 0}
   ledPrefab: {fileID: 0}
   capacitorPrefab: {fileID: 0}
   arduinoPinPrefab: {fileID: 0}
+  ledGreenPrefab: {fileID: 0}
+  ledRedPrefab: {fileID: 0}
+  ledYellowPrefab: {fileID: 0}
+  capacitorBluePrefab: {fileID: 0}
+  capacitorBlackPrefab: {fileID: 0}
+  capacitorOrangePrefab: {fileID: 0}
+  resistorVerticalPrefab: {fileID: 0}
   delivery: {fileID: 0}
 --- !u!114 &1132147253
 MonoBehaviour:
@@ -56971,7 +57016,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 9452ae1262a74094f8a68013fbcd1834, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -58292,12 +58337,16 @@ MonoBehaviour:
   nodeB: {fileID: 0}
   current: 0
   voltageDrop: 0
+  isOpenCircuit: 0
   capacitance: 0.0001
   polarityInverted: 0
   shortCircuitResistance: 0.1
   normalDCResistance: 1000000
   smokeEffect: {fileID: 0}
   smokeCurrentThreshold: 5
+  colorNormal: {r: 0.6, g: 0.6, b: 0.65, a: 1}
+  colorReversed: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  colorShortCircuit: {r: 1, g: 0.3, b: 0, a: 1}
   state: 0
 --- !u!23 &1157586254
 MeshRenderer:
@@ -59574,6 +59623,7 @@ MonoBehaviour:
   nodeB: {fileID: 0}
   current: 0
   voltageDrop: 0
+  isOpenCircuit: 0
   pinNumber: 0
   correctPinNumber: 2
   isDigital: 1
@@ -63255,6 +63305,7 @@ MonoBehaviour:
   nodeB: {fileID: 0}
   current: 0
   voltageDrop: 0
+  isOpenCircuit: 0
   pinNumber: 0
   correctPinNumber: 2
   isDigital: 1
@@ -64937,6 +64988,7 @@ MonoBehaviour:
   colorCorrect: {r: 0.2, g: 0.9, b: 0.3, a: 1}
   colorWrong: {r: 0.9, g: 0.2, b: 0.2, a: 1}
   installAnchor: {fileID: 0}
+  damagedComponent: {fileID: 0}
   _hasComponent: 0
   _installed: {fileID: 0}
 --- !u!65 &1285127846
@@ -66112,6 +66164,7 @@ MonoBehaviour:
   nodeB: {fileID: 2081882951}
   current: 0
   voltageDrop: 0
+  isOpenCircuit: 0
   resistance: 9999
   polarityInverted: 0
   minOperatingCurrent: 0.005
@@ -69608,6 +69661,7 @@ MonoBehaviour:
   nodeB: {fileID: 2081882951}
   current: 0
   voltageDrop: 0
+  isOpenCircuit: 0
   resistance: 50
   polarityInverted: 0
   minOperatingCurrent: 0.005
@@ -76113,6 +76167,7 @@ MonoBehaviour:
   colorCorrect: {r: 0.2, g: 0.9, b: 0.3, a: 1}
   colorWrong: {r: 0.9, g: 0.2, b: 0.2, a: 1}
   installAnchor: {fileID: 0}
+  damagedComponent: {fileID: 0}
   _hasComponent: 0
   _installed: {fileID: 0}
 --- !u!65 &1523399571
@@ -96207,11 +96262,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
   useKatVR: 0
   walkSpeed: 2
-  turnSpeed: 60
+  enableSnapTurn: 0
+  snapTurnAngle: 45
+  snapTurnThreshold: 0.5
   katSerialNumber: 
   katSpeedMultiplier: 1
   xrRig: {fileID: 1955031507}
   headCamera: {fileID: 0}
+  moveAction: {fileID: 0}
   interaction: {fileID: 931954035}
 --- !u!143 &1955031506
 CharacterController:

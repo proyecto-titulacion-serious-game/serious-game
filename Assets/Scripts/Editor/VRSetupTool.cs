@@ -83,7 +83,7 @@ public class VRSetupTool
 
     static void ConfigurePlayerController()
     {
-        var playerController = Object.FindObjectOfType<PlayerController>();
+        var playerController = Object.FindAnyObjectByType<PlayerController>();
         if (playerController == null)
         {
             Debug.LogWarning("❌ No se encontró PlayerController en la escena");
@@ -145,7 +145,7 @@ public class VRSetupTool
         #endif
         
         // 2. Diagnóstico detallado si es seguro
-        var playerController = Object.FindObjectOfType<PlayerController>();
+        var playerController = Object.FindAnyObjectByType<PlayerController>();
         if (playerController != null)
         {
             var cc = playerController.GetComponent<CharacterController>();

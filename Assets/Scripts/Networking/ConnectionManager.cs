@@ -1,9 +1,9 @@
 using Fusion;
 using Fusion.Sockets;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 public class ConnectionManager : MonoBehaviour, INetworkRunnerCallbacks
 {
@@ -19,13 +19,31 @@ public class ConnectionManager : MonoBehaviour, INetworkRunnerCallbacks
     private NetworkRunner _runner;
 
     [Header("Modo Offline / Testing")]
-    [Tooltip("Si está activo, omite Fusion y activa el entorno local directamente (útil para testing sin red).")]
+    [Tooltip("Si está activo, omite Fusion y activa el entorno local directamente.")]
     public bool modoOffline = false;
+
+    [Tooltip("Segundos esperando conexión antes de fallback a offline. 0 = sin límite.")]
+    [Range(0f, 30f)]
+    public float connectionTimeoutSeconds = 12f;
 
     [Tooltip("GO 'Entorno del explorador' a activar en modo offline. Si queda vacío se busca por nombre.")]
     public GameObject entornoExplorador;
 
-    // TechnicianController gestiona si XR se activa o no según el modo detectado.
+    // ─────────────────────────────────────────────
+    //  Eventos estáticos
+    // ─────────────────────────────────────────────
+
+    /// <summary>Se dispara cuando un jugador remoto se desconecta.</summary>
+    public static event Action<PlayerRef> OnPlayerDisconnected;
+
+    /// <summary>Se dispara cuando la conexión falla o se agota el tiempo.</summary>
+    public static event Action<string>    OnConnectionFailed;
+
+    // ─────────────────────────────────────────────
+    private Coroutine _connectionTimeout;
+    private bool      _connected;
+
+    // ─────────────────────────────────────────────
 
     private void OnDestroy()
     {
@@ -76,7 +94,6 @@ public class ConnectionManager : MonoBehaviour, INetworkRunnerCallbacks
 
     static GameObject BuscarIncluyendoInactivos(string nombre)
     {
-        // GameObject.Find() omite objetos inactivos; hay que iterar la jerarquía manualmente
         foreach (var root in UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects())
         {
             if (root.name == nombre) return root;
@@ -92,7 +109,6 @@ public class ConnectionManager : MonoBehaviour, INetworkRunnerCallbacks
         if (_runner == null)
             _runner = gameObject.AddComponent<NetworkRunner>();
 
-        // Evita "ServerAlreadyInRoom" (Code 104) si ya hay sesión activa
         if (_runner.IsRunning)
         {
             Debug.LogWarning($"[Red] StartSimulation ignorado — el runner ya está corriendo ({_runner.GameMode}).");
@@ -101,20 +117,45 @@ public class ConnectionManager : MonoBehaviour, INetworkRunnerCallbacks
 
         _runner.ProvideInput = true;
 
+        if (connectionTimeoutSeconds > 0f)
+            _connectionTimeout = StartCoroutine(ConnectionTimeout());
+
         Debug.Log($"[Red] Iniciando sesión como: {mode}");
 
-        // 1. Iniciar la conexión a la misma sala siempre
-        await _runner.StartGame(new StartGameArgs()
+        StartGameResult result;
+        try
         {
-            GameMode    = mode,
-            SessionName = "LaboratorioUbicua",
-            // Scene = SceneRef.None → cada jugador se queda en su propia escena.
-            // Fusion sincroniza objetos de red pero NO carga/descarga escenas.
-        });
+            result = await _runner.StartGame(new StartGameArgs()
+            {
+                GameMode    = mode,
+                SessionName = "LaboratorioUbicua",
+            });
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning($"[Red] StartGame lanzó excepción: {ex.Message}. Fallback a offline.");
+            StopConnectionTimeout();
+            FallbackModoOffline("Error al iniciar Fusion.");
+            return;
+        }
 
-        // 2. Si eres el Host (Técnico), spawnear la GameSession compartida en la red
+        if (!result.Ok)
+        {
+            Debug.LogWarning($"[Red] StartGame falló: {result.ShutdownReason}. Fallback a offline.");
+            StopConnectionTimeout();
+            FallbackModoOffline($"No se pudo conectar ({result.ShutdownReason}).");
+            return;
+        }
+
+        StopConnectionTimeout();
+        _connected = true;
+
         if (mode == GameMode.Host || mode == GameMode.Server)
         {
+            // Verificar que el runner sigue activo — el timeout puede haberlo apagado
+            // mientras el await StartGame() estaba pendiente.
+            if (_runner == null || !_runner.IsRunning) return;
+
             var sessionPrefab = Resources.Load<NetworkObject>("GameSession");
             if (sessionPrefab != null)
             {
@@ -129,37 +170,92 @@ public class ConnectionManager : MonoBehaviour, INetworkRunnerCallbacks
         }
     }
 
-    // --- Métodos para los Botones de la UI (Solo los usará el Técnico) ---
+    IEnumerator ConnectionTimeout()
+    {
+        yield return new WaitForSecondsRealtime(connectionTimeoutSeconds);
+        if (!_connected)
+        {
+            Debug.LogWarning($"[Red] Timeout ({connectionTimeoutSeconds}s) sin conexión. Fallback a offline.");
+            FallbackModoOffline("Tiempo de espera agotado. Iniciando modo offline.");
+            _runner?.Shutdown();
+        }
+    }
+
+    void StopConnectionTimeout()
+    {
+        if (_connectionTimeout != null)
+        {
+            StopCoroutine(_connectionTimeout);
+            _connectionTimeout = null;
+        }
+    }
+
+    void FallbackModoOffline(string razon = "")
+    {
+        if (modoOffline) return;
+        modoOffline = true;
+        Debug.LogWarning($"[Red] Fallback a modo offline. {razon}");
+        if (!string.IsNullOrEmpty(razon))
+            OnConnectionFailed?.Invoke(razon);
+        if (rolAutomatico != AutoConnectRole.Tecnico)
+            ActivarEntornoExplorador();
+    }
+
+    // --- Métodos para los Botones de la UI ---
     public void IniciarComoTecnico() => StartSimulation(GameMode.Host);
 
     // --- Callbacks de Fusion ---
     public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
     {
-        // Cuando alguien se conecta, el Servidor/Host le crea su "cuerpo" en la red
-        if (runner.IsServer)
-        {
-            Debug.Log($"[Red] Jugador {player.PlayerId} se ha unido. Generando Avatar...");
+        if (!runner.IsServer) return;
+        Debug.Log($"[Red] Jugador {player.PlayerId} se ha unido.");
+        if (playerPrefab.IsValid)
             runner.Spawn(playerPrefab, Vector3.up, Quaternion.identity, player);
-        }
+        else
+            Debug.LogWarning("[Red] playerPrefab no asignado — se omite el spawn del avatar. " +
+                             "Asígnalo en el Inspector de ConnectionManager si necesitas avatares de red.");
     }
 
-    // --- Callbacks Vacíos Obligatorios ---
-    public void OnPlayerLeft(NetworkRunner runner, PlayerRef player) { }
+    public void OnPlayerLeft(NetworkRunner runner, PlayerRef player)
+    {
+        Debug.Log($"[Red] Jugador {player.PlayerId} se ha desconectado.");
+        OnPlayerDisconnected?.Invoke(player);
+    }
+
     public void OnInput(NetworkRunner runner, NetworkInput input) { }
     public void OnInputMissing(NetworkRunner runner, PlayerRef player, NetworkInput input) { }
+
     public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason)
     {
         Debug.Log($"[Red] Runner apagado: {shutdownReason}");
-        _runner = null;
+        _runner    = null;
+        _connected = false;
+        StopConnectionTimeout();
     }
-    public void OnConnectedToServer(NetworkRunner runner) { }
+
+    public void OnConnectedToServer(NetworkRunner runner)
+    {
+        _connected = true;
+        StopConnectionTimeout();
+        Debug.Log("[Red] Conectado al servidor.");
+    }
+
     public void OnDisconnectedFromServer(NetworkRunner runner, NetDisconnectReason reason)
     {
         Debug.LogWarning($"[Red] Desconectado del servidor: {reason}");
-        _runner = null;
+        _runner    = null;
+        _connected = false;
+        FallbackModoOffline($"Desconectado: {reason}");
     }
+
+    public void OnConnectFailed(NetworkRunner runner, NetAddress remoteAddress, NetConnectFailedReason reason)
+    {
+        Debug.LogWarning($"[Red] Conexión fallida a {remoteAddress}: {reason}");
+        StopConnectionTimeout();
+        FallbackModoOffline($"No se pudo conectar al servidor ({reason}).");
+    }
+
     public void OnConnectRequest(NetworkRunner runner, NetworkRunnerCallbackArgs.ConnectRequest request, byte[] token) { }
-    public void OnConnectFailed(NetworkRunner runner, NetAddress remoteAddress, NetConnectFailedReason reason) { }
     public void OnUserSimulationMessage(NetworkRunner runner, SimulationMessagePtr message) { }
     public void OnSessionListUpdated(NetworkRunner runner, List<SessionInfo> sessionList) { }
     public void OnCustomAuthenticationResponse(NetworkRunner runner, Dictionary<string, object> data) { }

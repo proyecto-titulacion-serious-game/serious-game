@@ -111,6 +111,17 @@ public class GameManager : MonoBehaviour
     void Start()
     {
         CircuitManager.OnCircuitChanged += CheckWinCondition;
+
+        // Si hay onboarding en escena, esperar a que el jugador lo complete
+        if (FindAnyObjectByType<ExplorerOnboarding>() != null)
+            ExplorerOnboarding.OnOnboardingComplete += OnOnboardingDone;
+        else
+            LoadLevel(0);
+    }
+
+    void OnOnboardingDone()
+    {
+        ExplorerOnboarding.OnOnboardingComplete -= OnOnboardingDone;
         LoadLevel(0);
     }
 
@@ -132,7 +143,8 @@ public class GameManager : MonoBehaviour
 
     void OnDestroy()
     {
-        CircuitManager.OnCircuitChanged -= CheckWinCondition;
+        CircuitManager.OnCircuitChanged             -= CheckWinCondition;
+        ExplorerOnboarding.OnOnboardingComplete     -= OnOnboardingDone;
         // No nulamos los eventos estáticos — otros objetos siguen suscritos
         // y necesitan seguir recibiendo eventos si GameManager se recrea.
     }
@@ -511,9 +523,9 @@ public class GameManager : MonoBehaviour
     void SetupReto4()
     {
         if (circuit == null) return;
- 
-        circuit.topology = CircuitTopology.Mixed;
- 
+
+        circuit.topology = CircuitTopology.Series;
+
         foreach (var comp in circuit.components)
         {
             if (comp is ArduinoPin pin)
@@ -540,20 +552,31 @@ public class GameManager : MonoBehaviour
     void CheckReto4()
     {
         if (!_repairPerformed || circuit == null) return;
+        if (circuit.components.Count == 0) return;
 
         bool allPinsCorrect = true;
         bool resistorFixed  = true;
         bool cableFixed     = true;
+        bool foundPin       = false;
+        bool foundResistor  = false;
 
         foreach (var comp in circuit.components)
         {
             if (comp is ArduinoPin pin)
             {
+                foundPin = true;
                 if (pin.hasFault)      allPinsCorrect = false;
                 if (pin.hasLooseCable) cableFixed     = false;
             }
-            if (comp is Resistor r && r.hasFault) resistorFixed = false;
+            if (comp is Resistor r)
+            {
+                foundResistor = true;
+                if (r.hasFault) resistorFixed = false;
+            }
         }
+
+        // Requiere al menos un ArduinoPin y un Resistor en el circuito
+        if (!foundPin || !foundResistor) return;
 
         if (allPinsCorrect && resistorFixed && cableFixed)
             CompleteLevel(true);

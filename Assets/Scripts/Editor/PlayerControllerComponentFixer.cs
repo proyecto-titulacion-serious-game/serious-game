@@ -12,7 +12,7 @@ public class PlayerControllerComponentFixer
         Debug.Log("=== FIXING PLAYERCONTROLLER COMPONENTS ===");
 
         // Encontrar todos los PlayerController en la escena
-        var playerControllers = Object.FindObjectsOfType<PlayerController>();
+        var playerControllers = Object.FindObjectsByType<PlayerController>(FindObjectsInactive.Exclude);
         
         if (playerControllers.Length == 0)
         {
@@ -83,7 +83,7 @@ public class PlayerControllerComponentFixer
                 else
                 {
                     // Buscar cualquier cámara con tag "MainCamera"
-                    var cameras = Object.FindObjectsOfType<Camera>();
+                    var cameras = Object.FindObjectsByType<Camera>(FindObjectsInactive.Exclude);
                     foreach (var cam in cameras)
                     {
                         if (cam.CompareTag("MainCamera"))
@@ -128,7 +128,7 @@ public class PlayerControllerComponentFixer
     {
         Debug.Log("=== VERIFICACIÓN PLAYERCONTROLLER SETUP ===");
 
-        var playerControllers = Object.FindObjectsOfType<PlayerController>();
+        var playerControllers = Object.FindObjectsByType<PlayerController>(FindObjectsInactive.Exclude);
         
         if (playerControllers.Length == 0)
         {
@@ -184,7 +184,7 @@ public class PlayerControllerComponentFixer
     {
         Debug.Log("=== DIAGNÓSTICO SEGURO PLAYERCONTROLLER ===");
 
-        var playerControllers = Object.FindObjectsOfType<PlayerController>();
+        var playerControllers = Object.FindObjectsByType<PlayerController>(FindObjectsInactive.Exclude);
         
         foreach (var pc in playerControllers)
         {
@@ -216,7 +216,7 @@ public class PlayerControllerComponentFixer
     static Transform FindXROriginInScene()
     {
         // Estrategia 1: Buscar por nombre común
-        var gameObjects = Object.FindObjectsOfType<Transform>();
+        var gameObjects = Object.FindObjectsByType<Transform>(FindObjectsInactive.Exclude);
         foreach (var t in gameObjects)
         {
             if (t.name.Contains("XR Origin") || t.name.Contains("XROrigin") || t.name.Contains("XR Rig") || t.name.Contains("XRRig"))
@@ -226,7 +226,7 @@ public class PlayerControllerComponentFixer
         }
         
         // Estrategia 2: Buscar por componentes XR comunes
-        var cameras = Object.FindObjectsOfType<Camera>();
+        var cameras = Object.FindObjectsByType<Camera>(FindObjectsInactive.Exclude);
         foreach (var cam in cameras)
         {
             if (cam.CompareTag("MainCamera") && 

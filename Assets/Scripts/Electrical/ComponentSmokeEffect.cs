@@ -186,6 +186,18 @@ public class ComponentSmokeEffect : MonoBehaviour
     {
         _smokingActive = false;
         if (_fadeCoroutine != null) { StopCoroutine(_fadeCoroutine); _fadeCoroutine = null; }
+        // Usar if en lugar de ?. — Unity destruye el PS al desactivar la zona
+        // y ?. bypasea el operador == de Unity para objetos destruidos.
+        if (smokeEffect != null)
+            smokeEffect.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+    }
+
+    void StopAll()
+    {
+        StopSmoke();
+        _sparksActive = false;
+        if (sparkEffect != null)
+            sparkEffect.Stop(true, ParticleSystemStopBehavior.StopEmitting);
         // withChildren:true detiene también los sub-efectos CFXR
         smokeEffect?.Stop(true, ParticleSystemStopBehavior.StopEmitting);
     }

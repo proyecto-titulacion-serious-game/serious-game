@@ -397,7 +397,7 @@ public class SpaceshipAmbientSystem : MonoBehaviour
     }
 
     // Override StartCoroutine para rastrear por zona
-    new Coroutine StartCoroutine(IEnumerator routine, ZoneAmbientConfig z)
+    Coroutine StartCoroutine(IEnumerator routine, ZoneAmbientConfig z)
     {
         int idx = Array.IndexOf(zones, z);
         var cr = base.StartCoroutine(routine);

@@ -68,7 +68,6 @@ public class ClipboardZoom : MonoBehaviour,
         var kb = UnityEngine.InputSystem.Keyboard.current;
         if (kb != null) escape = kb.escapeKey.wasPressedThisFrame;
 #endif
-        if (!escape) escape = Input.GetKeyDown(KeyCode.Escape);
         if (escape) Toggle();
     }
 
