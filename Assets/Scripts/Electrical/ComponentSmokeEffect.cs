@@ -202,13 +202,6 @@ public class ComponentSmokeEffect : MonoBehaviour
         smokeEffect?.Stop(true, ParticleSystemStopBehavior.StopEmitting);
     }
 
-    void StopAll()
-    {
-        StopSmoke();
-        _sparksActive = false;
-        sparkEffect?.Stop(true, ParticleSystemStopBehavior.StopEmitting);
-    }
-
     // ─────────────────────────────────────────────
     //  Autocreación: HUMO
     // ─────────────────────────────────────────────
