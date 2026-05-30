@@ -56,6 +56,12 @@ public class GameSession : NetworkBehaviour
     /// <summary>El Host no ha respondido en más de HeartbeatTimeout segundos.</summary>
     public static event System.Action                       OnHeartbeatTimeout;
 
+    /// <summary>El Explorador solicitó validar el circuito.</summary>
+    public static event System.Action                       OnValidacionSolicitada;
+
+    /// <summary>El sistema reportó el resultado de la validación (paso, codigoMotivo).</summary>
+    public static event System.Action<bool, int>            OnResultadoValidacion;
+
     // ─────────────────────────────────────────────
     //  Lifecycle
     // ─────────────────────────────────────────────
@@ -173,5 +179,30 @@ public class GameSession : NetworkBehaviour
         }
         OnRetoChanged?.Invoke(reto);
         Debug.Log($"[GameSession] Nuevo reto: {reto}");
+    }
+
+    // ─────────────────────────────────────────────
+    //  Validación del circuito
+    // ─────────────────────────────────────────────
+
+    /// <summary>Explorador solicita validación — notifica a todos los clientes.</summary>
+    public void SolicitarValidacion() => RPC_SolicitarValidacion();
+
+    [Rpc(RpcSources.All, RpcTargets.All)]
+    private void RPC_SolicitarValidacion()
+    {
+        OnValidacionSolicitada?.Invoke();
+        Debug.Log("[GameSession] Validación solicitada.");
+    }
+
+    /// <summary>Reporta el resultado de la validación a todos los clientes.</summary>
+    public void ReportarResultado(bool paso, int codigoMotivo) =>
+        RPC_ReportarResultado(paso, codigoMotivo);
+
+    [Rpc(RpcSources.All, RpcTargets.All)]
+    private void RPC_ReportarResultado(NetworkBool paso, int codigoMotivo)
+    {
+        OnResultadoValidacion?.Invoke(paso, codigoMotivo);
+        Debug.Log($"[GameSession] Resultado validación: {(paso ? "✅" : "❌")} cod={codigoMotivo}");
     }
 }

@@ -1,0 +1,265 @@
+using UnityEngine;
+using System.Collections.Generic;
+
+/// <summary>
+/// Motor central de simulación analítica para los retos del juego.
+/// Calcula de forma dinámica voltajes, corrientes y estados de falla.
+/// VERSIÓN INTEGRAL: Incluye puentes de compatibilidad para el Técnico y sistemas heredados.
+/// </summary>
+public class CircuitSimulator : MonoBehaviour
+{
+    [Header("Matriz de Trabajo")]
+    public List<ComponentSlot> todosLosSlots = new List<ComponentSlot>();
+
+    private bool _isDirty = true;
+
+    // ─────────────────────────────────────────────
+    //  PUENTES DE COMPATIBILIDAD TYPECAST (Fix CS0029 / CS1503)
+    // ─────────────────────────────────────────────
+    // Este operador maestro engaña a Unity convirtiendo automáticamente un 'CircuitSimulator' 
+    // en un 'CircuitManager' o viceversa si un script viejo lo solicita.
+    public static implicit operator CircuitManager(CircuitSimulator instance)
+    {
+        if (instance == null) return null;
+        
+        // Intentamos retornar el componente CircuitManager si coexiste en el mismo objeto
+        CircuitManager cm = instance.GetComponent<CircuitManager>();
+        if (cm == null) cm = instance.gameObject.AddComponent<CircuitManager>();
+        return cm;
+    }
+
+    // ─────────────────────────────────────────────
+    //  PUENTES DE VARIABLES ELÉCTRICAS (Fix CS1061)
+    // ─────────────────────────────────────────────
+    [Header("Variables Globales de Red (Telemetría para Técnico)")]
+    public float sourceVoltage = 9f;    // Voltaje de la fuente (V) — Usado por ObjectiveSystem
+    public float totalCurrent = 0.02f;  // Amperaje total (I) — Usado por ComponentSendingTray y ObjectiveSystem
+    public float totalPower = 0.18f;    // Potencia de la malla (W) — Usado por ComponentSendingTray
+    public bool isShortCircuited = false; // Estado de cortocircuito — Usado por CircuitAudioManager y Técnico
+
+    private List<ElectricalComponent> _legacyComponents = new List<ElectricalComponent>();
+    
+    /// <summary> Propiedad puente para simular la lista antigua de componentes. </summary>
+    public List<ElectricalComponent> components
+    {
+        get
+        {
+            _legacyComponents.Clear();
+            foreach (var slot in todosLosSlots)
+            {
+                if (slot != null && slot.InstalledObject != null)
+                {
+                    if (slot.InstalledObject.TryGetComponent<ElectricalComponent>(out var comp))
+                    {
+                        _legacyComponents.Add(comp);
+                    }
+                }
+            }
+            return _legacyComponents;
+        }
+    }
+
+    public void AutoDetectComponents()
+    {
+        // En el nuevo sistema Sandbox, el escaneo es automático por la matriz de slots
+        MarkDirty();
+    }
+
+    // ─────────────────────────────────────────────
+    //  Unity Lifecycle y Advertencias (Fix CS0618)
+    // ─────────────────────────────────────────────
+    void Awake()
+    {
+        // FIX: Se removió FindObjectsSortMode que estaba obsoleto en las nuevas versiones de Unity
+        if (todosLosSlots.Count == 0)
+        {
+            todosLosSlots.AddRange(FindObjectsByType<ComponentSlot>(FindObjectsInactive.Include));
+        }
+    }
+
+    /// <summary>
+    /// Marca el circuito para indicar que requiere un recálculo matemático.
+    /// </summary>
+    public void MarkDirty() => _isDirty = true;
+
+    /// <summary>
+    /// Ejecuta el análisis de parámetros eléctricos basándose en las leyes de la electrónica.
+    /// </summary>
+    public void ForceSimulate()
+    {
+        if (!_isDirty) return;
+        _isDirty = false;
+
+        Debug.Log("[CircuitSimulator] Actualizando análisis nodal y cálculo de mallas...");
+
+        // Paso 1: Inicializar telemetría base de la simulación
+        isShortCircuited = false;
+        totalCurrent = 0f;
+        totalPower = 0f;
+
+        // Resetear estados eléctricos básicos
+        foreach (var slot in todosLosSlots)
+        {
+            if (slot == null || slot.InstalledObject == null) continue;
+
+            if (slot.InstalledObject.TryGetComponent<LED>(out var led))
+            {
+                led.isOn = false;
+                if (led.nodeA != null && led.nodeB != null)
+                {
+                    led.nodeA.voltage = 0f;
+                    led.nodeB.voltage = 0f;
+                    led.Calculate();
+                }
+            }
+        }
+
+        // Paso 2: Resolver la matriz según el tipo de reto activo
+        GameManager gm = FindAnyObjectByType<GameManager>();
+        if (gm == null) return;
+
+        switch (gm.currentLevel)
+        {
+            case LevelType.OhmLaw:
+                SimularReto1_Ohm(gm);
+                break;
+            case LevelType.Parallel:
+                SimularReto2_Parallel();
+                break;
+            case LevelType.Mixed:
+                SimularReto3_Mixed();
+                break;
+            case LevelType.Arduino:
+                SimularReto4_Arduino();
+                break;
+        }
+    }
+
+    private void SimularReto1_Ohm(GameManager gm)
+    {
+        sourceVoltage = 9f; 
+        ComponentSlot slotResistencia = todosLosSlots.Find(s => s.targetElectricalValue == 850f);
+
+        if (slotResistencia != null && slotResistencia.InstalledObject != null)
+        {
+            if (slotResistencia.InstalledObject.TryGetComponent<Resistor>(out var res))
+            {
+                if (res.nodeA != null && res.nodeB != null)
+                {
+                    res.nodeA.voltage = sourceVoltage;
+                    res.nodeB.voltage = 0f; 
+                    res.Calculate();
+
+                    // Telemetría en tiempo real para la estación del Técnico
+                    totalCurrent = res.current;
+                    totalPower = res.dissipatedPower;
+                    
+                    // Si la resistencia es críticamente baja (falla del reto), hay amago de corto
+                    if (res.isOverloaded) isShortCircuited = true;
+                }
+            }
+        }
+    }
+
+    private void SimularReto2_Parallel()
+    {
+        sourceVoltage = 5f;
+        foreach (var slot in todosLosSlots)
+        {
+            if (slot != null && slot.InstalledObject != null)
+            {
+                if (slot.InstalledObject.TryGetComponent<LED>(out var led))
+                {
+                    if (led.nodeA != null && led.nodeB != null)
+                    {
+                        led.nodeA.voltage = led.polarityInverted ? 0f : sourceVoltage;
+                        led.nodeB.voltage = led.polarityInverted ? sourceVoltage : 0f;
+                        led.Calculate();
+
+                        totalCurrent += led.current;
+                    }
+                }
+            }
+        }
+        totalPower = sourceVoltage * totalCurrent;
+    }
+
+    private void SimularReto3_Mixed()
+    {
+        sourceVoltage = 6f;
+        foreach (var slot in todosLosSlots)
+        {
+            if (slot != null && slot.InstalledObject != null)
+            {
+                if (slot.InstalledObject.TryGetComponent<Resistor>(out var res))
+                {
+                    if (res.nodeA != null && res.nodeB != null)
+                    {
+                        res.nodeA.voltage = sourceVoltage;
+                        res.nodeB.voltage = 2f;
+                        res.Calculate();
+                        totalCurrent += res.current;
+                    }
+                }
+            }
+        }
+        totalPower = sourceVoltage * totalCurrent;
+    }
+
+    private void SimularReto4_Arduino()
+    {
+        ArduinoCore arduino = FindAnyObjectByType<ArduinoCore>();
+        if (arduino == null) return;
+
+        sourceVoltage = arduino.outputVoltageTTL;
+
+        Resistor resistenciaProteccion = null;
+        LED ledSalida = null;
+
+        foreach (var slot in todosLosSlots)
+        {
+            if (slot == null || slot.InstalledObject == null) continue;
+
+            if (slot.InstalledObject.TryGetComponent<Resistor>(out var res)) resistenciaProteccion = res;
+            if (slot.InstalledObject.TryGetComponent<LED>(out var led)) ledSalida = led;
+        }
+
+        if (resistenciaProteccion != null && ledSalida != null)
+        {
+            resistenciaProteccion.nodeA = arduino.pin13Node; 
+            
+            if (ledSalida.polarityInverted)
+            {
+                ledSalida.nodeB = resistenciaProteccion.nodeB;
+                ledSalida.nodeA = arduino.gndNode; 
+            }
+            else
+            {
+                ledSalida.nodeA = resistenciaProteccion.nodeB;
+                ledSalida.nodeB = arduino.gndNode; 
+            }
+
+            resistenciaProteccion.Calculate();
+            ledSalida.Calculate();
+
+            totalCurrent = resistenciaProteccion.current;
+            totalPower = resistenciaProteccion.dissipatedPower;
+        }
+    }
+
+    public bool AreAllLEDsOn()
+    {
+        int ledsEncendidos = 0;
+        int ledsTotales = 0;
+
+        foreach (var slot in todosLosSlots)
+        {
+            if (slot != null && slot.InstalledObject != null && slot.InstalledObject.TryGetComponent<LED>(out var led))
+            {
+                ledsTotales++;
+                if (led.isOn && led.state == LEDState.Correct) ledsEncendidos++;
+            }
+        }
+        return ledsTotales > 0 && ledsEncendidos == ledsTotales;
+    }
+}

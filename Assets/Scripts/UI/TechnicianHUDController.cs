@@ -22,6 +22,17 @@ public class TechnicianHUDController : MonoBehaviour
     public TMP_Text   txtTransicionTitulo;
     public TMP_Text   txtTransicionSub;
 
+    [Header("Overlay de validación")]
+    public GameObject panelValidacion;
+    public Image      imgValidacionBg;
+    public TMP_Text   txtValidacionEstado;
+    public Image      progressFill;
+    public GameObject panelChecklist;
+    public TMP_Text   txtCheck1;
+    public TMP_Text   txtCheck2;
+    public TMP_Text   txtCheck3;
+    public Button     btnCerrarValidacion;
+
     // ─────────────────────────────────────────────
     void OnEnable()
     {
