@@ -1,20 +1,19 @@
 using UnityEngine;
+using System.Collections.Generic; // Necesario para usar List<>
 
 /// <summary>
 /// Vive en la escena Explorador.unity.
 /// Escucha GameSession.OnComponenteRecibido y spawna el componente físico
 /// en la bandeja del Explorador para que pueda instalarlo.
-///
-/// SETUP EN UNITY (escena Explorador):
-///   1. Añadir este script a cualquier GameObject (ej. "ComponentReceiver").
-///   2. Asignar puntoDeEntrega → Transform de la Bandeja_Recepcion del Explorador.
-///   3. Asignar los prefabs de componentes (mismos que usa ComponentDeliverySystem).
-///   4. Asignar delivery → ComponentDeliverySystem de la escena (para OnExplorerInstalled).
+/// Modificado para ACUMULAR componentes con físicas reales en la mesa.
 /// </summary>
 public class ExplorerComponentReceiver : MonoBehaviour
 {
     [Header("Punto de spawn general (fallback si no hay slot específico)")]
     public Transform puntoDeEntrega;
+    
+    [Tooltip("Margen de dispersión para que los componentes no se fusionen al aparecer.")]
+    public float radioDispersion = 0.08f;
 
     [Header("Slots por tipo — arrastra los empties de la escena (opcional)")]
     [Tooltip("Si se asigna, el Resistor aparece aquí en lugar del puntoDeEntrega general.")]
@@ -48,7 +47,8 @@ public class ExplorerComponentReceiver : MonoBehaviour
     [Header("Sistema de delivery local (para validar instalación)")]
     public ComponentDeliverySystem delivery;
 
-    private GameObject _componenteActual;
+    // LISTA para acumular componentes en lugar de una sola variable
+    private List<GameObject> _componentesRecibidos = new List<GameObject>();
 
     // ─────────────────────────────────────────────
     //  Lifecycle
@@ -111,8 +111,7 @@ public class ExplorerComponentReceiver : MonoBehaviour
 
     void SpawnComponente(ComponentType tipo, float valor, GameObject prefabOverride)
     {
-        if (_componenteActual != null)
-            Destroy(_componenteActual);
+        // ¡ELIMINADO EL DESTROY AQUÍ PARA PERMITIR ACUMULACIÓN!
 
         // If delivery already spawned a ghost (from the delivery path in ComponentSendingTray),
         // cancel it so we spawn at the correct Explorer location instead.
@@ -132,9 +131,9 @@ public class ExplorerComponentReceiver : MonoBehaviour
         Transform slot = tipo switch
         {
             ComponentType.Resistor   => slotResistor   != null ? slotResistor   : puntoDeEntrega,
-            ComponentType.LED        => slotLED         != null ? slotLED         : puntoDeEntrega,
-            ComponentType.Capacitor  => slotCapacitor   != null ? slotCapacitor   : puntoDeEntrega,
-            ComponentType.ArduinoPin => slotArduinoPin  != null ? slotArduinoPin  : puntoDeEntrega,
+            ComponentType.LED        => slotLED        != null ? slotLED        : puntoDeEntrega,
+            ComponentType.Capacitor  => slotCapacitor  != null ? slotCapacitor  : puntoDeEntrega,
+            ComponentType.ArduinoPin => slotArduinoPin != null ? slotArduinoPin : puntoDeEntrega,
             _                        => puntoDeEntrega
         };
 
@@ -144,27 +143,49 @@ public class ExplorerComponentReceiver : MonoBehaviour
             return;
         }
 
-        _componenteActual = Instantiate(prefab, slot.position, slot.rotation, slot);
-        ConfigurarComponente(_componenteActual, tipo, valor);
+        // Crear un ligero desfase aleatorio para que no colisionen violentamente
+        Vector3 offsetAleatorio = new Vector3(
+            Random.Range(-radioDispersion, radioDispersion),
+            0.05f, // Aparece un poquito arriba de la mesa para caer con gravedad
+            Random.Range(-radioDispersion, radioDispersion)
+        );
 
-        if (_componenteActual.TryGetComponent<Rigidbody>(out var rb))
+        Vector3 posicionSpawn = slot.position + offsetAleatorio;
+
+        // Instanciar sin emparentar directamente al slot para evitar escalas raras con físicas
+        GameObject nuevoComponente = Instantiate(prefab, posicionSpawn, slot.rotation);
+        
+        // Agregar a nuestra lista de control
+        _componentesRecibidos.Add(nuevoComponente);
+
+        ConfigurarComponente(nuevoComponente, tipo, valor);
+
+        // ¡FÍSICAS ACTIVADAS PARA QUE CAIGAN EN LA MESA!
+        if (nuevoComponente.TryGetComponent<Rigidbody>(out var rb))
         {
-            rb.isKinematic = true;
-            rb.useGravity  = false;
+            rb.isKinematic = false;
+            rb.useGravity  = true;
         }
 
         delivery?.PrepareForInstall(tipo, valor);
 
-        Debug.Log($"[Receiver] Componente recibido: {tipo} ({(prefabOverride != null ? prefabOverride.name : "base")}) = {valor}");
+        Debug.Log($"[Receiver] Componente recibido y acumulado: {tipo} ({(prefabOverride != null ? prefabOverride.name : "base")}) = {valor}");
     }
 
     void HandleRetoChanged(int reto)
     {
-        if (_componenteActual != null)
+        // Limpiamos toda la mesa destruyendo todos los componentes acumulados
+        foreach (var comp in _componentesRecibidos)
         {
-            Destroy(_componenteActual);
-            _componenteActual = null;
+            if (comp != null)
+            {
+                Destroy(comp);
+            }
         }
+        
+        // Vaciamos la lista para el nuevo reto
+        _componentesRecibidos.Clear();
+        Debug.Log("[Receiver] Mesa limpiada para el nuevo reto.");
     }
 
     // ─────────────────────────────────────────────

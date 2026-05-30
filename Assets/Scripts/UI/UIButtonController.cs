@@ -95,7 +95,7 @@ public class UIButtonController : MonoBehaviour
 
         if (fixResistorLabel != null)
             fixResistorLabel.text = habilitado
-                ? "ENVIAR RESISTENCIA"
+                ? "ENVIAR COMPONENTE"
                 : "Mide y selecciona primero";
     }
 
@@ -126,5 +126,25 @@ public class UIButtonController : MonoBehaviour
     {
         if (nextStepButton == null) return;
         nextStepButton.interactable = false;
+    }
+
+    // ─────────────────────────────────────────────
+    //  NUEVA FUNCIÓN DE LIMPIEZA AUTOMÁTICA
+    // ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Busca el componente eléctrico que está clonado en la mesa de trabajo
+    /// del Técnico y lo destruye para evitar acumulaciones tras el envío.
+    /// </summary>
+    public void LimpiarMesaDelTecnico()
+    {
+        // Buscamos dinámicamente cualquier script del componente eléctrico que esté vivo en la escena
+        ElectricalComponent componenteEnMesa = FindAnyObjectByType<ElectricalComponent>();
+
+        if (componenteEnMesa != null)
+        {
+            Debug.Log($"[Mesa Técnico] Destruyendo clon enviado: {componenteEnMesa.gameObject.name}");
+            Destroy(componenteEnMesa.gameObject);
+        }
     }
 }

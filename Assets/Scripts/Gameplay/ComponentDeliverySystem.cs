@@ -176,12 +176,18 @@ public class ComponentDeliverySystem : MonoBehaviour
 
         if (valueCorrect)
         {
-            // Deshabilitar el script eléctrico del componente entregado para que
-            // el rescan de RegisterRepairAction no lo cuente como segundo componente
-            // del circuito (el circuito se actualiza sobre el componente original de la escena).
-            if (slot.InstalledObject != null &&
-                slot.InstalledObject.TryGetComponent<ElectricalComponent>(out var ec))
+            // CORREGIDO: En lugar de apagar el componente a la fuerza localmente (ec.enabled = false),
+            // lo cual causaba desincronizaciones en red, ahora reportamos la instalación 
+            // a través del objeto sincrónico GameSession de Fusion para que impacte en toda la red.
+            if (GameSession.Instance != null)
+            {
+                GameSession.Instance.ReportarInstalacion(true);
+            }
+            else if (slot.InstalledObject != null && slot.InstalledObject.TryGetComponent<ElectricalComponent>(out var ec))
+            {
+                // Fallback local por si se corre la escena de forma aislada en modo Offline
                 ec.enabled = false;
+            }
 
             ApplyRepairToCircuit();
             OnRepairValidated?.Invoke(true);
@@ -192,6 +198,11 @@ public class ComponentDeliverySystem : MonoBehaviour
         {
             // Componente instalado pero con VALOR incorrecto.
             // El circuito NO se repara — el Explorador ve el resultado (LED sigue rojo).
+            if (GameSession.Instance != null)
+            {
+                GameSession.Instance.ReportarInstalacion(false); // Sincroniza el fallo con el Servidor/Docente
+            }
+
             OnRepairValidated?.Invoke(false);
             OnDeliveryError?.Invoke($"Valor incorrecto instalado: {_pendingType} = {_pendingValue}");
             gameManager?.RegisterWrongAttempt($"Valor incorrecto: {_pendingType} = {_pendingValue}");
@@ -206,7 +217,6 @@ public class ComponentDeliverySystem : MonoBehaviour
 
         ResetDeliveryState();
     }
-
     // ─────────────────────────────────────────────
     //  Spawn local
     // ─────────────────────────────────────────────
@@ -431,6 +441,8 @@ public class ComponentDeliverySystem : MonoBehaviour
         _spawnedComponent  = null;   // gestionado por el Receiver
     }
 }
+
+
 
 public enum ComponentType
 {

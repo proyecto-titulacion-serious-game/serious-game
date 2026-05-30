@@ -1,14 +1,10 @@
 using UnityEngine;
 
-public enum ComponentSlotType { Resistor, LED, Capacitor, ArduinoPin }
+public enum ComponentSlotType { Resistor, LED, Capacitor, ArduinoPin, Any }
 
 /// <summary>
 /// Slot físico donde el Explorador instala un componente recibido del Técnico.
-/// CORRECCIONES respecto a la versión anterior:
-///   1. delivery.OnExplorerInstalled() solo se llama cuando el tipo COINCIDE.
-///   2. Se llama gameManager.RegisterRepairAction() al instalar correctamente,
-///      lo que dispara CheckReto1() / CheckReto2() automáticamente.
-///   3. Si el tipo NO coincide, se llama RegisterWrongAttempt() para el log.
+/// VERSIÓN SANDBOX: Permite libertad de instalación, modo refrigeradora y liberación de piezas.
 /// </summary>
 [RequireComponent(typeof(Collider))]
 public class ComponentSlot : MonoBehaviour
@@ -19,9 +15,12 @@ public class ComponentSlot : MonoBehaviour
     [Header("Tipo aceptado")]
     public ComponentSlotType acceptedType = ComponentSlotType.Resistor;
 
+    [Header("Valores de Validación (Modo Sandbox)")]
+    public float targetElectricalValue = 0f;
+
     [Header("Referencias")]
     public ComponentDeliverySystem delivery;
-    public GameManager             gameManager;   // ← NUEVO: para RegisterRepairAction
+    public GameManager             gameManager;   
 
     [Header("Feedback visual")]
     public Renderer slotRenderer;
@@ -34,44 +33,45 @@ public class ComponentSlot : MonoBehaviour
     public Transform installAnchor;
 
     [Header("Componente dañado a reemplazar (opcional)")]
-    [Tooltip("Arrastra aquí el GameObject del componente defectuoso visible en la escena. " +
-             "Se ocultará automáticamente cuando el Explorador instale el reemplazo.")]
     public GameObject damagedComponent;
 
     [Header("Estado (solo lectura)")]
     [SerializeField] private bool       _hasComponent = false;
     [SerializeField] private GameObject _installed;
 
-    private GrabbableComponent _hoveringGC;
 
-    /// <summary>El GameObject actualmente instalado en este slot (null si vacío).</summary>
+
     public GameObject InstalledObject => _installed;
 
     // ─────────────────────────────────────────────
     //  Internos
     // ─────────────────────────────────────────────
     private MaterialPropertyBlock _mpb;
-    private static readonly int _colorID       = Shader.PropertyToID("_BaseColor"); // URP
-    private static readonly int _colorLegacyID = Shader.PropertyToID("_Color");     // Built-in fallback
+    private static readonly int _colorID       = Shader.PropertyToID("_BaseColor"); 
+    private static readonly int _colorLegacyID = Shader.PropertyToID("_Color");     
 
-    // ─────────────────────────────────────────────
-    //  Unity Lifecycle
-    // ─────────────────────────────────────────────
+    void Start()
+    {
+        // Movemos el SetColor al Start, cuando ya todo Unity está cargado
+        SetColor(colorNormal);
+    }
+
     void Awake()
     {
+        // Forzamos la creación del PropertyBlock lo más temprano posible
         _mpb = new MaterialPropertyBlock();
+
         if (slotRenderer == null) slotRenderer = GetComponent<Renderer>();
         if (delivery     == null) delivery     = FindAnyObjectByType<ComponentDeliverySystem>();
         if (gameManager  == null) gameManager  = FindAnyObjectByType<GameManager>();
 
         var col = GetComponent<Collider>();
         if (col != null && !col.isTrigger) col.isTrigger = true;
-
-        SetColor(colorNormal);
     }
 
+
     // ─────────────────────────────────────────────
-    //  Trigger
+    //  Trigger (Magnetismo Físico Infalible)
     // ─────────────────────────────────────────────
     void OnTriggerEnter(Collider other)
     {
@@ -80,62 +80,80 @@ public class ComponentSlot : MonoBehaviour
         var gc = other.GetComponentInParent<GrabbableComponent>();
         if (gc == null) return;
 
-        // Sólo aceptar componentes mientras hay una entrega pendiente.
-        // Evita que componentes de escena (ej. Resistor_Faulty) se auto-instalen al inicio.
+        if (gc.transform.parent != null && gc.transform.parent.name.Contains("Anchor")) return;
         if (delivery != null && !delivery.HasPendingDelivery()) return;
 
         ComponentType incoming = DetectComponentType(gc.gameObject);
-        bool matches = MatchesSlotType(incoming, acceptedType);
-
-        if (matches)
+        if (MatchesSlotType(incoming, acceptedType))
         {
-            _hoveringGC = gc;
-            SetColor(colorHover);
-            gc.Released += OnComponentReleasedInSlot;
-
-            // Si el usuario soltó el componente justo antes de entrar al trigger
-            if (!gc.IsGrabbed)
-                OnComponentReleasedInSlot(gc);
-        }
-        else
-        {
-            SetColor(colorWrong);
-            gameManager?.RegisterWrongAttempt(
-                $"Componente incorrecto: {incoming} en slot de {acceptedType}");
-            CancelInvoke(nameof(ResetColor));
-            Invoke(nameof(ResetColor), 1.2f);
-            Debug.Log($"[Slot {name}] Tipo incorrecto: {incoming} (esperaba {acceptedType})");
+            SetColor(colorHover); // Feedback visual inmediato al entrar
         }
     }
 
-    void OnTriggerStay(Collider other) { }
+    void OnTriggerStay(Collider other)
+    {
+        // Si ya tiene una pieza, no hace nada
+        if (_hasComponent) return;
+
+        var gc = other.GetComponentInParent<GrabbableComponent>();
+        if (gc == null) return;
+
+        // Evitar robar componentes pegados en otros slots
+        if (gc.transform.parent != null && gc.transform.parent.name.Contains("Anchor")) return;
+
+        ComponentType incoming = DetectComponentType(gc.gameObject);
+        if (!MatchesSlotType(incoming, acceptedType)) return;
+
+        // ─── EL SECRETO DEL IMÁN ───
+        // Mientras la pieza siga dentro del cubito verde, preguntamos sin parar: "¿Ya la soltó?"
+        // Si la soltó, la pegamos a la fuerza en ese mismo milisegundo.
+        if (!gc.IsGrabbed)
+        {
+            InstallComponent(gc.gameObject);
+            SetColor(colorCorrect);
+            delivery?.OnExplorerInstalled(this);
+            Debug.Log($"[Slot {name}] ¡Imán activado! {gc.name} succionado con éxito.");
+        }
+    }
 
     void OnTriggerExit(Collider other)
     {
-        if (_hasComponent) return;
         var gc = other.GetComponentInParent<GrabbableComponent>();
-        if (gc != null && gc == _hoveringGC)
+        if (gc == null) return;
+
+        // CASO 1: El jugador agarra y arranca un componente que ya estaba magnetizado
+        if (_hasComponent && _installed != null && gc.gameObject == _installed)
         {
-            gc.Released -= OnComponentReleasedInSlot;
-            _hoveringGC = null;
+            LiberarSlotPorRetiro();
+            return;
+        }
+
+        // CASO 2: El jugador solo estaba pasando la pieza por encima y se alejó
+        if (!_hasComponent)
+        {
             SetColor(colorNormal);
         }
     }
 
+    // Nota: El método OnComponentReleasedInSlot se borra por completo, 
+    // ya que OnTriggerStay hace el trabajo de forma más segura.
     void OnComponentReleasedInSlot(GrabbableComponent gc)
     {
         if (gc != null) gc.Released -= OnComponentReleasedInSlot;
-        _hoveringGC = null;
+        //_hoveringGC = null;
+        
         if (_hasComponent) return;
+
+        // Doble verificación de que la mano realmente lo soltó
+        if (gc != null && gc.IsGrabbed) return;
 
         InstallComponent(gc.gameObject);
         SetColor(colorCorrect);
         delivery?.OnExplorerInstalled(this);
-        Debug.Log($"[Slot {name}] Instalado al soltar: {gc.name}");
     }
 
     // ─────────────────────────────────────────────
-    //  Instalación visual
+    //  Instalación y Liberación
     // ─────────────────────────────────────────────
     void InstallComponent(GameObject comp)
     {
@@ -150,16 +168,21 @@ public class ComponentSlot : MonoBehaviour
         {
             rb.isKinematic = true;
             rb.useGravity  = false;
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
         }
 
-        comp.GetComponent<GrabbableComponent>()?.DisableGrab();
-
-        // Ocultar el componente dañado original que este slot reemplaza
         if (damagedComponent != null)
             damagedComponent.SetActive(false);
+
+        // Avisar al simulador que hay una nueva pieza en el tablero
+        if (gameManager != null && gameManager.circuit != null)
+        {
+            gameManager.circuit.MarkDirty();
+        }
     }
 
-    public void ReleaseComponent()
+    void LiberarSlotPorRetiro()
     {
         if (_installed != null)
         {
@@ -168,15 +191,30 @@ public class ComponentSlot : MonoBehaviour
                 rb.isKinematic = false;
                 rb.useGravity  = true;
             }
-            _installed.GetComponent<GrabbableComponent>()?.EnableGrab();
+            _installed.transform.SetParent(null);
         }
+
         _installed    = null;
         _hasComponent = false;
         SetColor(colorNormal);
+
+        if (damagedComponent != null)
+            damagedComponent.SetActive(true);
+
+        // Avisar al simulador que quedó un hueco vacío
+        if (gameManager != null && gameManager.circuit != null)
+        {
+            gameManager.circuit.MarkDirty();
+        }
+    }
+
+    public void ReleaseComponent()
+    {
+        LiberarSlotPorRetiro();
     }
 
     // ─────────────────────────────────────────────
-    //  Detección de tipo
+    //  Detección y Validaciones
     // ─────────────────────────────────────────────
     ComponentType DetectComponentType(GameObject obj)
     {
@@ -193,19 +231,27 @@ public class ComponentSlot : MonoBehaviour
 
     bool MatchesSlotType(ComponentType c, ComponentSlotType s) => (c, s) switch
     {
+        (_, ComponentSlotType.Any)                               => true, // Modo Sandbox activado
         (ComponentType.Resistor,   ComponentSlotType.Resistor)   => true,
         (ComponentType.LED,        ComponentSlotType.LED)        => true,
         (ComponentType.Capacitor,  ComponentSlotType.Capacitor)  => true,
         (ComponentType.ArduinoPin, ComponentSlotType.ArduinoPin) => true,
-        _                                                         => false
+        _                                                        => false
     };
 
-    // ─────────────────────────────────────────────
-    //  Helpers
+// ─────────────────────────────────────────────
+    //  Helpers de Color y Renderizado (BLINDADOS)
     // ─────────────────────────────────────────────
     void SetColor(Color c)
     {
         if (slotRenderer == null) return;
+        
+        // ── FIX: Asegurar que _mpb siempre exista antes de usarlo ──
+        if (_mpb == null) 
+        {
+            _mpb = new MaterialPropertyBlock();
+        }
+
         slotRenderer.GetPropertyBlock(_mpb);
         _mpb.SetColor(_colorID, c);
         _mpb.SetColor(_colorLegacyID, c);
@@ -214,7 +260,7 @@ public class ComponentSlot : MonoBehaviour
 
     void ResetColor()
     {
-        if (_hasComponent) return;  // no pisar colorCorrect si algo fue instalado
+        if (_hasComponent) return; 
         SetColor(colorNormal);
     }
 
@@ -222,6 +268,7 @@ public class ComponentSlot : MonoBehaviour
     {
         Gizmos.color = acceptedType switch
         {
+            ComponentSlotType.Any        => new Color(0f, 1f, 1f, 0.3f), // Cyan transparente para matriz
             ComponentSlotType.Resistor   => Color.yellow,
             ComponentSlotType.LED        => Color.green,
             ComponentSlotType.Capacitor  => Color.blue,

@@ -6,6 +6,7 @@ using UnityEngine.XR.Interaction.Toolkit.Interactables;
 /// Botón físico en el multímetro que cicla entre modos: DCVoltage → DCCurrent → Resistance.
 /// Requiere XRSimpleInteractable en el mismo GO.
 /// Cambia de color para indicar el modo activo.
+/// VERSIÓN BLINDADA: Previene errores de inicialización nula en el renderizado de Unity.
 /// </summary>
 [RequireComponent(typeof(XRSimpleInteractable))]
 public class MultimeterModeButton : MonoBehaviour
@@ -28,6 +29,8 @@ public class MultimeterModeButton : MonoBehaviour
     {
         _interactable = GetComponent<XRSimpleInteractable>();
         _renderer     = GetComponent<Renderer>();
+        
+        // Inicialización temprana
         _mpb          = new MaterialPropertyBlock();
 
         if (multimeter == null)
@@ -36,13 +39,16 @@ public class MultimeterModeButton : MonoBehaviour
 
     void OnEnable()
     {
-        _interactable.selectEntered.AddListener(OnPressed);
+        if (_interactable != null)
+            _interactable.selectEntered.AddListener(OnPressed);
+            
         UpdateColor();
     }
 
     void OnDisable()
     {
-        _interactable.selectEntered.RemoveListener(OnPressed);
+        if (_interactable != null)
+            _interactable.selectEntered.RemoveListener(OnPressed);
     }
 
     void OnPressed(SelectEnterEventArgs _)
@@ -57,6 +63,14 @@ public class MultimeterModeButton : MonoBehaviour
     void UpdateColor()
     {
         if (_renderer == null || multimeter == null) return;
+
+        // ── FIX: Protección absoluta contra el error "Value cannot be null" ──
+        // Garantiza que la tubería gráfica siempre tenga el bloque de material listo
+        if (_mpb == null)
+        {
+            _mpb = new MaterialPropertyBlock();
+        }
+
         Color c = multimeter.mode switch
         {
             MultimeterMode.DCVoltage  => colorVoltage,
@@ -64,6 +78,7 @@ public class MultimeterModeButton : MonoBehaviour
             MultimeterMode.Resistance => colorResistance,
             _                         => Color.white
         };
+        
         _renderer.GetPropertyBlock(_mpb);
         _mpb.SetColor(_baseColorID, c);
         _mpb.SetColor(_emissionID,  c * 0.6f);

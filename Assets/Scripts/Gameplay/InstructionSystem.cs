@@ -374,7 +374,9 @@ public class InstructionSystem : MonoBehaviour
     /// Requiere haber medido y seleccionado el componente correcto (paso 3+).
     /// </summary>
     public bool CanRepairResistor()
-        => currentStep >= 3 && hasMeasuredCorrectly && hasSelectedCorrectComponent;
+    {
+        return gameManager != null && gameManager.currentLevel == LevelType.OhmLaw;
+    }
 
     /// <summary>
     /// True cuando el Técnico puede autorizar la reparación del paralelo.

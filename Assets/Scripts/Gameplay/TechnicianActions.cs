@@ -2,8 +2,8 @@ using UnityEngine;
 
 /// <summary>
 /// Acciones del Técnico sobre el circuito.
-/// CORRECCIÓN CRÍTICA: ReplaceSelectedResistor ahora llama circuit.MarkDirty()
-/// para que el CircuitManager resimule y el LED cambie de color.
+/// CORRECCIÓN CRÍTICA: Al enviar o reemplazar, destruye el componente de la mesa 
+/// para evitar acumulaciones visuales en la pantalla del Técnico.
 /// </summary>
 public class TechnicianActions : MonoBehaviour
 {
@@ -70,7 +70,7 @@ public class TechnicianActions : MonoBehaviour
 
     /// <summary>
     /// Reemplaza la resistencia seleccionada con el valor correcto.
-    /// CRÍTICO: llama circuit.MarkDirty() para que el LED cambie de color.
+    /// CORREGIDO: Destruye el GameObject visual de la mesa del Técnico tras enviarlo.
     /// </summary>
     public void ReplaceSelectedResistor()
     {
@@ -97,6 +97,19 @@ public class TechnicianActions : MonoBehaviour
             gameManager?.RegisterRepairAction();
 
             Debug.Log($"[TechnicianActions] Resistencia reemplazada: {correctResistance} Ohm. LED debe cambiar a verde.");
+
+            // ─────────────────────────────────────────────────────────────────
+            // ¡EL FIX CRÍTICO AQUÍ!
+            // Destruimos el objeto visual que está sobre la mesa del Técnico
+            // ─────────────────────────────────────────────────────────────────
+            if (_selectedVisual != null)
+            {
+                Debug.Log($"[TechnicianActions] Limpiando mesa: Destruyendo {_selectedVisual.gameObject.name}");
+                Destroy(_selectedVisual.gameObject);
+                _selectedVisual = null; // Limpiar referencia visual
+            }
+
+            selectedComponent = null; // Limpiar referencia lógica para el siguiente componente
         }
         else
         {
@@ -158,6 +171,14 @@ public class TechnicianActions : MonoBehaviour
         GameSession.Instance?.EnviarComponente(ComponentType.LED, normalLedResistance);
 
         Debug.Log("[TechnicianActions] Circuito paralelo reparado.");
+
+        // Si en el Reto 2 también tienes un clon en la mesa que quieras borrar al dar clic:
+        if (_selectedVisual != null)
+        {
+            Destroy(_selectedVisual.gameObject);
+            _selectedVisual = null;
+        }
+        selectedComponent = null;
     }
 
     /// <summary>
@@ -191,8 +212,6 @@ public class TechnicianActions : MonoBehaviour
         }
         return false;
     }
-
-    
 
     // ─────────────────────────────────────────────
     //  Helpers
