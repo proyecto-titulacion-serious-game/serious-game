@@ -868,8 +868,8 @@ public class Reto4SetupWizard : EditorWindow
         if (gm != null)
         {
             var so   = new SerializedObject(gm);
-            var prop = so.FindProperty("circuitSimulator");
-            list.Add(new CheckItem("GameManager → circuitSimulator",
+            var prop = so.FindProperty("protoSim");   // campo renombrado en GameManager
+            list.Add(new CheckItem("GameManager → protoSim (ProtoboardSimulator Reto 4)",
                 prop?.objectReferenceValue != null ? CheckStatus.OK : CheckStatus.Warning));
         }
 

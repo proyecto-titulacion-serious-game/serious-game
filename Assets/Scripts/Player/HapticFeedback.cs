@@ -96,15 +96,51 @@ public class HapticFeedback : MonoBehaviour
 
     void Vibrate(float amplitude, float duration)
     {
+#if UNITY_ANDROID && !UNITY_EDITOR
+        // Ruta Meta SDK — mayor precisión en Quest, frecuencia 500 Hz
+        try
+        {
+            OVRInput.SetControllerVibration(amplitude, amplitude, OVRInput.Controller.LTouch);
+            OVRInput.SetControllerVibration(amplitude, amplitude, OVRInput.Controller.RTouch);
+            // Detener la vibración después de 'duration' segundos
+            StartCoroutine(StopOVRHaptics(duration));
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning($"[Haptics] OVRInput fallo: {e.Message}");
+            VibrateXRI(amplitude, duration); // fallback
+        }
+#else
+        VibrateXRI(amplitude, duration);
+#endif
+    }
+
+    void VibrateXRI(float amplitude, float duration)
+    {
         if (!_leftController.isValid || !_rightController.isValid)
             RefreshDevices();
 
-        if (_leftController.isValid)
-            _leftController.SendHapticImpulse(0, amplitude, duration);
-
-        if (_rightController.isValid)
-            _rightController.SendHapticImpulse(0, amplitude, duration);
+        try
+        {
+            if (_leftController.isValid)
+                _leftController.SendHapticImpulse(0, amplitude, duration);
+            if (_rightController.isValid)
+                _rightController.SendHapticImpulse(0, amplitude, duration);
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning($"[Haptics] XRI fallo: {e.Message}");
+        }
     }
+
+#if UNITY_ANDROID && !UNITY_EDITOR
+    System.Collections.IEnumerator StopOVRHaptics(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        OVRInput.SetControllerVibration(0, 0, OVRInput.Controller.LTouch);
+        OVRInput.SetControllerVibration(0, 0, OVRInput.Controller.RTouch);
+    }
+#endif
 
     IEnumerator ErrorPattern()
     {

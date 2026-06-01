@@ -110,9 +110,9 @@ public class GameSession : NetworkBehaviour
         RPC_EnviarComponente((int)tipo, valor);
     }
 
-    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_EnviarComponente(int tipo, float valor)
-    {
+    [Rpc(RpcSources.All, RpcTargets.All)]
+public void RPC_EnviarComponente(int tipo, float valor)
+{
         if (Object.HasStateAuthority)
         {
             HayComponentePendiente   = true;

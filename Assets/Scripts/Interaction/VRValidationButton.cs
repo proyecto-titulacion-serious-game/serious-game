@@ -1,245 +1,134 @@
-using System.Collections;
 using UnityEngine;
+using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
 
-
 /// <summary>
-/// Botón físico VR de validación manual para el Explorador.
-/// Al presionarlo activa GameManager.EvaluacionManualBotonFisico() y notifica
-/// al Técnico vía GameSession.RPC_SolicitarValidacion (si hay red activa).
-///
-/// Feedback integrado:
-///   - Animación: el capuchón del botón baja y sube (4 mm)
-///   - LED: Azul=esperando | Amarillo=evaluando | Verde=aprobado | Rojo=fallido
-///   - Háptica: PlayMedium al presionar, PlayStrong/PlayError según resultado
-///   - Cooldown: no puede spamearse (configurable)
-///
-/// JERARQUÍA RECOMENDADA:
-///   ValidationButton          ← este script, XRSimpleInteractable, CapsuleCollider
-///   ├── Button_Cap             ← capuchón animado (MeshRenderer)
-///   │   └── LED_Indicator      ← esfera pequeña (MeshRenderer)
-///   └── Button_Base            ← cuerpo fijo (MeshRenderer)
-///
-/// SETUP: Arrastrar Button_Cap al campo buttonCap, LED_Indicator al ledRenderer,
-///        HapticFeedback del Explorador a haptics. GameManager y GameSession se
-///        auto-detectan en Start().
+/// Botón físico en VR para validar el circuito.
+/// Integrado 100% con la arquitectura de GameSession.cs y compatible
+/// con las herramientas de auto-setup del Editor de TITA.
 /// </summary>
-[RequireComponent(typeof(Collider))]
+[RequireComponent(typeof(XRSimpleInteractable))]
 public class VRValidationButton : MonoBehaviour
 {
-    // ─────────────────────────────────────────────
-    //  Inspector
-    // ─────────────────────────────────────────────
-    [Header("Animación del botón")]
-    [Tooltip("Transform del capuchón que se desplaza al presionar.")]
-    public Transform  buttonCap;
-    [Tooltip("Distancia (m) que baja el capuchón al presionar.")]
-    public float      pressDepth    = 0.004f;
-    [Tooltip("Segundos de la animación de bajada y subida.")]
-    public float      animDuration  = 0.08f;
-
-    [Header("LED Indicador")]
-    public Renderer   ledRenderer;
-    public Color      colorIdle      = new Color(0.2f, 0.4f, 1f);
-    public Color      colorEvaluando = new Color(1f,   0.8f, 0f);
-    public Color      colorPass      = new Color(0.1f, 0.9f, 0.1f);
-    public Color      colorFail      = new Color(0.9f, 0.1f, 0.1f);
-
-    [Header("Retroalimentación")]
+    [Header("Referencias (Asignadas por Editor Setup Tools)")]
+    public Transform buttonCap;
+    public Renderer ledRenderer;
     public HapticFeedback haptics;
-    [Tooltip("Segundos de cooldown entre pulsaciones.")]
-    public float          cooldown = 2f;
 
-    [Header("Audio")]
-    [Tooltip("Sonido al presionar. Opcional.")]
-    public AudioClip sfxPress;
-    [Tooltip("Sonido de resultado positivo. Opcional.")]
-    public AudioClip sfxPass;
-    [Tooltip("Sonido de resultado negativo. Opcional.")]
-    public AudioClip sfxFail;
+    private XRSimpleInteractable _interactable;
+    private MaterialPropertyBlock _mpb;
 
-    // ─────────────────────────────────────────────
-    //  Estado interno
-    // ─────────────────────────────────────────────
-    private GameManager _gm;
-    private AudioSource _audio;
-    private bool        _animating;
-    private float       _cooldownEnd;
-    private Vector3     _capRestPos;
+    // Colores del LED del botón (Diegético)
+    private static readonly Color ColorIdle    = new Color(0.1f, 0.4f, 0.8f); // Azul (Listo)
+    private static readonly Color ColorWait    = new Color(0.8f, 0.6f, 0.1f); // Naranja (Evaluando)
+    private static readonly Color ColorSuccess = new Color(0.1f, 0.8f, 0.2f); // Verde (Aprobado)
+    private static readonly Color ColorFail    = new Color(0.8f, 0.1f, 0.1f); // Rojo (Fallo)
 
-    // ─────────────────────────────────────────────
-    //  Unity
-    // ─────────────────────────────────────────────
     void Awake()
     {
-        // Asegurar trigger en el collider raíz
-        GetComponent<Collider>().isTrigger = true;
+        _interactable = GetComponent<XRSimpleInteractable>();
+        
+        // Fallback por si la herramienta de Editor no logra asignar el renderer
+        if (ledRenderer == null) ledRenderer = GetComponent<Renderer>();
+        
+        _mpb = new MaterialPropertyBlock();
+        SetLedColor(ColorIdle);
+    }
 
-        // Suscribir XRSimpleInteractable si existe
-        var xr = GetComponent<XRBaseInteractable>();
-        if (xr != null)
-            xr.selectEntered.AddListener(_ => OnPress());
+    void OnEnable()
+    {
+        _interactable.selectEntered.AddListener(OnButtonPressed);
+        GameSession.OnResultadoValidacion += HandleResultadoRed;
+        GameManager.OnLevelLoaded         += OnLevelLoaded;
+    }
 
-        // AudioSource
-        _audio = GetComponent<AudioSource>();
-        if (_audio == null) _audio = gameObject.AddComponent<AudioSource>();
-        _audio.playOnAwake  = false;
-        _audio.spatialBlend = 1f;
-
-        if (buttonCap != null)
-            _capRestPos = buttonCap.localPosition;
+    void OnDisable()
+    {
+        _interactable.selectEntered.RemoveListener(OnButtonPressed);
+        GameSession.OnResultadoValidacion -= HandleResultadoRed;
+        GameManager.OnLevelLoaded         -= OnLevelLoaded;
     }
 
     void Start()
     {
-        _gm = FindAnyObjectByType<GameManager>();
-        if (haptics == null)
-            haptics = FindAnyObjectByType<HapticFeedback>();
-
-        SetLED(colorIdle);
+        // Estado inicial: oculto hasta que el GameManager cargue el reto
+        var gm = FindAnyObjectByType<GameManager>();
+        bool esReto4 = gm != null && gm.currentLevel == LevelType.Arduino;
+        AplicarEstadoReto(esReto4);
     }
 
-    void OnDestroy() { }
-
-    // ─────────────────────────────────────────────
-    //  Detección por contacto físico (fallback)
-    // ─────────────────────────────────────────────
-    void OnTriggerEnter(Collider other)
+    void OnLevelLoaded(LevelType level)
     {
-        if (other.CompareTag("RightHand") || other.CompareTag("LeftHand"))
-            OnPress();
+        AplicarEstadoReto(level == LevelType.Arduino);
     }
 
-    // ─────────────────────────────────────────────
-    //  Lógica principal
-    // ─────────────────────────────────────────────
-    public void OnPress()
+    void AplicarEstadoReto(bool esReto4)
     {
-        if (_animating) return;
-        if (Time.time < _cooldownEnd) return;
-        _cooldownEnd = Time.time + cooldown;
+        // Deshabilitar interacción y apagar LED cuando no es Reto 4
+        _interactable.enabled = esReto4;
+        SetLedColor(esReto4 ? ColorIdle : Color.black);
 
-        StartCoroutine(PressSequence());
+        // Ocultar también el capuchón si no es Reto 4
+        if (buttonCap  != null) buttonCap.gameObject.SetActive(esReto4);
+        if (ledRenderer != null) ledRenderer.enabled = esReto4;
     }
 
-    IEnumerator PressSequence()
+    void OnButtonPressed(SelectEnterEventArgs args)
     {
-        _animating = true;
+        // 1. Animación física (usa el cap si está asignado, si no usa todo el objeto)
+        Transform targetTransform = buttonCap != null ? buttonCap : transform;
+        targetTransform.localPosition += new Vector3(0, -0.002f, 0);
+        Invoke(nameof(ResetButtonPosition), 0.1f);
 
-        // ── 1. Animación de bajada ────────────────
-        PlaySfx(sfxPress);
-        haptics?.PlayMedium();
-        yield return StartCoroutine(AnimateCap(pressDepth));
+        // 2. Feedback Háptico
+        if (haptics != null) haptics.PlayMedium();
 
-        // ── 2. Estado "evaluando" ─────────────────
-        SetLED(colorEvaluando);
+        // 3. Feedback visual de "Procesando"
+        SetLedColor(ColorWait);
 
-        // ── 3. Notificar al Técnico por red ───────
+        // 4. Avisar al Técnico por red
         if (GameSession.Instance != null)
+        {
             GameSession.Instance.SolicitarValidacion();
-
-        // ── 4. Evaluar localmente ─────────────────
-        bool paso = false;
-        string motivo = "Sin GameManager";
-
-        if (_gm != null)
-        {
-            var resultado = _gm.EvaluacionManualBotonFisicoConResultado();
-            paso   = resultado.pass;
-            motivo = resultado.motivo;
-        }
-
-        // ── 5. Mostrar resultado visual ───────────
-        yield return new WaitForSeconds(0.25f);
-        MostrarResultado(paso, motivo);
-
-        // ── 6. Animación de subida ────────────────
-        yield return StartCoroutine(AnimateCap(-pressDepth));
-
-        // ── 7. Volver a idle tras 3s ──────────────
-        yield return new WaitForSeconds(3f);
-        SetLED(colorIdle);
-
-        _animating = false;
-    }
-
-    void MostrarResultado(bool paso, string motivo)
-    {
-        if (paso)
-        {
-            SetLED(colorPass);
-            haptics?.PlayStrong();
-            PlaySfx(sfxPass);
-            Debug.Log("[VRValidationButton] ✅ APROBADO");
+            Debug.Log("[VR Button] Petición de validación enviada a la PC.");
         }
         else
         {
-            SetLED(colorFail);
-            haptics?.PlayError();
-            PlaySfx(sfxFail);
-            Debug.Log($"[VRValidationButton] ❌ FALLIDO — {motivo}");
+            Debug.LogWarning("[VR Button] No se encontró GameSession en la escena.");
+            ResetToIdle();
         }
     }
 
-    // ─────────────────────────────────────────────
-    //  Animación
-    // ─────────────────────────────────────────────
-    IEnumerator AnimateCap(float deltaY)
+    void HandleResultadoRed(bool paso, int codigoMotivo)
     {
-        if (buttonCap == null) yield break;
-
-        Vector3 from = buttonCap.localPosition;
-        Vector3 to   = from + new Vector3(0, -deltaY, 0);
-        float   t    = 0f;
-
-        while (t < 1f)
+        // Feedback visual
+        SetLedColor(paso ? ColorSuccess : ColorFail);
+        
+        // Feedback Háptico
+        if (haptics != null)
         {
-            t += Time.deltaTime / animDuration;
-            buttonCap.localPosition = Vector3.Lerp(from, to, Mathf.SmoothStep(0, 1, t));
-            yield return null;
+            if (paso) haptics.PlayStrong();
+            else haptics.PlayError();
         }
-        buttonCap.localPosition = to;
+        
+        // Si falló, regresamos a Azul después de 3 segundos
+        if (!paso) Invoke(nameof(ResetToIdle), 3f);
     }
 
-    // ─────────────────────────────────────────────
-    //  Helpers
-    // ─────────────────────────────────────────────
-    void SetLED(Color color)
+    void ResetButtonPosition() 
+    {
+        Transform targetTransform = buttonCap != null ? buttonCap : transform;
+        targetTransform.localPosition -= new Vector3(0, -0.002f, 0);
+    }
+    
+    void ResetToIdle() => SetLedColor(ColorIdle);
+
+    void SetLedColor(Color c)
     {
         if (ledRenderer == null) return;
-        var mpb = new MaterialPropertyBlock();
-        mpb.SetColor("_BaseColor",      color);
-        mpb.SetColor("_EmissionColor",  color * 2f);
-        ledRenderer.SetPropertyBlock(mpb);
+        ledRenderer.GetPropertyBlock(_mpb);
+        _mpb.SetColor("_BaseColor", c);
+        _mpb.SetColor("_EmissionColor", c * 1.5f);
+        ledRenderer.SetPropertyBlock(_mpb);
     }
-
-    void PlaySfx(AudioClip clip)
-    {
-        if (_audio != null && clip != null)
-            _audio.PlayOneShot(clip);
-    }
-}
-
-// ─────────────────────────────────────────────
-//  Códigos de motivo de validación
-// ─────────────────────────────────────────────
-public static class ValidationMotivo
-{
-    public const int Pass          = 0;
-    public const int Cortocircuito = 1;
-    public const int CircuitoAbierto = 2;
-    public const int CorrienteFuera  = 3;
-    public const int PinArduino    = 4;
-    public const int SinCircuito   = 5;
-
-    public static string Texto(int codigo) => codigo switch
-    {
-        Pass            => "Aprobado",
-        Cortocircuito   => "Cortocircuito en la protoboard",
-        CircuitoAbierto => "Circuito abierto — falta una conexión",
-        CorrienteFuera  => "Corriente fuera del rango 5–20 mA",
-        PinArduino      => "Pin del Arduino incorrecto o cable suelto",
-        SinCircuito     => "CircuitSimulator no encontrado",
-        _               => "Error desconocido"
-    };
 }

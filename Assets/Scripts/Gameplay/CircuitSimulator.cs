@@ -11,7 +11,8 @@ public class CircuitSimulator : MonoBehaviour
     [Header("Matriz de Trabajo")]
     public List<ComponentSlot> todosLosSlots = new List<ComponentSlot>();
 
-    private bool _isDirty = true;
+    private bool        _isDirty = true;
+    private GameManager _cachedGM;
 
     // ─────────────────────────────────────────────
     //  PUENTES DE COMPATIBILIDAD TYPECAST (Fix CS0029 / CS1503)
@@ -115,7 +116,8 @@ public class CircuitSimulator : MonoBehaviour
         }
 
         // Paso 2: Resolver la matriz según el tipo de reto activo
-        GameManager gm = FindAnyObjectByType<GameManager>();
+        if (_cachedGM == null) _cachedGM = FindAnyObjectByType<GameManager>();
+        GameManager gm = _cachedGM;
         if (gm == null) return;
 
         switch (gm.currentLevel)
@@ -137,27 +139,50 @@ public class CircuitSimulator : MonoBehaviour
 
     private void SimularReto1_Ohm(GameManager gm)
     {
-        sourceVoltage = 9f; 
-        ComponentSlot slotResistencia = todosLosSlots.Find(s => s.targetElectricalValue == 850f);
+        sourceVoltage = 9f;
+        ComponentSlot slotR   = todosLosSlots.Find(s => s.targetElectricalValue == 850f);
 
-        if (slotResistencia != null && slotResistencia.InstalledObject != null)
+        // Buscar LED pre-instalado en cualquier slot del circuito
+        LED           led     = null;
+        foreach (var slot in todosLosSlots)
         {
-            if (slotResistencia.InstalledObject.TryGetComponent<Resistor>(out var res))
-            {
-                if (res.nodeA != null && res.nodeB != null)
-                {
-                    res.nodeA.voltage = sourceVoltage;
-                    res.nodeB.voltage = 0f; 
-                    res.Calculate();
+            if (slot?.InstalledObject == null) continue;
+            if (slot.InstalledObject.TryGetComponent<LED>(out var l)) { led = l; break; }
+        }
 
-                    // Telemetría en tiempo real para la estación del Técnico
-                    totalCurrent = res.current;
-                    totalPower = res.dissipatedPower;
-                    
-                    // Si la resistencia es críticamente baja (falla del reto), hay amago de corto
-                    if (res.isOverloaded) isShortCircuited = true;
-                }
-            }
+        // Sin resistencia instalada → LED ya fue apagado en el paso de reset de ForceSimulate
+        if (slotR?.InstalledObject == null) return;
+        if (!slotR.InstalledObject.TryGetComponent<Resistor>(out var res)) return;
+        if (res.nodeA == null || res.nodeB == null) return;
+
+        // ── Circuito serie correcto: V_src → Resistor → LED → GND ──────────
+        float rRes   = Mathf.Max(res.resistance, 0.001f);
+        float rLed   = (led != null) ? led.GetResistance() : 0f;
+        float rTotal = rRes + rLed;
+
+        if (rTotal < 0.1f) { isShortCircuited = true; return; }
+
+        float I = sourceVoltage / rTotal;
+
+        // Nodo de unión R-LED: voltaje después del resistor
+        float vJuncion = sourceVoltage - I * rRes;
+
+        // Voltajes y cálculo del Resistor
+        res.nodeA.voltage = sourceVoltage;
+        res.nodeB.voltage = vJuncion;
+        res.Calculate();
+
+        // Telemetría
+        totalCurrent     = I;
+        totalPower       = res.dissipatedPower;
+        isShortCircuited = res.isOverloaded;
+
+        // Voltajes y cálculo del LED (FIX principal: antes nunca se actualizaba)
+        if (led != null && led.nodeA != null && led.nodeB != null)
+        {
+            led.nodeA.voltage = vJuncion;
+            led.nodeB.voltage = 0f;
+            led.Calculate();
         }
     }
 

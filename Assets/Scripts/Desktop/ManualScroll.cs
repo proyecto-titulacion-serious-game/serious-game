@@ -31,6 +31,7 @@ public class ManualScroll : MonoBehaviour,
     //  Estado interno
     // ─────────────────────────────────────────────
     private bool      _isOpen;
+    private bool      _isAnimating;
     private Coroutine _anim;
     private Vector3   _rollOriginalScale;
 
@@ -111,13 +112,10 @@ public class ManualScroll : MonoBehaviour,
     //  Pointer events (EventSystem + PhysicsRaycaster)
     // ─────────────────────────────────────────────
 
+    // EventSystem + PhysicsRaycaster (New Input System)
     void IPointerClickHandler.OnPointerClick(PointerEventData e) => Toggle();
     void IPointerEnterHandler.OnPointerEnter(PointerEventData e) => SetHover(true);
     void IPointerExitHandler.OnPointerExit(PointerEventData e)   => SetHover(false);
-
-    void OnMouseDown()  => Toggle();
-    void OnMouseEnter() => SetHover(true);
-    void OnMouseExit()  => SetHover(false);
 
     // ─────────────────────────────────────────────
     //  API pública
@@ -125,6 +123,7 @@ public class ManualScroll : MonoBehaviour,
 
     public void Toggle()
     {
+        if (_isAnimating) return;   // bloquea clicks rapidos durante la animacion
         if (_isOpen) CloseManual();
         else         OpenManual();
     }
@@ -152,6 +151,7 @@ public class ManualScroll : MonoBehaviour,
 
     IEnumerator AnimateOpen()
     {
+        _isAnimating = true;
         var rollT  = scrollRoll?.transform;
         var paperT = scrollPaper?.transform;
 
@@ -190,6 +190,8 @@ public class ManualScroll : MonoBehaviour,
 
             yield return null;
         }
+
+        _isAnimating = false;
 
         // Al terminar: ocultar rollo y mostrar el overlay
         if (scrollRoll != null) scrollRoll.SetActive(false);
@@ -261,7 +263,8 @@ public class ManualScroll : MonoBehaviour,
         }
 
         if (scrollPaper != null) scrollPaper.SetActive(false);
-        _anim = null;
+        _anim        = null;
+        _isAnimating = false;
     }
 
     // ─────────────────────────────────────────────

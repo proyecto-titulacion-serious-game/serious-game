@@ -236,6 +236,102 @@ public class DiagnosticSystem
     }
 
     // ─────────────────────────────────────────────
+    //  RETO 4 — Diagnóstico Arduino
+    // ─────────────────────────────────────────────
+
+    /// <summary>Diagnóstico principal para Reto 4 (Arduino + Protoboard).</summary>
+    public string GetDiagnosisArduino(ArduinoCore arduino, ProtoboardSimulator protoSim)
+    {
+        if (arduino == null && protoSim == null)
+            return "[!] Arduino no inicializado.\n    Avanza al Reto 4 primero.";
+
+        var sb = new StringBuilder();
+
+        // ── Sketch cargado ──────────────────────────────────────────
+        if (arduino != null)
+        {
+            bool pinOk = arduino.activePinNumber == 2;
+            sb.AppendLine("-- SKETCH CARGADO --");
+            sb.AppendLine($"Pin activo  : D{arduino.activePinNumber}  " +
+                          $"{(pinOk ? "[OK]" : $"[!] INCORRECTO → debe ser D2")}");
+            sb.AppendLine($"Modo        : {arduino.activePinMode}");
+            sb.AppendLine($"Estado      : {(arduino.blinkEnabled ? $"BLINK {arduino.activePinNumber}" : arduino.activePinState.ToString())}");
+            sb.AppendLine($"Voltaje pin : {arduino.OutputVoltage:F2} V");
+        }
+
+        // ── Protoboard ───────────────────────────────────────────────
+        if (protoSim != null)
+        {
+            sb.AppendLine("\n-- PROTOBOARD --");
+            sb.AppendLine($"Corriente : {protoSim.totalCurrentmA:F1} mA" +
+                          $"{(protoSim.totalCurrentmA > 25f ? "  [!] SOBRECARGA" : "")}");
+            sb.AppendLine($"Potencia  : {protoSim.totalPowerW * 1000f:F1} mW");
+            if (protoSim.isOpenCircuit)
+                sb.AppendLine("[!] CIRCUITO ABIERTO — verifica resistor y cable.");
+        }
+
+        // ── Fallas pendientes ────────────────────────────────────────
+        var faults = GetArduinoFaults(arduino, protoSim);
+        if (faults.Count > 0)
+        {
+            sb.AppendLine("\n-- FALLAS PENDIENTES --");
+            foreach (var f in faults) sb.AppendLine(f);
+        }
+        else
+        {
+            sb.AppendLine("\n[OK] Sin fallas. Pide al Explorador\n     que presione el boton fisico.");
+        }
+
+        return sb.ToString().TrimEnd();
+    }
+
+    /// <summary>Guía de siguiente acción para Reto 4 Sandbox.</summary>
+    public string GetNextActionArduino(ArduinoCore arduino, ProtoboardSimulator protoSim)
+    {
+        if (arduino == null)
+            return "Abre el IDE del monitor, escribe el sketch y pulsa SUBIR.";
+
+        // 1. Sketch sin configurar
+        if (arduino.activePinMode != PinMode.OUTPUT)
+            return "SKETCH: agrega 'pinMode(X, OUTPUT)' en setup(). Pulsa COMPILAR y SUBIR.";
+
+        if (!arduino.blinkEnabled)
+            return $"SKETCH: falta BLINK en el sketch del pin D{arduino.activePinNumber}.\n" +
+                   "Agrega HIGH + delay + LOW + delay en loop(). Pulsa SUBIR.";
+
+        // 2. Circuito abierto
+        if (protoSim != null && protoSim.isOpenCircuit)
+            return $"Di al Explorador: conecta LED y resistencia desde el pin D{arduino.activePinNumber} hasta GND.";
+
+        // 3. Sobrecarga
+        if (protoSim != null && protoSim.totalCurrentmA > 20f)
+            return $"[!] Corriente alta ({protoSim.totalCurrentmA:F0} mA).\n" +
+                   "Di al Explorador: aumenta la resistencia (>= 330 Ohm recomendado).";
+
+        return $"OK: Pin D{arduino.activePinNumber} activo, circuito detectado.\n" +
+               "Pide al Explorador presionar el boton fisico VR.";
+    }
+
+    List<string> GetArduinoFaults(ArduinoCore arduino, ProtoboardSimulator protoSim)
+    {
+        var faults = new List<string>();
+
+        if (arduino != null && arduino.activePinNumber != 2)
+            faults.Add($"[1] Sketch: pin D{arduino.activePinNumber} incorrecto (debe D2)");
+
+        if (protoSim != null && protoSim.isOpenCircuit)
+            faults.Add("[2] Protoboard: circuito abierto (resistor o cable)");
+        else if (protoSim != null && protoSim.totalCurrentmA > 25f)
+            faults.Add("[2] Protoboard: sobrecarga — resistencia incorrecta");
+
+        var pin = UnityEngine.Object.FindAnyObjectByType<ArduinoPin>();
+        if (pin != null && pin.hasLooseCable)
+            faults.Add("[3] Cable suelto detectado en protoboard");
+
+        return faults;
+    }
+
+    // ─────────────────────────────────────────────
     //  Helpers privados
     // ─────────────────────────────────────────────
 

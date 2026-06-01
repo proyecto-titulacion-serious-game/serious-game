@@ -1,8 +1,10 @@
+using System.Reflection;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 /// <summary>
-/// Herramienta de desarrollo para saltar de nivel rápidamente.
-/// Ideal para probar el Reto 4 sin pasar por los anteriores.
+/// Permite saltar directamente a cualquier reto con F1-F4 en Play Mode.
+/// Requiere que GameManager._debugMode sea true (se activa automáticamente en Start).
 /// </summary>
 public class DebugLevelSkipper : MonoBehaviour
 {
@@ -11,24 +13,35 @@ public class DebugLevelSkipper : MonoBehaviour
     void Start()
     {
         _gameManager = FindAnyObjectByType<GameManager>();
+
+        if (_gameManager != null)
+        {
+            var field = typeof(GameManager).GetField("_debugMode",
+                BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+            field?.SetValue(_gameManager, true);
+        }
+        else
+        {
+            Debug.LogWarning("[DebugLevelSkipper] GameManager no encontrado.");
+        }
     }
 
     void Update()
     {
-        // Al presionar la tecla F4, salta directamente al Reto 4 (Arduino)
-        if (Input.GetKeyDown(KeyCode.F4))
-        {
-            if (_gameManager != null)
-            {
-                Debug.Log("[DEBUG] Forzando el salto al Reto 4 (Arduino)...");
-                
-                // El Reto 4 corresponde al índice 3 en el arreglo del GameManager
-                _gameManager.GoToLevel(3); 
-            }
-            else
-            {
-                Debug.LogWarning("[DEBUG] No se encontró el GameManager en la escena.");
-            }
-        }
+        if (_gameManager == null) return;
+
+        var kb = Keyboard.current;
+        if (kb == null) return;
+
+        if      (kb.f1Key.wasPressedThisFrame) JumpTo(0);
+        else if (kb.f2Key.wasPressedThisFrame) JumpTo(1);
+        else if (kb.f3Key.wasPressedThisFrame) JumpTo(2);
+        else if (kb.f4Key.wasPressedThisFrame) JumpTo(3);
+    }
+
+    private void JumpTo(int index)
+    {
+        Debug.Log($"[DEBUG] Saltando al Reto {index + 1}...");
+        _gameManager.GoToLevel(index);
     }
 }

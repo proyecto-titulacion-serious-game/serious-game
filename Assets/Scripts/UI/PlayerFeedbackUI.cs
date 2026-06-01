@@ -239,37 +239,24 @@ public class PlayerFeedbackUI : MonoBehaviour
         {
             case 0:
                 Mostrar(
-                    "Sigue el cable del sensor\nhasta el módulo Arduino",
-                    "Dile al Técnico a qué\nnúmero de pin está conectado",
+                    "Espera el sketch\ndel Técnico",
+                    "El Técnico elegirá el pin.\nEscucha por radio cuál eligió.",
                     Color.clear, colorNormal);
                 break;
             case 1:
                 Mostrar(
-                    "Desconecta el cable del\npin actual del Arduino",
-                    "Grip para sujetar el cable.\nEspera indicación del pin correcto.",
+                    "Conecta el LED al\npin indicado por el Técnico",
+                    "Toma un LED de la bandeja.\nGrip + inserta ánodo en el pin.",
                     Color.clear, colorAccion);
-                break;
-            case 2:
-                Mostrar(
-                    "Conecta el cable al\npin correcto indicado",
-                    "Arrastra el cable al\npin que dijo el Técnico",
-                    Color.clear, colorAccion);
-                break;
-            case 3:
-                Mostrar(
-                    "Instala la resistencia\nque envíe el Técnico",
-                    "Grip para tomarla.\nColócala junto al buzzer.",
-                    Color.clear, colorAccion);
-                break;
-            case 4:
-                Mostrar(
-                    "Reconecta el cable\nsuelto en la protoboard",
-                    "Busca el cable sin conexión\nen la fila G-14",
-                    Color.clear, colorAlerta);
                 break;
             default:
                 if (gameManager.levelCompleted)
-                    Mostrar("¡Reto 4 completado!", "Sistema sensor-alarma operativo.", Color.clear, colorCompletado);
+                    Mostrar("¡Reto 4 completado!", "LED parpadea de forma segura.", Color.clear, colorCompletado);
+                else
+                    Mostrar(
+                        "Conecta resistencia >= 100 Ohm\ny cierra el circuito a GND",
+                        "LED → Resistencia → GND en la protoboard",
+                        Color.clear, colorAccion);
                 break;
         }
     }

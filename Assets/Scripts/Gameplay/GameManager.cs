@@ -1,11 +1,15 @@
 using System;
 using System.Collections;
+using System.Linq;
 using UnityEngine;
-using UnityEngine.XR.Interaction.Toolkit.Interactables; // Necesario para congelar piezas en VR
+using UnityEngine.XR.Interaction.Toolkit.Interactables;
 
 /// <summary>
-/// Controlador principal del juego (Modo Sandbox). 
+/// Controlador principal del juego (Modo Sandbox).
 /// Gestiona los 4 retos del Serious Game VR evaluando la electrónica mediante validación física.
+///
+/// Retos 1-3: motor CircuitSimulator (ComponentSlot-based).
+/// Reto 4:    motor ProtoboardSimulator (ProtoboardSlot-based, Arduino + Protoboard).
 /// </summary>
 public class GameManager : MonoBehaviour
 {
@@ -13,16 +17,19 @@ public class GameManager : MonoBehaviour
     //  Inspector
     // ─────────────────────────────────────────────
     [Header("Referencias principales")]
-    public CircuitSimulator  circuit; // Actualizado al nuevo motor matemático
-    public Multimeter        multimeter;
-    public PerformanceTracker performance;
-    public InstructionSystem  instructionSystem;
+    public CircuitSimulator    circuit;           // Motor Retos 1-3
+    public ProtoboardSimulator protoSim;          // Motor Reto 4 (Arduino + Protoboard)
+    public Multimeter          multimeter;
+    public PerformanceTracker  performance;
+    public InstructionSystem   instructionSystem;
 
     [Header("Zonas de Reto")]
     public GameObject reto1Zone;
     public GameObject reto2Zone;
     public GameObject reto3Zone;
     public GameObject reto4Zone;
+    [Tooltip("GO PC_Arduino (raíz de escena). Se activa solo durante Reto 4.")]
+    public GameObject pcArduino;
 
     [Header("Transición entre retos")]
     [Tooltip("Segundos de pausa entre reto completado y carga del siguiente.")]
@@ -40,19 +47,19 @@ public class GameManager : MonoBehaviour
     //  Estado
     // ─────────────────────────────────────────────
     [Header("Estado actual (solo lectura)")]
-    [SerializeField] private LevelType _currentLevel   = LevelType.OhmLaw;
-    [SerializeField] private int       _currentIndex   = 0;
-    [SerializeField] private bool      _levelCompleted = false;
+    [SerializeField] private LevelType _currentLevel    = LevelType.OhmLaw;
+    [SerializeField] private int       _currentIndex    = 0;
+    [SerializeField] private bool      _levelCompleted  = false;
     [SerializeField] private bool      _repairPerformed = false;
-    [SerializeField] private int       _wrongAttempts  = 0;
-    [SerializeField] private float     _remainingTime  = 0f;
-    [SerializeField] private bool      _timerActive    = false;
+    [SerializeField] private int       _wrongAttempts   = 0;
+    [SerializeField] private float     _remainingTime   = 0f;
+    [SerializeField] private bool      _timerActive     = false;
 
-    public LevelType currentLevel    => _currentLevel;
-    public bool      levelCompleted  => _levelCompleted;
+    public LevelType currentLevel     => _currentLevel;
+    public bool      levelCompleted   => _levelCompleted;
     public float     currentTimeLimit => _currentIndex < timeLimits.Length ? timeLimits[_currentIndex] : 600f;
-    public float     remainingTime   => _remainingTime;
-    public bool      timerActive     => _timerActive;
+    public float     remainingTime    => _remainingTime;
+    public bool      timerActive      => _timerActive;
 
     // ─────────────────────────────────────────────
     //  Eventos
@@ -66,11 +73,10 @@ public class GameManager : MonoBehaviour
     public static event Action<int>             OnZoneActivated;
     public static event Action<LevelType, bool> OnZoneTransitionStart;
 
-    public bool HasPerformedRepair() => _repairPerformed;
-    public int  GetWrongAttempts()   => _wrongAttempts;
+    public bool HasPerformedRepair()  => _repairPerformed;
+    public int  GetWrongAttempts()    => _wrongAttempts;
     public static void RaiseFaultDetected(string description) => OnFaultDetected?.Invoke(description);
 
-    // Constantes informativas
     private const float RETO1_TARGET_VOLTAGE = 9f;
 
     // ─────────────────────────────────────────────
@@ -81,8 +87,21 @@ public class GameManager : MonoBehaviour
         ValidateZones();
     }
 
+    // Resultado de la última validación sandbox — actualizado por OnSandboxValidated
+    private SandboxValidationResult _lastSandboxResult;
+
+    void OnSandboxResult(SandboxValidationResult result) => _lastSandboxResult = result;
+
     void Start()
     {
+        // Suscribir eventos de red (GameSession)
+        GameSession.OnRetoChanged          += OnNetworkRetoChanged;
+        GameSession.OnCableFixed           += OnNetworkCableFixed;
+        GameSession.OnValidacionSolicitada += OnNetworkValidacionSolicitada;
+
+        // Suscribir validador dinámico del Reto 4 sandbox
+        ProtoboardSimulator.OnSandboxValidated += OnSandboxResult;
+
         if (FindAnyObjectByType<ExplorerOnboarding>() != null)
             ExplorerOnboarding.OnOnboardingComplete += OnOnboardingDone;
         else
@@ -93,6 +112,34 @@ public class GameManager : MonoBehaviour
     {
         ExplorerOnboarding.OnOnboardingComplete -= OnOnboardingDone;
         LoadLevel(0);
+    }
+
+    // ── Callbacks de red ─────────────────────────────────────────────────
+
+    /// <summary>El Técnico (Host) avanzó de reto — sincroniza el Explorador.</summary>
+    void OnNetworkRetoChanged(int retoIndex)
+    {
+        // Solo actuar si el índice difiere del estado local (evitar bucle Host→RPC→Host)
+        if (retoIndex != _currentIndex)
+            LoadLevel(retoIndex);
+    }
+
+    /// <summary>
+    /// Evento de red legacy (paradigma lineal). En el sandbox del Reto 4 ya no hay
+    /// cable suelto predefinido — se deja como no-op para no romper compatibilidad de red.
+    /// </summary>
+    void OnNetworkCableFixed()
+    {
+        protoSim?.MarkDirty();
+        Debug.Log("[GameManager] OnNetworkCableFixed recibido (sandbox: no-op, solo marca dirty).");
+    }
+
+    /// <summary>El Explorador solicitó validación desde el botón físico en red.</summary>
+    void OnNetworkValidacionSolicitada()
+    {
+        bool paso = EvaluacionManualBotonFisico();
+        int  cod  = paso ? 0 : _wrongAttempts;
+        GameSession.Instance?.ReportarResultado(paso, cod);
     }
 
     void Update()
@@ -107,22 +154,27 @@ public class GameManager : MonoBehaviour
             _remainingTime = 0f;
             _timerActive   = false;
             OnTimerExpired?.Invoke(_currentLevel);
-            CompleteLevel(false); 
+            CompleteLevel(false);
         }
     }
 
     void OnDestroy()
     {
         ExplorerOnboarding.OnOnboardingComplete -= OnOnboardingDone;
+        GameSession.OnRetoChanged              -= OnNetworkRetoChanged;
+        GameSession.OnCableFixed               -= OnNetworkCableFixed;
+        GameSession.OnValidacionSolicitada     -= OnNetworkValidacionSolicitada;
+        ProtoboardSimulator.OnSandboxValidated -= OnSandboxResult;
     }
 
     // ─────────────────────────────────────────────
-    //  API Pública y Validación Física (El Botón)
+    //  API Pública
     // ─────────────────────────────────────────────
     public void RegisterRepairAction()
     {
         _repairPerformed = true;
         circuit?.MarkDirty();
+        protoSim?.MarkDirty();   // Reto 4: sucia ProtoboardSimulator también
         Debug.Log("[GameManager] Modificación en la matriz Sandbox registrada.");
     }
 
@@ -136,14 +188,33 @@ public class GameManager : MonoBehaviour
     public (bool pass, string motivo) EvaluacionManualBotonFisicoConResultado()
     {
         bool paso = EvaluacionManualBotonFisico();
-        string msg = paso ? "Circuito correcto" : "Conexión inválida o valores fuera de rango";
+        string msg = paso ? "Circuito correcto" : "Conexion invalida o valores fuera de rango";
         return (paso, msg);
     }
 
     /// <summary>
-    /// Invoca la evaluación desde el botón físico. Valida matemáticamente la protoboard.
+    /// Evalúa el circuito desde el botón físico.
+    /// Retos 1-3: usa CircuitSimulator. Reto 4: usa ProtoboardSimulator + estados de ArduinoPin/Resistor.
     /// </summary>
     public bool EvaluacionManualBotonFisico()
+    {
+        switch (_currentLevel)
+        {
+            case LevelType.OhmLaw:
+            case LevelType.Parallel:
+            case LevelType.Mixed:
+                return EvaluarCircuitSimulator();
+
+            case LevelType.Arduino:
+                return EvaluarReto4();
+        }
+        return false;
+    }
+
+    // ─────────────────────────────────────────────
+    //  Evaluación Retos 1-3 (CircuitSimulator)
+    // ─────────────────────────────────────────────
+    bool EvaluarCircuitSimulator()
     {
         if (circuit == null) circuit = FindAnyObjectByType<CircuitSimulator>();
         if (circuit == null) return false;
@@ -153,65 +224,71 @@ public class GameManager : MonoBehaviour
         switch (_currentLevel)
         {
             case LevelType.OhmLaw:
-                ComponentSlot slotResistor1 = circuit.todosLosSlots.Find(s => s.targetElectricalValue == 850f);
-                if (slotResistor1 != null && slotResistor1.InstalledObject != null)
+            {
+                var slotR = circuit.todosLosSlots.Find(s => s.targetElectricalValue == 850f);
+                if (slotR != null && slotR.InstalledObject != null)
                 {
-                    if (slotResistor1.InstalledObject.TryGetComponent<Resistor>(out var res))
+                    if (slotR.InstalledObject.TryGetComponent<Resistor>(out var res) && !res.hasFault)
                     {
-                        if (!res.hasFault && !res.isOverloaded)
+                        // Victoria: resistor correcto instalado Y al menos un LED encendido
+                        bool ledOn = false;
+                        foreach (var s in circuit.todosLosSlots)
                         {
-                            CompleteLevel(true);
-                            return true;
+                            if (s?.InstalledObject == null) continue;
+                            if (s.InstalledObject.TryGetComponent<LED>(out var l) && l.isOn)
+                            { ledOn = true; break; }
                         }
+                        if (ledOn) { CompleteLevel(true); return true; }
                     }
                 }
                 break;
-
+            }
             case LevelType.Parallel:
-                if (circuit.AreAllLEDsOn())
-                {
-                    CompleteLevel(true);
-                    return true;
-                }
+                if (circuit.AreAllLEDsOn()) { CompleteLevel(true); return true; }
                 break;
 
             case LevelType.Mixed:
-                bool componentesEstables = true;
-                int contadorComponentes = 0;
-
+            {
+                bool ok  = true;
+                int  cnt = 0;
                 foreach (var slot in circuit.todosLosSlots)
                 {
-                    if (slot != null && slot.InstalledObject != null)
-                    {
-                        contadorComponentes++;
-                        if (slot.InstalledObject.TryGetComponent<Resistor>(out var r) && r.hasFault) componentesEstables = false;
-                        if (slot.InstalledObject.TryGetComponent<LED>(out var led) && led.state == LEDState.Overload) componentesEstables = false;
-                    }
+                    if (slot == null || slot.InstalledObject == null) continue;
+                    cnt++;
+                    if (slot.InstalledObject.TryGetComponent<Resistor>(out var r)   && r.hasFault)              ok = false;
+                    if (slot.InstalledObject.TryGetComponent<LED>(out var led)       && led.state == LEDState.Overload) ok = false;
                 }
-
-                if (componentesEstables && contadorComponentes >= 2)
-                {
-                    CompleteLevel(true);
-                    return true;
-                }
+                if (ok && cnt >= 2) { CompleteLevel(true); return true; }
                 break;
-
-            case LevelType.Arduino:
-                LED ledMonitoreo = FindAnyObjectByType<LED>();
-                ArduinoCore arduinoCore = FindAnyObjectByType<ArduinoCore>();
-
-                if (ledMonitoreo != null && arduinoCore != null)
-                {
-                    if (ledMonitoreo.isOn && ledMonitoreo.state == LEDState.Correct)
-                    {
-                        CompleteLevel(true);
-                        return true;
-                    }
-                }
-                break;
+            }
         }
 
-        RegisterWrongAttempt("Error de circuito: Conexión inválida o valores fuera de rango.");
+        RegisterWrongAttempt("Error de circuito: conexion invalida o valores fuera de rango.");
+        return false;
+    }
+
+    // ─────────────────────────────────────────────
+    //  Evaluación Reto 4 (Arduino + Protoboard)
+    // ─────────────────────────────────────────────
+    bool EvaluarReto4()
+    {
+        // El validador dinámico (DFS) corre automáticamente en ProtoboardSimulator.
+        // _lastSandboxResult se actualiza via OnSandboxResult cada vez que el grafo cambia.
+        if (_lastSandboxResult.success)
+        {
+            CompleteLevel(true);
+            return true;
+        }
+
+        // Forzar recálculo por si el jugador pulsó el botón antes del primer tick
+        if (protoSim == null) protoSim = FindProtoSim();
+        protoSim?.MarkDirty();
+
+        string motivo = string.IsNullOrEmpty(_lastSandboxResult.message)
+            ? "Circuito incompleto. Revisa que el LED, la resistencia y el pin esten conectados."
+            : _lastSandboxResult.message;
+
+        RegisterWrongAttempt("Reto 4 — " + motivo);
         return false;
     }
 
@@ -240,13 +317,33 @@ public class GameManager : MonoBehaviour
         ActivateComponentsForLevel(_currentLevel);
         SetupLevel();
 
-        circuit?.ForceSimulate();
+        // Retos 1-3: forzar simulación inicial. Reto 4: marcar protoboard sucia.
+        if (_currentLevel != LevelType.Arduino)
+        {
+            circuit?.ForceSimulate();
+        }
+        else
+        {
+            protoSim?.MarkDirty();
+
+            // En modo offline (sin Fusion) el ArduinoNetworkBridge nunca recibe Spawned().
+            // Simulamos el spawn para que TechnicianTelemetryUI y ArduinoIDEUI se conecten.
+            bool offline = ConnectionManager.Instance == null || ConnectionManager.Instance.modoOffline;
+            if (offline)
+            {
+                var bridge = FindAnyObjectByType<ArduinoNetworkBridge>();
+                bridge?.SimularSpawnOffline();
+            }
+        }
 
         OnZoneActivated?.Invoke(_currentIndex);
         OnLevelLoaded?.Invoke(_currentLevel);
+
+        // Sincronizar cambio de reto a todos los clientes (solo el Host tiene StateAuthority)
+        GameSession.Instance?.AvanzarReto(_currentIndex);
     }
 
-    public void NextLevel() => LoadLevel(_currentIndex + 1);
+    public void NextLevel()         => LoadLevel(_currentIndex + 1);
     public void RestartCurrentLevel() => LoadLevel(_currentIndex);
     public void GoToLevel(int index)
     {
@@ -255,22 +352,46 @@ public class GameManager : MonoBehaviour
     }
 
     // ─────────────────────────────────────────────
-    //  Gestión de Zonas y Configuración
+    //  Gestión de Zonas
     // ─────────────────────────────────────────────
     void ActivateComponentsForLevel(LevelType level)
     {
         if (reto1Zone != null) reto1Zone.SetActive(level == LevelType.OhmLaw);
         if (reto2Zone != null) reto2Zone.SetActive(level == LevelType.Parallel);
-        if (reto3Zone != null) reto3Zone.SetActive(level == LevelType.Mixed);    
+        if (reto3Zone != null) reto3Zone.SetActive(level == LevelType.Mixed);
         if (reto4Zone != null) reto4Zone.SetActive(level == LevelType.Arduino);
+        if (pcArduino  != null) pcArduino.SetActive(level == LevelType.Arduino);
 
         switch (level)
         {
-            case LevelType.OhmLaw:   if (reto1Zone != null) circuit = reto1Zone.GetComponentInChildren<CircuitSimulator>(true); break;
-            case LevelType.Parallel: if (reto2Zone != null) circuit = reto2Zone.GetComponentInChildren<CircuitSimulator>(true); break;
-            case LevelType.Mixed:    if (reto3Zone != null) circuit = reto3Zone.GetComponentInChildren<CircuitSimulator>(true); break;
-            case LevelType.Arduino:  if (reto4Zone != null) circuit = reto4Zone.GetComponentInChildren<CircuitSimulator>(true); break;
+            case LevelType.OhmLaw:
+                circuit  = reto1Zone != null ? reto1Zone.GetComponentInChildren<CircuitSimulator>(true) : null;
+                protoSim = null;
+                break;
+            case LevelType.Parallel:
+                circuit  = reto2Zone != null ? reto2Zone.GetComponentInChildren<CircuitSimulator>(true) : null;
+                protoSim = null;
+                break;
+            case LevelType.Mixed:
+                circuit  = reto3Zone != null ? reto3Zone.GetComponentInChildren<CircuitSimulator>(true) : null;
+                protoSim = null;
+                break;
+            case LevelType.Arduino:
+                circuit  = null;           // Reto 4 usa ProtoboardSimulator, no CircuitSimulator
+                protoSim = FindProtoSim();
+                break;
         }
+    }
+
+    /// <summary>Busca el ProtoboardSimulator primero dentro de reto4Zone, luego en toda la escena.</summary>
+    ProtoboardSimulator FindProtoSim()
+    {
+        if (reto4Zone != null)
+        {
+            var s = reto4Zone.GetComponentInChildren<ProtoboardSimulator>(true);
+            if (s != null) return s;
+        }
+        return FindAnyObjectByType<ProtoboardSimulator>();
     }
 
     void SetupLevel()
@@ -278,16 +399,20 @@ public class GameManager : MonoBehaviour
         switch (_currentLevel)
         {
             case LevelType.OhmLaw:
-                OnFaultDetected?.Invoke("Reto 1: Circuito con falla detectada.\nArma la red usando Ley de Ohm y valida con el botón físico.");
+                OnFaultDetected?.Invoke("Reto 1: Circuito con falla.\nArma la red usando Ley de Ohm y valida con el boton fisico.");
                 break;
             case LevelType.Parallel:
                 OnFaultDetected?.Invoke("Reto 2: Rama abierta.\nCompleta el circuito paralelo para energizar los LEDs.");
                 break;
             case LevelType.Mixed:
-                OnFaultDetected?.Invoke("Reto 3: Múltiples fallas.\nRevisa polaridades y códigos de colores.");
+                OnFaultDetected?.Invoke("Reto 3: Multiples fallas.\nRevisa polaridades y codigos de colores.");
                 break;
             case LevelType.Arduino:
-                OnFaultDetected?.Invoke("Reto 4: Integración Microcontrolador.\nProtege el circuito y procesa la señal intermitente.");
+                OnFaultDetected?.Invoke(
+                    "Reto 4: Sandbox Arduino + Protoboard.\n" +
+                    "  TECNICO: Escribe el sketch en el IDE y elige cualquier pin digital (D2-D13).\n" +
+                    "  EXPLORADOR: Conecta LED + resistencia desde ese pin hasta GND en la protoboard.\n" +
+                    "Objetivo: Haz que un LED parpadee de forma segura. Valida con el boton fisico.");
                 break;
         }
     }
@@ -300,16 +425,24 @@ public class GameManager : MonoBehaviour
         if (_levelCompleted) return;
         _levelCompleted = true;
 
-        if (success && circuit != null)
+        if (success)
         {
-            // Congelar componentes ganadores en VR
-            foreach (var slot in circuit.todosLosSlots)
+            // Retos 1-3: congelar ComponentSlots instalados
+            if (circuit != null)
             {
-                if (slot != null && slot.InstalledObject != null)
+                foreach (var slot in circuit.todosLosSlots)
                 {
+                    if (slot == null || slot.InstalledObject == null) continue;
                     if (slot.InstalledObject.TryGetComponent<XRGrabInteractable>(out var grab)) grab.enabled = false;
-                    if (slot.InstalledObject.TryGetComponent<Collider>(out var col)) col.enabled = false;
+                    if (slot.InstalledObject.TryGetComponent<Collider>(out var col))            col.enabled  = false;
                 }
+            }
+
+            // Reto 4: congelar todos los XRGrabInteractable dentro de reto4Zone
+            if (_currentLevel == LevelType.Arduino && reto4Zone != null)
+            {
+                foreach (var grab in reto4Zone.GetComponentsInChildren<XRGrabInteractable>(true))
+                    grab.enabled = false;
             }
         }
 
@@ -327,14 +460,17 @@ public class GameManager : MonoBehaviour
     void CompleteGame()
     {
         OnGameCompleted?.Invoke();
-        Debug.Log("[GameManager] ¡Juego completado!");
+        Debug.Log("[GameManager] Juego completado.");
     }
 
+    // ─────────────────────────────────────────────
+    //  Utilidades
+    // ─────────────────────────────────────────────
     public bool IsVoltageCorrect()
     {
         if (multimeter == null) return false;
-        const float voltageTolerance = 0.5f;   
-        return Mathf.Abs(multimeter.measuredVoltage - RETO1_TARGET_VOLTAGE) <= voltageTolerance;
+        const float tol = 0.5f;
+        return Mathf.Abs(multimeter.measuredVoltage - RETO1_TARGET_VOLTAGE) <= tol;
     }
 
     void ValidateZones()
@@ -343,5 +479,6 @@ public class GameManager : MonoBehaviour
         if (reto2Zone == null) Debug.LogWarning("[GameManager] reto2Zone no asignado.");
         if (reto3Zone == null) Debug.LogWarning("[GameManager] reto3Zone no asignado.");
         if (reto4Zone == null) Debug.LogWarning("[GameManager] reto4Zone no asignado.");
+        if (pcArduino  == null) Debug.LogWarning("[GameManager] pcArduino no asignado — PC_Arduino no se mostrará en Reto 4.");
     }
 }

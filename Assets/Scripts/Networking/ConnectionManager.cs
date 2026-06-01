@@ -29,6 +29,10 @@ public class ConnectionManager : MonoBehaviour, INetworkRunnerCallbacks
     [Tooltip("GO 'Entorno del explorador' a activar en modo offline. Si queda vacío se busca por nombre.")]
     public GameObject entornoExplorador;
 
+    [Header("Referencias del sistema de juego")]
+    [Tooltip("Referencia al GameManager principal para notificar eventos de red.")]
+    public GameManager gameManager;
+
     // ─────────────────────────────────────────────
     //  Eventos estáticos
     // ─────────────────────────────────────────────
@@ -44,9 +48,47 @@ public class ConnectionManager : MonoBehaviour, INetworkRunnerCallbacks
     private bool      _connected;
 
     // ─────────────────────────────────────────────
+    //  Singleton — auto-destruye duplicados al iniciar
+    // ─────────────────────────────────────────────
+
+    public static ConnectionManager Instance { get; private set; }
+
+    private void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            // Hay un ConnectionManager válido ya activo → este es duplicado
+            Debug.LogWarning($"[ConnectionManager] Duplicado detectado en '{gameObject.name}' " +
+                             $"(escena: {gameObject.scene.name}). Destruyendo duplicado.");
+            Destroy(gameObject);
+            return;
+        }
+
+        // Preferir el que tiene playerPrefab asignado
+        var all = FindObjectsByType<ConnectionManager>(FindObjectsInactive.Include);
+        if (all.Length > 1)
+        {
+            // Priorizar el que tiene playerPrefab configurado
+            ConnectionManager best = null;
+            foreach (var cm in all)
+                if (cm.playerPrefab.IsValid) { best = cm; break; }
+
+            if (best != null && best != this)
+            {
+                Debug.LogWarning($"[ConnectionManager] Duplicado sin playerPrefab en '{gameObject.name}'. Destruyendo.");
+                Destroy(gameObject);
+                return;
+            }
+        }
+
+        Instance = this;
+    }
+
+    // ─────────────────────────────────────────────
 
     private void OnDestroy()
     {
+        if (Instance == this) Instance = null;
         if (_runner != null && _runner.IsRunning)
             _runner.Shutdown();
     }
@@ -199,6 +241,21 @@ public class ConnectionManager : MonoBehaviour, INetworkRunnerCallbacks
             OnConnectionFailed?.Invoke(razon);
         if (rolAutomatico != AutoConnectRole.Tecnico)
             ActivarEntornoExplorador();
+
+        // Notificar al GameManager para que marque ambos motores como sucios
+        EnsureGameManager();
+        if (gameManager != null)
+        {
+            gameManager.circuit?.MarkDirty();
+            gameManager.protoSim?.MarkDirty();
+            Debug.Log("[Red] GameManager notificado del modo offline.");
+        }
+    }
+
+    void EnsureGameManager()
+    {
+        if (gameManager == null)
+            gameManager = FindAnyObjectByType<GameManager>();
     }
 
     // --- Métodos para los Botones de la UI ---
@@ -231,6 +288,14 @@ public class ConnectionManager : MonoBehaviour, INetworkRunnerCallbacks
         _runner    = null;
         _connected = false;
         StopConnectionTimeout();
+
+        // Si el shutdown no fue limpio, forzar recalculo del circuito activo
+        if (shutdownReason != ShutdownReason.Ok)
+        {
+            EnsureGameManager();
+            gameManager?.circuit?.MarkDirty();
+            gameManager?.protoSim?.MarkDirty();
+        }
     }
 
     public void OnConnectedToServer(NetworkRunner runner)

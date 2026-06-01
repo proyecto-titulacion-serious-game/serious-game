@@ -135,48 +135,101 @@ public class TechnicianManual : MonoBehaviour
     };
 
     // ─────────────────────────────────────────────
-    //  RETO 4 — Sensor-Actuador Arduino
+    //  RETO 4 — Arduino + Protoboard
     // ─────────────────────────────────────────────
     ManualData ManualReto4() => new ManualData
     {
-        titulo    = "RETO 4 — Sensor-Actuador con Arduino",
+        titulo   = "RETO 4 — Sandbox Arduino + Protoboard",
 
-        concepto  = "El sensor de temperatura debe activar una alarma (buzzer).\n" +
-                    "3 fallas impiden el funcionamiento:\n" +
-                    "• Sensor en pin incorrecto del Arduino\n" +
-                    "• Buzzer sin resistencia limitadora\n" +
-                    "• Cable suelto en la protoboard",
+        concepto =
+            "Objetivo: hacer parpadear un LED de forma segura.\n\n" +
+            "No hay fallas predefinidas. El equipo DISENHA\n" +
+            "el circuito desde cero.\n\n" +
+            "TECNICO (tu rol):\n" +
+            "  Escribe el sketch y elige cualquier pin D2-D13.\n" +
+            "  El LED debe parpadear (BLINK) sin quemarse.\n\n" +
+            "EXPLORADOR (guialo):\n" +
+            "  Toma LED + resistencia de la bandeja VR.\n" +
+            "  Conecta: Pin elegido → LED → Resistencia → GND.\n\n" +
+            "El validador detecta automaticamente cuando el\n" +
+            "circuito es correcto, sin importar que pin usaron.",
 
-        formula   = "PINOUT ARDUINO (sensor temperatura):\n" +
-                    "  VCC → 5V\n" +
-                    "  GND → GND\n" +
-                    "  OUT → Pin Digital 2  ← CORRECTO\n" +
-                    "  (nave: conectado en Pin 4 → INCORRECTO)\n\n" +
-                    "RESISTENCIA BUZZER:\n" +
-                    "  R = (V_fuente - V_buzzer) / I_max\n" +
-                    "  R = (5V - 1.5V) / 0.01A = 330Ω\n" +
-                    "  Bandas: Naranja-Naranja-Marrón-Oro",
+        formula =
+            "COMO ESCRIBIR EL SKETCH:\n\n" +
+            "1. Clic en el monitor del PC_Arduino\n" +
+            "   → Se abre el IDE de codigo libre\n\n" +
+            "2. Escribe (reemplaza __ con tu pin):\n\n" +
+            "     void setup() {\n" +
+            "       pinMode(__, OUTPUT);\n" +
+            "     }\n\n" +
+            "     void loop() {\n" +
+            "       digitalWrite(__, HIGH);\n" +
+            "       delay(500);\n" +
+            "       digitalWrite(__, LOW);\n" +
+            "       delay(500);\n" +
+            "     }\n\n" +
+            "3. Clic COMPILAR → consola muestra:\n" +
+            "     OK  Pin D__  OUTPUT  BLINK 500ms\n\n" +
+            "4. Clic SUBIR → pin activo en ArduinoCore",
 
-        objetivo  = "1. Localiza el cable del sensor\n" +
-                    "   → Indica al Explorador: mover de Pin 4 a Pin 2\n\n" +
-                    "2. Calcula la resistencia del buzzer: 330Ω\n" +
-                    "   → Escribe 330 y pulsa ENVIAR al Explorador\n\n" +
-                    "3. Cable suelto en protoboard\n" +
-                    "   → Indica al Explorador: reconectar fila G-14\n\n" +
-                    "Verificación: monitor serial muestra lecturas\n" +
-                    "y el buzzer suena cuando T > umbral",
+        objetivo =
+            "PASOS DEL RETO:\n\n" +
+            "TECNICO:\n" +
+            "  1. Abrir monitor del PC_Arduino\n" +
+            "  2. Elegir un pin digital libre (D2–D13)\n" +
+            "  3. Escribir sketch con OUTPUT + BLINK\n" +
+            "  4. Compilar — revisar que diga OK\n" +
+            "  5. Subir sketch al Arduino\n" +
+            "  6. Comunicar al Explorador que pin elegiste\n\n" +
+            "EXPLORADOR:\n" +
+            "  7. Tomar LED de la bandeja VR\n" +
+            "  8. Insertar anodo (+) en el pin indicado\n" +
+            "  9. Conectar resistencia 330 Ohm en serie\n" +
+            " 10. Cerrar circuito al GND del Arduino\n" +
+            " 11. Presionar el boton fisico de validacion\n\n" +
+            "VALIDACION EXITOSA:\n" +
+            "  El DFS detecta: BLINK + LED + R>=100 + GND\n" +
+            "  Boton VR verde + haptica = RETO COMPLETADO",
 
         tablaValores =
-                    "PINOUT ARDUINO UNO (referencia)\n" +
-                    "━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-                    "Pines digitales: 0-13\n" +
-                    "Pines analógicos: A0-A5\n" +
-                    "Pin sensor correcto: D2\n" +
-                    "Pin sensor incorrecto (nave): D4\n" +
-                    "━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-                    "RESISTENCIA 330Ω:\n" +
-                    "  Naranja-Naranja-Marrón-Oro\n" +
-                    "Voltaje buzzer activo: aparece en monitor serial"
+            "PINES DIGITALES DISPONIBLES:\n" +
+            "━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+            "D2  D3  D4  D5  D6  D7\n" +
+            "D8  D9  D10 D11 D12 D13\n\n" +
+            "  → Cualquiera sirve para el LED\n" +
+            "  → Evita D0 y D1 (Serial RX/TX)\n\n" +
+            "RESISTENCIA RECOMENDADA:\n" +
+            "  330 Ohm = Naranja-Naranja-Marron-Oro\n\n" +
+            "CALCULO SEGURO:\n" +
+            "  R = (5V - 2V) / 0.01A = 300 Ohm\n" +
+            "  → 330 Ohm (standard, seguro)\n\n" +
+            "TELEMETRIA (monitor derecho):\n" +
+            "  V: voltaje en pin activo\n" +
+            "  I: corriente en mA\n" +
+            "  ADC: lectura analogica A0",
+
+        programaReferencia =
+            "EJEMPLO DE SKETCH — RETO 4:\n\n" +
+            "// Cambia 7 por el pin que elijas\n" +
+            "void setup() {\n" +
+            "  pinMode(7, OUTPUT);\n" +
+            "}\n\n" +
+            "void loop() {\n" +
+            "  digitalWrite(7, HIGH);\n" +
+            "  delay(500);\n" +
+            "  digitalWrite(7, LOW);\n" +
+            "  delay(500);\n" +
+            "}\n\n" +
+            "ERRORES QUE DETECTA EL COMPILADOR:\n" +
+            "  X  Sin OUTPUT → dice modo INPUT\n" +
+            "  X  Sin delay  → no hay BLINK\n" +
+            "  X  Pin 0 o 1  → fuera de rango\n\n" +
+            "CHECKLIST ANTES DE VALIDAR:\n" +
+            "  [ ] Sketch subido (consola dice OK)\n" +
+            "  [ ] LED en protoboard con polaridad OK\n" +
+            "  [ ] Resistencia >= 100 Ohm en serie\n" +
+            "  [ ] Circuito cerrado al GND\n" +
+            "  [ ] Boton fisico VR presionado"
     };
 }
 
@@ -188,4 +241,5 @@ public struct ManualData
     public string formula;
     public string objetivo;
     public string tablaValores;
+    public string programaReferencia; // página 3 — sketch de referencia y checklist
 }

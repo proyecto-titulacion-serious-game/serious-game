@@ -271,7 +271,7 @@ public class ExplorerAvatar : MonoBehaviour
     //  Cabeza
     // ─────────────────────────────────────────────────────────
 
-    void HideHead()
+    public void HideHead()
     {
         if (avatarRoot == null) return;
 

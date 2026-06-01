@@ -32,7 +32,13 @@ public class FlexWire : MonoBehaviour
     Mesh         _mesh;
     Color        _builtColor;
 
+    int          _lastHash;          // hash del estado previo para evitar rebuilds inutiles
+    bool         _needsRebuild = true;
+
     public List<Vector3> Points => controlPoints;
+
+    /// <summary>Marca el cable para reconstruir en el proximo Rebuild() aunque el hash no cambie.</summary>
+    public void SetDirty() => _needsRebuild = true;
 
     // ── Lifecycle ────────────────────────────────────────────────────
 
@@ -60,6 +66,12 @@ public class FlexWire : MonoBehaviour
     {
         if (controlPoints == null || controlPoints.Count < 2) return;
 
+        // Evitar reconstruccion si nada cambio (importante cuando el editor llama Rebuild() cada frame al arrastrar)
+        int currentHash = ComputeHash();
+        if (!_needsRebuild && currentHash == _lastHash) return;
+        _lastHash     = currentHash;
+        _needsRebuild = false;
+
         _mf = _mf ? _mf : GetComponent<MeshFilter>();
         _mr = _mr ? _mr : GetComponent<MeshRenderer>();
 
@@ -84,6 +96,19 @@ public class FlexWire : MonoBehaviour
 
         FillTube(_mesh, BuildSpine());
         _mf.sharedMesh = _mesh;
+    }
+
+    // ── Hash de estado ────────────────────────────────────────────────
+
+    int ComputeHash()
+    {
+        var h = new System.HashCode();
+        h.Add(radius);
+        h.Add(sides);
+        h.Add(stepsPerSegment);
+        h.Add(wireColor.GetHashCode());
+        foreach (var p in controlPoints) h.Add(p.GetHashCode());
+        return h.ToHashCode();
     }
 
     // ── Spline Catmull-Rom ────────────────────────────────────────────

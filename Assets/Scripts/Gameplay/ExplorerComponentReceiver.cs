@@ -105,9 +105,9 @@ public class ExplorerComponentReceiver : MonoBehaviour
     void HandleComponenteRecibido(ComponentType tipo, float valor)
         => SpawnComponente(tipo, valor, null);
 
-    // OnComponentSentLocal (editor/local) — lleva el prefab de variante directamente
-    void HandleComponenteRecibidoLocal(ComponentType tipo, float valor, GameObject prefabOverride)
-        => SpawnComponente(tipo, valor, prefabOverride);
+    // OnComponentSentLocal (editor/offline) — misma firma que el evento Action<ComponentType, float>
+    void HandleComponenteRecibidoLocal(ComponentType tipo, float valor)
+        => SpawnComponente(tipo, valor, null);
 
     void SpawnComponente(ComponentType tipo, float valor, GameObject prefabOverride)
     {

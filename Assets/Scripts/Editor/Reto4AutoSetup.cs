@@ -94,7 +94,7 @@ public static class Reto4AutoSetup
             if (sim != null)
             {
                 var so   = new SerializedObject(gm);
-                var prop = so.FindProperty("circuitSimulator");
+                var prop = so.FindProperty("protoSim");   // campo renombrado en GameManager
                 if (prop != null) { prop.objectReferenceValue = sim; so.ApplyModifiedProperties(); }
                 EditorUtility.SetDirty(gm);
             }

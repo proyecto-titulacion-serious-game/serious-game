@@ -20,8 +20,12 @@ public class TechnicianManualDisplay : MonoBehaviour
     // ─────────────────────────────────────────────
 
     [Header("Referencias")]
-    public GameManager     gameManager;
-    public TechnicianManual manual;
+    public GameManager      gameManager;
+    public TechnicianManual manual;           // fallback legacy
+
+    [Header("Contenido (Data-Driven — ScriptableObjects)")]
+    [Tooltip("Una ManualPage por reto, en el mismo orden que LevelType (0=OhmLaw, 1=Parallel...).")]
+    public ManualPage[]     manualPages;      // si se asigna, ignora TechnicianManual
 
     [Header("Textos del manual (TMPs en el Canvas del libro)")]
     public TMP_Text txtTitulo;
@@ -149,34 +153,74 @@ public class TechnicianManualDisplay : MonoBehaviour
     /// <summary>Construye las páginas del manual para el reto activo.</summary>
     void BuildPages()
     {
-        if (manual == null || gameManager == null) return;
+        if (gameManager == null) return;
 
-        var data = manual.GetManualData(gameManager.currentLevel);
+        // Prioridad: ScriptableObject → TechnicianManual legacy
+        ManualPage page = GetManualPage(gameManager.currentLevel);
 
-        // Dividir el contenido en 3 páginas
-        _paginas = new Pagina[]
+        if (page != null)
         {
-            // Página 1: Concepto
-            new Pagina
+            _paginas = new Pagina[]
             {
-                izquierda = data.titulo + "\n\n" + data.concepto,
-                derecha   = "FORMULAS:\n\n" + data.formula
-            },
-            // Página 2: Objetivo y pasos
-            new Pagina
+                new Pagina
+                {
+                    izquierda = page.titulo + "\n\n" + page.concepto,
+                    derecha   = "FORMULAS:\n\n" + page.formula
+                },
+                new Pagina
+                {
+                    izquierda = "OBJETIVO:\n\n" + page.objetivo,
+                    derecha   = "TABLA DE REFERENCIA:\n\n" + page.tablaValores
+                },
+                new Pagina
+                {
+                    izquierda = page.componentesClave,
+                    derecha   = page.codigoColores
+                }
+            };
+        }
+        else if (manual != null)
+        {
+            // Fallback al sistema legacy (TechnicianManual MonoBehaviour)
+            var data = manual.GetManualData(gameManager.currentLevel);
+            _paginas = new Pagina[]
             {
-                izquierda = "OBJETIVO:\n\n" + data.objetivo,
-                derecha   = "TABLA DE REFERENCIA:\n\n" + data.tablaValores
-            },
-            // Página 3: Valores de componentes correctos
-            new Pagina
-            {
-                izquierda = BuildComponentValues(),
-                derecha   = BuildColorCodes()
-            }
-        };
+                new Pagina
+                {
+                    izquierda = data.titulo + "\n\n" + data.concepto,
+                    derecha   = "FORMULAS:\n\n" + data.formula
+                },
+                new Pagina
+                {
+                    izquierda = "OBJETIVO:\n\n" + data.objetivo,
+                    derecha   = "TABLA DE REFERENCIA:\n\n" + data.tablaValores
+                },
+                new Pagina
+                {
+                    // Página 3: sketch de referencia si existe, sino valores/colores genéricos
+                    izquierda = !string.IsNullOrEmpty(data.programaReferencia)
+                                    ? data.programaReferencia
+                                    : BuildComponentValues(),
+                    derecha   = BuildColorCodes()
+                }
+            };
+        }
+        else return;
 
         MostrarPagina(_paginaActual);
+    }
+
+    ManualPage GetManualPage(LevelType level)
+    {
+        if (manualPages == null || manualPages.Length == 0) return null;
+
+        // Buscar por LevelType primero
+        foreach (var p in manualPages)
+            if (p != null && p.levelType == level) return p;
+
+        // Fallback: indice directo
+        int idx = (int)level;
+        return idx < manualPages.Length ? manualPages[idx] : null;
     }
 
     /// <summary>Muestra la página actual en los TMPs del libro.</summary>
@@ -241,7 +285,7 @@ public class TechnicianManualDisplay : MonoBehaviour
             LevelType.OhmLaw   => "VALORES DEL RETO 1:\n\nFuente: 9V\nR correcta: 850 Ohm\nLED R interna: 50 Ohm\nI objetivo: 10 mA",
             LevelType.Parallel => "VALORES DEL RETO 2:\n\nFuente: 9V\nR normal por rama: 50 Ohm\nRama rota: 9999 Ohm\nI por rama: 180 mA",
             LevelType.Mixed    => "VALORES DEL RETO 3:\n\nR serie incorrecta: 470 Ohm\nR correcta: 220 Ohm\nLED: polaridad invertida\nCap: polaridad invertida",
-            LevelType.Arduino  => "VALORES DEL RETO 4:\n\nFuente: 5V\nPin sensor: D2 (correcto)\nPin actual: D4 (incorrecto)\nR buzzer: 330 Ohm",
+            LevelType.Arduino  => "SANDBOX RETO 4:\n\nFuente: 5V (TTL)\nPines libres: D2-D13\nR minima: 100 Ohm\nR recomendada: 330 Ohm\nI max LED: 20 mA",
             _ => "—"
         };
     }

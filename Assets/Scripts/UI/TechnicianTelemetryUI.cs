@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 using TMPro;
 
 /// <summary>
@@ -30,12 +31,50 @@ public class TechnicianTelemetryUI : MonoBehaviour
     public Image    imgCardCorriente;
     public Image    bannerStripe;
 
-    [Header("Referencias (auto-detectadas si se dejan vacías)")]
+    [Header("Referencias (auto-detectadas — Opción A)")]
+    [Tooltip("Asignado automáticamente por evento OnBridgeReady. Puedes pre-asignar en Inspector " +
+             "para modo offline o editor; si queda vacío se detecta en runtime.")]
     public CircuitSimulator circuit;
     public ArduinoNetworkBridge arduinoBridge;
 
-    // Renderer del panel de alerta (opcional, solo visual)
     public Image panelAlerta;
+
+    // ─────────────────────────────────────────────
+    //  Lifecycle — Opción A: suscripción a evento de red
+    // ─────────────────────────────────────────────
+
+    void OnEnable()
+    {
+        ArduinoNetworkBridge.OnBridgeReady     += OnBridgeConnected;
+        ArduinoNetworkBridge.OnBridgeDestroyed += OnBridgeDisconnected;
+
+        // Si ya hay un bridge en escena (modo offline / ya spawneado antes del enable)
+        if (arduinoBridge == null)
+            arduinoBridge = FindAnyObjectByType<ArduinoNetworkBridge>();
+    }
+
+    void OnDisable()
+    {
+        ArduinoNetworkBridge.OnBridgeReady     -= OnBridgeConnected;
+        ArduinoNetworkBridge.OnBridgeDestroyed -= OnBridgeDisconnected;
+    }
+
+    void OnBridgeConnected(ArduinoNetworkBridge bridge)
+    {
+        arduinoBridge = bridge;
+        Debug.Log("[TechnicianTelemetryUI] ArduinoNetworkBridge conectado automáticamente.");
+        if (txtSensorA0 != null) txtSensorA0.text = "CONECTADO — ADC: 0";
+    }
+
+    void OnBridgeDisconnected(ArduinoNetworkBridge _)
+    {
+        arduinoBridge = null;
+        if (txtSensorA0 != null) txtSensorA0.text = "SIN SEÑAL";
+    }
+
+    // ─────────────────────────────────────────────
+    //  Update — telemetría en tiempo real
+    // ─────────────────────────────────────────────
 
     void Update()
     {
@@ -45,6 +84,7 @@ public class TechnicianTelemetryUI : MonoBehaviour
 
     void ActualizarTelemetriaGeneral()
     {
+        // Lazy-find una sola vez (no en loop)
         if (circuit == null)
         {
             circuit = FindAnyObjectByType<CircuitSimulator>();
@@ -82,17 +122,14 @@ public class TechnicianTelemetryUI : MonoBehaviour
 
     void ActualizarTelemetriaArduino()
     {
+        // arduinoBridge se asigna por evento — si aún es null mostramos estado
         if (arduinoBridge == null)
         {
-            arduinoBridge = FindAnyObjectByType<ArduinoNetworkBridge>();
-            if (arduinoBridge == null)
-            {
-                if (txtSensorA0 != null) txtSensorA0.text = "NO CONECTADO";
-                return;
-            }
+            if (txtSensorA0 != null) txtSensorA0.text = "Esperando conexión...";
+            return;
         }
 
         if (txtSensorA0 != null)
-            txtSensorA0.text = arduinoBridge.NetworkedAnalogValue.ToString();
+            txtSensorA0.text = $"ADC A0: {arduinoBridge.NetworkedAnalogValue}";
     }
 }

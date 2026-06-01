@@ -89,18 +89,40 @@ public class ValidationStationUI : MonoBehaviour
 
     void OnEnable()
     {
-        GameSession.OnValidacionSolicitada  += OnValidacionSolicitada;
-        GameSession.OnResultadoValidacion   += OnResultadoValidacion;
-        GameManager.OnLevelLoaded           += _ => SetState(ValidationState.Idle);
+        GameSession.OnValidacionSolicitada += OnValidacionSolicitada;
+        GameSession.OnResultadoValidacion  += OnResultadoValidacion;
+        GameManager.OnLevelLoaded          += OnLevelLoaded;
     }
 
     void OnDisable()
     {
-        GameSession.OnValidacionSolicitada  -= OnValidacionSolicitada;
-        GameSession.OnResultadoValidacion   -= OnResultadoValidacion;
+        GameSession.OnValidacionSolicitada -= OnValidacionSolicitada;
+        GameSession.OnResultadoValidacion  -= OnResultadoValidacion;
+        GameManager.OnLevelLoaded          -= OnLevelLoaded;
     }
 
-    void Start() => SetState(ValidationState.Idle);
+    void Start()
+    {
+        var gm = FindAnyObjectByType<GameManager>();
+        bool esReto4 = gm != null && gm.currentLevel == LevelType.Arduino;
+        MostrarPanel(esReto4);
+        if (esReto4) SetState(ValidationState.Idle);
+    }
+
+    void OnLevelLoaded(LevelType level)
+    {
+        bool esReto4 = level == LevelType.Arduino;
+        MostrarPanel(esReto4);
+        if (esReto4) SetState(ValidationState.Idle);
+    }
+
+    void MostrarPanel(bool visible)
+    {
+        if (legendCanvas != null) legendCanvas.gameObject.SetActive(visible);
+        if (txtEstado    != null) txtEstado.gameObject.SetActive(visible);
+        if (stationLight != null) stationLight.enabled = visible;
+        if (particlesApproved != null) particlesApproved.gameObject.SetActive(visible);
+    }
 
     // ─────────────────────────────────────────────
     //  Callbacks de red

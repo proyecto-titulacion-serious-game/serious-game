@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -14,6 +15,7 @@ using UnityEngine;
 ///
 /// SETUP: añadir al GameObject del Arduino 3D en el Reto 4.
 ///        Arrastrar Nodo_P13, Nodo_GND y Nodo_A0 a sus campos en el Inspector.
+///        Rellenar pinNodeMap con ArduinoModelCreator (Tools > TITA > Arduino).
 /// </summary>
 public class ArduinoCore : MonoBehaviour
 {
@@ -39,6 +41,12 @@ public class ArduinoCore : MonoBehaviour
     public bool     blinkEnabled    = false;
     [SerializeField] private int _blinkIntervalMs = 500;
 
+    [Header("Mapa de pines digitales (sandbox — Reto 4)")]
+    [Tooltip("Mapea número de pin → ElectricalNode en el modelo 3D del Arduino. " +
+             "Rellenar con el ArduinoModelCreator o manualmente en el Inspector. " +
+             "Si vacío, solo el pin 13 (nodoP13) está disponible como fallback.")]
+    public List<PinNodeMapping> pinNodeMap = new List<PinNodeMapping>();
+
     [Header("Hardware")]
     [Tooltip("Voltaje TTL de salida cuando el pin está en HIGH (normalmente 5 V).")]
     public float outputVoltageTTL = 5f;
@@ -50,8 +58,10 @@ public class ArduinoCore : MonoBehaviour
     // ─────────────────────────────────────────────
     //  Propiedades públicas
     // ─────────────────────────────────────────────
-    public int   AdcValue      => _adcValue;
-    public float OutputVoltage => _outputVoltage;
+    public int   AdcValue       => _adcValue;
+    public float OutputVoltage  => _outputVoltage;
+    /// <summary>Intervalo de blink en ms (lectura pública para telemetría y validación).</summary>
+    public int   blinkIntervalMs => _blinkIntervalMs;
 
     // ─────────────────────────────────────────────
     //  Aliases de compatibilidad (API antigua)
@@ -155,10 +165,14 @@ public class ArduinoCore : MonoBehaviour
     //  API de compatibilidad (ArduinoNetworkBridge)
     // ─────────────────────────────────────────────
 
-    public void RecibirCodigoDePC(bool isOutput, bool isHigh, float delayMs, bool isBlink)
+    /// <summary>
+    /// Recibe el sketch del Técnico por red.
+    /// <paramref name="pin"/> es el número de pin D# seleccionado en el ArduinoIDEUI.
+    /// </summary>
+    public void RecibirCodigoDePC(int pin, bool isOutput, bool isHigh, float delayMs, bool isBlink)
     {
         LoadSketch(
-            pinNumber: activePinNumber,
+            pinNumber: pin,
             mode:      isOutput ? PinMode.OUTPUT : PinMode.INPUT,
             state:     isHigh   ? PinState.HIGH  : PinState.LOW,
             blink:     isBlink,
@@ -174,15 +188,60 @@ public class ArduinoCore : MonoBehaviour
     // ─────────────────────────────────────────────
     //  Utilidades
     // ─────────────────────────────────────────────
-    ElectricalNode PinToNode(int pin)
+
+    /// <summary>
+    /// Resuelve un número de pin a su <see cref="ElectricalNode"/> en el modelo 3D.
+    /// Prioridad: 1) <see cref="pinNodeMap"/> explícito, 2) pin 13 → nodoP13, 3) null.
+    /// </summary>
+    public ElectricalNode PinToNode(int pin)
     {
-        if (pin == 13 || pin == activePinNumber) return nodoP13;
+        foreach (var m in pinNodeMap)
+            if (m.pin == pin) return m.node;
+
+        // Compatibilidad legacy: pin 13 siempre disponible via nodoP13
+        if (pin == 13) return nodoP13;
+
+        // Sin mapa configurado: cualquier pin activo usa nodoP13 como proxy educativo
+        if (pinNodeMap.Count == 0 && pin == activePinNumber) return nodoP13;
+
         return null;
+    }
+
+    /// <summary>
+    /// Registra en runtime la asociación pin → nodo.
+    /// Útil para que el ArduinoModelCreator llame esto en Awake después de generar el modelo.
+    /// </summary>
+    public void RegisterPinNode(int pin, ElectricalNode node)
+    {
+        for (int i = 0; i < pinNodeMap.Count; i++)
+        {
+            if (pinNodeMap[i].pin == pin)
+            {
+                var entry = pinNodeMap[i];
+                entry.node = node;
+                pinNodeMap[i] = entry;
+                return;
+            }
+        }
+        pinNodeMap.Add(new PinNodeMapping { pin = pin, node = node });
     }
 }
 
 // ─────────────────────────────────────────────
-//  Enums auxiliares
+//  Enums y structs auxiliares
 // ─────────────────────────────────────────────
 public enum PinMode  { OUTPUT, INPUT, INPUT_PULLUP }
 public enum PinState { LOW, HIGH }
+
+/// <summary>
+/// Asociación entre número de pin digital Arduino y su nodo eléctrico en el modelo 3D.
+/// Se serializa en el Inspector de <see cref="ArduinoCore.pinNodeMap"/>.
+/// </summary>
+[Serializable]
+public struct PinNodeMapping
+{
+    [Tooltip("Número de pin digital Arduino (2–13).")]
+    public int            pin;
+    [Tooltip("ElectricalNode del header físico de ese pin en el modelo 3D.")]
+    public ElectricalNode node;
+}

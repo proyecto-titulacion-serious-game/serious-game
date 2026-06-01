@@ -4,6 +4,14 @@ using UnityEngine;
 /// Crea visualmente una mano (palma + dedos) sobre el controlador VR.
 /// Añadir a LeftHand_Controller y RightHand_Controller.
 /// El TrackedPoseDriver ya mueve el GameObject — este script solo construye la geometría.
+///
+/// Correcciones vs versión anterior:
+///   - La mano derecha se construye con scale.x = -1 en el pivot para que el
+///     pulgar quede hacia adentro (lado correcto para cada mano).
+///   - Material URP con Smoothness + Specular para aspecto de piel real.
+///   - Dedos con 2 segmentos (falange proximal + media) para que no parezcan
+///     palos de madera.
+///   - Falanges ligeramente escalonadas por tamaño.
 /// </summary>
 public class HandModelController : MonoBehaviour
 {
@@ -12,13 +20,22 @@ public class HandModelController : MonoBehaviour
     [Header("Configuracion")]
     public HandSide hand = HandSide.Left;
 
-    [Tooltip("Ajuste de rotacion para alinear la mano con la pose del controller Meta Quest 3. " +
-             "Modifica X si la mano aparece volcada hacia adelante/atras.")]
+    [Tooltip("Ajuste de rotacion para alinear la mano con la pose del controller Meta Quest 3.")]
     public Vector3 rotationOffset = new Vector3(-60f, 0f, 0f);
 
     [Header("Material")]
-    [Tooltip("Material de la mano. Se crea automaticamente con color piel si queda vacio.")]
+    [Tooltip("Material de la mano. Se crea automaticamente con shader URP si queda vacio.")]
     public Material handMaterial;
+
+    // ─────────────────────────────────────────────
+    //  Datos anatómicos de dedos (mano izquierda — se espeja para la derecha)
+    //  x = posición lateral (- = lado del meñique, + = lado del índice)
+    //  len0 = longitud proximal, len1 = longitud media (en metros)
+    // ─────────────────────────────────────────────
+    static readonly float[] FingerX     = { -0.029f, -0.010f,  0.009f,  0.028f };
+    static readonly float[] FingerLen0  = {  0.042f,  0.047f,  0.043f,  0.032f }; // proximal
+    static readonly float[] FingerLen1  = {  0.028f,  0.030f,  0.028f,  0.022f }; // media+distal
+    static readonly float[] FingerRad   = {  0.0075f, 0.0080f, 0.0075f, 0.0065f };
 
     void Start()
     {
@@ -26,14 +43,13 @@ public class HandModelController : MonoBehaviour
         BuildHand();
     }
 
-    // Permite reconstruir desde el Inspector (click derecho → Reconstruir Mano)
     [ContextMenu("Reconstruir Mano")]
     public void RebuildInEditor()
     {
         for (int i = transform.childCount - 1; i >= 0; i--)
         {
             var child = transform.GetChild(i);
-            if (child.name.StartsWith("Hand_") || child.name == "HandPlaceholder_Replace")
+            if (child.name.StartsWith("Hand_"))
                 DestroyImmediate(child.gameObject);
         }
         BuildHand();
@@ -50,42 +66,78 @@ public class HandModelController : MonoBehaviour
 
     void BuildHand()
     {
-        if (handMaterial == null)
-            handMaterial = CreateHandMaterial();
+        if (handMaterial == null) handMaterial = CreateSkinMaterial();
 
-        // Pivot con offset de rotacion para alinear con el grip pose del controller
+        // Pivot con offset de rotacion
         var pivot = new GameObject("Hand_Pivot");
         pivot.transform.SetParent(transform, false);
         pivot.transform.localPosition = Vector3.zero;
         pivot.transform.localRotation = Quaternion.Euler(rotationOffset);
 
-        // mirror: izquierda = 1, derecha = -1 (refleja el pulgar)
-        float mirror = hand == HandSide.Left ? 1f : -1f;
+        // CLAVE: escala -1 en X para la mano derecha → el pulgar queda en el lado correcto
+        // El material tiene Cull=Off para que las caras invertidas se rendericen bien
+        if (hand == HandSide.Right)
+            pivot.transform.localScale = new Vector3(-1f, 1f, 1f);
 
-        // Palma
+        // ── Palma (cuboide redondeado con esfera aplastada superpuesta) ──
         AddPart(pivot, "Hand_Palm",
-            new Vector3(0f, 0f, 0.04f),
+            new Vector3(0f, 0f, 0.038f),
             Quaternion.identity,
-            new Vector3(0.075f, 0.022f, 0.09f),
+            new Vector3(0.078f, 0.020f, 0.090f),
             PrimitiveType.Cube);
 
-        // 4 dedos: indice, medio, anular, menique
-        float[] xOff   = { -0.028f, -0.009f,  0.010f,  0.029f };
-        float[] length = {  0.070f,  0.075f,  0.065f,  0.050f };
+        // Arco metacarpal (esfera aplastada que redondea la palma)
+        AddPart(pivot, "Hand_PalmRound",
+            new Vector3(0f, 0f, 0.038f),
+            Quaternion.identity,
+            new Vector3(0.076f, 0.018f, 0.092f),
+            PrimitiveType.Sphere);
+
+        // ── 4 dedos con 2 falanges cada uno ──
         for (int i = 0; i < 4; i++)
         {
-            AddPart(pivot, $"Hand_Finger{i}",
-                new Vector3(xOff[i], 0f, 0.095f + length[i] * 0.5f),
+            float x    = FingerX[i];
+            float r    = FingerRad[i];
+            float l0   = FingerLen0[i];
+            float l1   = FingerLen1[i];
+
+            // Falange proximal (arranca en el borde de la palma)
+            float zBase = 0.083f;
+            AddPart(pivot, $"Hand_Finger{i}A",
+                new Vector3(x, 0f, zBase + l0 * 0.5f),
                 Quaternion.Euler(90f, 0f, 0f),
-                new Vector3(0.014f, length[i] * 0.5f, 0.014f),
+                new Vector3(r * 2f, l0 * 0.5f, r * 2f),
                 PrimitiveType.Capsule);
+
+            // Falange media+distal (ligeramente más delgada)
+            float zMid = zBase + l0;
+            AddPart(pivot, $"Hand_Finger{i}B",
+                new Vector3(x, 0f, zMid + l1 * 0.5f),
+                Quaternion.Euler(90f, 0f, 0f),
+                new Vector3(r * 1.75f, l1 * 0.5f, r * 1.75f),
+                PrimitiveType.Capsule);
+
+            // Nudillo (pequeña esfera en la articulación)
+            AddPart(pivot, $"Hand_Knuckle{i}",
+                new Vector3(x, 0.004f, zBase),
+                Quaternion.identity,
+                new Vector3(r * 2.2f, r * 1.8f, r * 2.2f),
+                PrimitiveType.Sphere);
         }
 
-        // Pulgar (angulo hacia afuera segun lado)
-        AddPart(pivot, "Hand_Thumb",
-            new Vector3(mirror * -0.043f, 0.005f, 0.025f),
-            Quaternion.Euler(90f, 0f, mirror * 40f),
-            new Vector3(0.017f, 0.022f, 0.017f),
+        // ── Pulgar (base = lado meñique → positivo X en coord. pivote izquierdo) ──
+        // Para la mano izquierda: thumb en x positivo (lado índice - meñique).
+        // La escala negativa del pivot derecho lo pone en el lado correcto automáticamente.
+        AddPart(pivot, "Hand_ThumbBase",
+            new Vector3(0.043f, 0.003f, 0.015f),
+            Quaternion.Euler(90f, 0f, -40f),
+            new Vector3(0.017f, 0.021f, 0.017f),
+            PrimitiveType.Capsule);
+
+        AddPart(pivot, "Hand_ThumbTip",
+            new Vector3(0.060f, 0.003f, 0.040f),
+            Quaternion.Euler(90f, 0f, -30f),
+            new Vector3(0.015f, 0.016f, 0.015f),
             PrimitiveType.Capsule);
     }
 
@@ -101,16 +153,21 @@ public class HandModelController : MonoBehaviour
         go.transform.localScale    = scale;
 
         var mr = go.GetComponent<MeshRenderer>();
-        if (mr != null) mr.sharedMaterial = handMaterial;
+        if (mr != null)
+        {
+            mr.sharedMaterial = handMaterial;
+            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
 
-        // Quitar colisores para no interferir con XRGrabInteractable
         var col = go.GetComponent<Collider>();
         if (col != null) Destroy(col);
     }
 
-    Material CreateHandMaterial()
+    // ─────────────────────────────────────────────
+    //  Material de piel URP — con Smoothness + Specular
+    // ─────────────────────────────────────────────
+    Material CreateSkinMaterial()
     {
-        // Prueba los nombres de shader URP en orden; "Hidden/InternalErrorShader" nunca falla
         Shader shader = Shader.Find("Universal Render Pipeline/Lit")
                      ?? Shader.Find("URP/Lit")
                      ?? Shader.Find("Lit")
@@ -118,15 +175,29 @@ public class HandModelController : MonoBehaviour
 
         if (shader == null)
         {
-            Debug.LogWarning("[HandModelController] No se encontró shader para las manos. " +
+            Debug.LogWarning("[HandModelController] Shader URP no encontrado. " +
                              "Asigna un material manualmente en el Inspector.");
             return new Material(Shader.Find("Hidden/InternalErrorShader"));
         }
 
-        var mat  = new Material(shader);
-        var skin = new Color(0.90f, 0.73f, 0.55f);
-        mat.SetColor("_BaseColor", skin);
-        mat.SetColor("_Color",     skin);
+        var mat = new Material(shader);
+
+        // Color base: piel cálida con ligero tono rosado
+        var baseColor = new Color(0.88f, 0.68f, 0.52f);
+        mat.SetColor("_BaseColor", baseColor);
+        mat.SetColor("_Color",     baseColor);
+
+        // Suavidad y especular: aspecto de piel (no plástico brillante, no madera mate)
+        mat.SetFloat("_Smoothness",         0.35f);
+        mat.SetFloat("_Glossiness",         0.35f); // Standard shader
+        mat.SetFloat("_Metallic",           0.00f);
+        mat.SetFloat("_GlossyReflections",  1f);
+
+        // Backface culling desactivado: la mano derecha tiene scale.x=-1 → caras invertidas
+        // Sin esto, la mano derecha es invisible desde fuera
+        mat.SetFloat("_Cull",      0f);   // 0 = Off, 1 = Front, 2 = Back
+        mat.SetFloat("_CullMode",  0f);
+
         return mat;
     }
 }

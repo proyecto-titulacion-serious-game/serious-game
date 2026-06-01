@@ -308,12 +308,9 @@ public class ExplorerTaskClipboard : MonoBehaviour
             },
             LevelType.Arduino => step switch
             {
-                0 => ("Sigue el cable del sensor\nhasta el Arduino",      "Anota a qué pin está conectado",            _textMain, _bgIdle),
-                1 => ("Desconecta el cable\ndel pin actual",               "Grip para soltar el cable",                 _amber,    _bgAlerta),
-                2 => ("Conecta el cable al\npin correcto indicado",        "Arrastra al pin que dijo el Técnico",       _green,    _bgAccion),
-                3 => ("Instala la resistencia\nrecibida del Técnico",      "Grip → slot junto al buzzer",               _green,    _bgAccion),
-                4 => ("Reconecta el cable suelto\nen la protoboard",       "Busca el cable sin conexión en la fila",    _red,      _bgAlerta),
-                _ => ("Esperando código\ndel Técnico...",                  "El Técnico programará el Arduino",          _muted,    _bgIdle)
+                0 => ("Espera el sketch\ndel Tecnico",                    "El Tecnico elegira el pin. Escucha por radio.",  _textMain, _bgIdle),
+                1 => ("Toma un LED de la bandeja\ny conectalo al pin",    "Grip → LED → inserta anodo en el pin indicado",  _amber,    _bgAccion),
+                _ => ("Conecta resistencia\n>= 100 Ohm y cierra a GND",  "Grip → resistencia → protoboard → GND",          _green,    _bgAccion)
             },
             _ => ("Esperando instrucción...", "", _muted, _bgIdle)
         };
@@ -357,5 +354,23 @@ public class ExplorerTaskClipboard : MonoBehaviour
 
         yield return new WaitForSeconds(3.5f);
         panelNetEvento.SetActive(false);
+    }
+}
+
+/// <summary>
+/// Convierte el código numérico de motivo de fallo (enviado por GameManager.ReportarResultado)
+/// a un texto legible para el Explorador.
+/// cod = 0  → éxito (no se usa en la rama de fallo)
+/// cod > 0  → número de intentos incorrectos acumulados
+/// </summary>
+public static class ValidationMotivo
+{
+    public static string Texto(int cod)
+    {
+        if (cod <= 0)  return "Conexión inválida";
+        if (cod == 1)  return "Conexión inválida — revisa el circuito";
+        if (cod == 2)  return "2° intento fallido — mide con el multímetro";
+        if (cod >= 3)  return $"Intento {cod} — pide ayuda al Técnico";
+        return "Error de circuito";
     }
 }

@@ -131,6 +131,27 @@ public class Multimeter : MonoBehaviour
         Debug.Log($"[Multimeter] Punta negra → {node?.gameObject.name} ({node?.voltage:F2}V)");
     }
 
+    // ─────────────────────────────────────────────
+    //  API para MultimeterProbeContact (protoboard sandbox — Reto 4)
+    // ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Asigna la punta roja al nodo de un <see cref="ProtoboardSlot"/>.
+    /// Llamado por <see cref="MultimeterProbeContact"/> cuando la punta toca un slot.
+    /// Voltaje leído por <see cref="TakeReading"/> vía <c>_nodeRed.voltage</c>,
+    /// que MNA actualiza cada 20 Hz en <see cref="ProtoboardSimulator"/>.
+    /// </summary>
+    public void SetRedProbeSlot(ProtoboardSlot slot) =>
+        SetRedNode(slot != null ? slot.assignedNode : null);
+
+    /// <summary>
+    /// Asigna la punta negra al nodo de un <see cref="ProtoboardSlot"/>.
+    /// Si ambas puntas están en el mismo railId, <c>assignedNode</c> será
+    /// el mismo objeto → voltaje diferencial = 0 V (comportamiento correcto).
+    /// </summary>
+    public void SetBlackProbeSlot(ProtoboardSlot slot) =>
+        SetBlackNode(slot != null ? slot.assignedNode : null);
+
     /// <summary>
     /// Diagnóstico completo — clic derecho en el script en el Inspector → "Diagnosticar Lectura".
     /// Funciona en Play Mode.

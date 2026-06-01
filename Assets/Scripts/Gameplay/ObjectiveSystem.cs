@@ -41,20 +41,30 @@ public class ObjectiveSystem : MonoBehaviour
     // ─────────────────────────────────────────────
     void Start()
     {
-        GameManager.OnLevelLoaded       += BuildObjectivesForLevel;
-        GameManager.OnLevelCompleted    += HandleLevelCompleted;
-        GameManager.OnGameCompleted     += HandleGameCompleted;
-        CircuitManager.OnCircuitChanged += AutoCompleteByCircuitState;
-        Multimeter.OnReadingTaken       += OnMultimeterUsed;
+        GameManager.OnLevelLoaded              += BuildObjectivesForLevel;
+        GameManager.OnLevelCompleted           += HandleLevelCompleted;
+        GameManager.OnGameCompleted            += HandleGameCompleted;
+        CircuitManager.OnCircuitChanged        += AutoCompleteByCircuitState;
+        Multimeter.OnReadingTaken              += OnMultimeterUsed;
+        ProtoboardSimulator.OnSandboxValidated += HandleSandboxValidated;
     }
 
     void OnDestroy()
     {
-        GameManager.OnLevelLoaded       -= BuildObjectivesForLevel;
-        GameManager.OnLevelCompleted    -= HandleLevelCompleted;
-        GameManager.OnGameCompleted     -= HandleGameCompleted;
-        CircuitManager.OnCircuitChanged -= AutoCompleteByCircuitState;
-        Multimeter.OnReadingTaken       -= OnMultimeterUsed;
+        GameManager.OnLevelLoaded              -= BuildObjectivesForLevel;
+        GameManager.OnLevelCompleted           -= HandleLevelCompleted;
+        GameManager.OnGameCompleted            -= HandleGameCompleted;
+        CircuitManager.OnCircuitChanged        -= AutoCompleteByCircuitState;
+        Multimeter.OnReadingTaken              -= OnMultimeterUsed;
+        ProtoboardSimulator.OnSandboxValidated -= HandleSandboxValidated;
+    }
+
+    void HandleSandboxValidated(SandboxValidationResult r)
+    {
+        if (r.blinkEnabled)              CompleteObjectiveOnce(1); // sketch subido con blink
+        if (r.pathFound)                 CompleteObjectiveOnce(2); // LED conectado
+        if (r.hasProtection)             CompleteObjectiveOnce(3); // resistencia presente
+        if (r.success)                   CompleteObjectiveOnce(4); // circuito validado
     }
 
     void OnMultimeterUsed() => _multimeterUsed = true;
@@ -93,11 +103,11 @@ public class ObjectiveSystem : MonoBehaviour
                 break;
 
             case LevelType.Arduino:
-                AddObjective("Leer el pinout del Arduino en el manual técnico",     150);
-                AddObjective("Identificar el pin incorrecto del sensor",            200);
-                AddObjective("Calcular la resistencia necesaria para el buzzer",    200);
-                AddObjective("Reconectar el cable suelto en la protoboard",         150);
-                AddObjective("Verificar la señal del sensor en el monitor serial",  100);
+                AddObjective("Escribir el sketch: elegir pin, OUTPUT, BLINK",       200);
+                AddObjective("Subir el codigo al Arduino desde el IDE",             150);
+                AddObjective("Explorador conecta LED en la protoboard",             200);
+                AddObjective("Circuito con resistencia de proteccion >= 100 Ohm",   200);
+                AddObjective("Validar circuito: LED parpadea de forma segura",      250);
                 break;
         }
 
@@ -231,21 +241,7 @@ public class ObjectiveSystem : MonoBehaviour
                 if (pinOk && gameManager.HasPerformedRepair())
                     CompleteObjectiveOnce(1);
 
-                // Obj 2: resistencia buzzer corregida
-                bool resOk = true;
-                foreach (var c in circuit.components)
-                    if (c is Resistor rs && rs.hasFault) { resOk = false; break; }
-                if (resOk && gameManager.HasPerformedRepair())
-                    CompleteObjectiveOnce(2);
-
-                // Obj 3: cable suelto reparado
-                bool cableOk = true;
-                foreach (var c in circuit.components)
-                    if (c is ArduinoPin ap && ap.hasLooseCable) { cableOk = false; break; }
-                if (cableOk && gameManager.HasPerformedRepair())
-                    CompleteObjectiveOnce(3);
-
-                // Obj 4: verificación → HandleLevelCompleted
+                // Sandbox Reto 4: objetivos 1-4 se completan via OnSandboxValidated (ver HandleSandboxValidated)
                 break;
         }
     }

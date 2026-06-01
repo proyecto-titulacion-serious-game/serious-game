@@ -11,7 +11,7 @@ using UnityEngine;
 ///   <item>Reto 1: medir → verificar voltaje → seleccionar resistencia → reemplazar</item>
 ///   <item>Reto 2: medir → identificar rama rota → reconectar</item>
 ///   <item>Reto 3: capacitor → LED → resistencia</item>
-///   <item>Reto 4: localizar pin → mover cable → instalar resistencia → reconectar cable suelto</item>
+///   <item>Reto 4: Sandbox — Tecnico escribe sketch (pin libre) → Explorador arma circuito → DFS valida</item>
 /// </list>
 /// </remarks>
 public class InstructionSystem : MonoBehaviour
@@ -74,18 +74,24 @@ public class InstructionSystem : MonoBehaviour
 
     void OnEnable()
     {
-        CircuitManager.OnCircuitChanged += OnCircuitChanged;
+        CircuitManager.OnCircuitChanged          += OnCircuitChanged;
+        ProtoboardSimulator.OnCircuitChanged     += OnCircuitChanged;
+        ProtoboardSimulator.OnSandboxValidated   += OnSandboxValidatedHandler;
+        ArduinoNetworkBridge.OnSketchReceived    += OnSketchDataReceived;
     }
 
     void OnDisable()
     {
-        CircuitManager.OnCircuitChanged -= OnCircuitChanged;
+        CircuitManager.OnCircuitChanged          -= OnCircuitChanged;
+        ProtoboardSimulator.OnCircuitChanged     -= OnCircuitChanged;
+        ProtoboardSimulator.OnSandboxValidated   -= OnSandboxValidatedHandler;
+        ArduinoNetworkBridge.OnSketchReceived    -= OnSketchDataReceived;
     }
 
-    private void OnCircuitChanged()
-    {
-        _needsValidation = true;
-    }
+    private void OnCircuitChanged() => _needsValidation = true;
+
+    private void OnSketchDataReceived(int pin, PinMode mode, PinState state, bool blink, int blinkMs)
+        => _needsValidation = true;
 
     /// <summary>Valida el paso actual solo cuando el circuito cambia.</summary>
     private void Update()
@@ -141,11 +147,12 @@ public class InstructionSystem : MonoBehaviour
             case LevelType.Arduino:
                 instructions = new[]
                 {
-                    "Paso 1: Pide al Explorador localizar el cable del sensor.",
-                    "Paso 2: Indica mover el cable del pin D4 al pin D2.",
-                    "Paso 3: Envía la resistencia de 330Ω para el buzzer.",
-                    "Paso 4: Indica reconectar el cable suelto en protoboard.",
-                    "Paso 5: Verifica señal en el monitor serial."
+                    "Paso 1: Escribe el sketch en el IDE. Objetivo: hacer parpadear un LED " +
+                    "de forma segura. Elige cualquier pin digital (D2-D13), configura OUTPUT " +
+                    "y usa HIGH + delay + LOW + delay en loop().",
+                    "Paso 2: Pide al Explorador conectar el LED y una resistencia de 330 Ohm " +
+                    "desde el pin elegido hasta GND en la protoboard. El sistema validara " +
+                    "automaticamente cuando el circuito sea correcto."
                 };
                 break;
 
@@ -285,46 +292,38 @@ public class InstructionSystem : MonoBehaviour
 
     // ── Reto 4 ─────────────────────────────────
 
-    /// <summary>Valida los 5 pasos del Reto 4 — Sensor-Actuador Arduino.</summary>
+    // Flag de validación dinámica del ProtoboardSimulator
+    /// <summary>
+    /// True cuando el DFS del ProtoboardSimulator confirmó que hay
+    /// LED + resistencia >= 100 Ω + GND cerrado desde el pin activo.
+    /// </summary>
+    public bool sandboxCircuitValidated = false;
+
+    void OnSandboxValidatedHandler(SandboxValidationResult result)
+    {
+        sandboxCircuitValidated = result.success;
+        _needsValidation = true;
+    }
+
+    /// <summary>Valida los 2 pasos del Reto 4 — Sandbox Arduino (modo libre).</summary>
     private void ValidateArduino()
     {
-        if (gameManager?.circuit == null) return;
-
         switch (currentStep)
         {
-            // Paso 0 → Explorador localiza el cable (multímetro en escena)
+            // Paso 0 → Técnico escribe y sube sketch con BLINK + OUTPUT en cualquier pin
             case 0:
-                if (multimeter?.probeA != null) NextStep();
-                break;
-
-            // Paso 1 → Pin del sensor corregido (debe ser pin D2)
-            case 1:
-                foreach (var comp in gameManager.circuit.components)
-                    if (comp is ArduinoPin pin && !pin.hasFault && pin.pinNumber == 2)
-                    { NextStep(); return; }
-                break;
-
-            // Paso 2 → Resistencia del buzzer correcta (330Ω)
-            case 2:
-                foreach (var comp in gameManager.circuit.components)
-                    if (comp is Resistor r && !r.hasFault && Mathf.Approximately(r.resistance, 330f))
-                    { NextStep(); return; }
-                break;
-
-            // Paso 3 → Cable suelto reconectado
-            case 3:
             {
-                bool cableOk = true;
-                foreach (var comp in gameManager.circuit.components)
-                    if (comp is ArduinoPin p && p.hasLooseCable)
-                    { cableOk = false; break; }
-                if (cableOk && gameManager.HasPerformedRepair()) NextStep();
+                var arduino = FindAnyObjectByType<ArduinoCore>();
+                if (arduino != null &&
+                    arduino.blinkEnabled &&
+                    arduino.activePinMode == PinMode.OUTPUT)
+                    NextStep();
                 break;
             }
 
-            // Paso 4 → Verificación final (manual — el jugador confirma la señal)
-            case 4:
-                if (gameManager.HasPerformedRepair())
+            // Paso 1 → Explorador arma el circuito: DFS confirma LED + R >= 100Ω + GND
+            case 1:
+                if (sandboxCircuitValidated)
                     hasAppliedFix = true;
                 break;
         }
@@ -367,6 +366,7 @@ public class InstructionSystem : MonoBehaviour
         hasMeasuredCorrectly        = false;
         hasSelectedCorrectComponent = false;
         hasAppliedFix               = false;
+        sandboxCircuitValidated     = false;
     }
 
     /// <summary>

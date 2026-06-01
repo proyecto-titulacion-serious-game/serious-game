@@ -8,15 +8,12 @@ public class ThirdPersonCamera : MonoBehaviour
     public Transform target;
 
     [Header("Cabeza del robot")]
-    [Tooltip("Arrastra aquí el Transform del hueso 'Head' del TechnicianRobot. Se auto-busca si queda vacío.")]
+    [Tooltip("Arrastra aquí el Transform del hueso 'Head' del TechnicianRobot.")]
     public Transform headBone;
-    [Tooltip("Nombre del hueso para auto-búsqueda (case-insensitive).")]
     public string headBoneName = "Head";
-    [Tooltip("Offset en espacio local del hueso: sube la cámara a los ojos (eje Y).")]
     public Vector3 headOffset = new Vector3(0f, 0.08f, 0.05f);
 
     [Header("Fallback (sin hueso)")]
-    [Tooltip("Altura de los ojos si no se encuentra el hueso de cabeza.")]
     public float eyeHeight = 1.65f;
 
     [Header("Cámara")]
@@ -34,109 +31,54 @@ public class ThirdPersonCamera : MonoBehaviour
 
     void Awake()
     {
-        // Si la cámara quedó guardada como hija de un objeto que no es Walker_PC
-        // (p.ej. del hueso Head del robot tras guardar en Play Mode), nos desparentamos.
-        if (transform.parent != null)
-        {
-            bool parentIsWalker = transform.parent.GetComponentInParent<TechnicianMover>() != null;
-            if (!parentIsWalker)
-                transform.SetParent(null, worldPositionStays: true);
-        }
-    }
-
-    void OnEnable()
-    {
-        if (_started) LockCursor(true);
-        GetComponent<Camera>().enabled = true;
-        SetBodyVisible(false);
-    }
-
-    void OnDisable()
-    {
-        LockCursor(false);
-        GetComponent<Camera>().enabled = false;
-        SetBodyVisible(true);
+        transform.SetParent(null);
+        CacheBodyRenderers();
     }
 
     void Start()
     {
-        _started = true;
-
-        if (target == null)
-        {
-            var mover = FindAnyObjectByType<TechnicianMover>();
-            if (mover != null) target = mover.transform;
-        }
-
-        if (target != null)
-        {
-            transform.SetParent(target);
-            transform.localRotation = Quaternion.identity;
-        }
-
-        // Auto-buscar el hueso de cabeza en el TechnicianRobot
-        if (headBone == null && !string.IsNullOrEmpty(headBoneName))
-        {
-            var robot = GameObject.Find("TechnicianRobot");
-            if (robot != null)
-                headBone = FindChildByName(robot.transform, headBoneName);
-
-            if (headBone == null && target != null)
-                headBone = FindChildByName(target, headBoneName);
-        }
-
-        // Cachear renderers del robot para ocultarlos en primera persona
-        CacheBodyRenderers();
-        SetBodyVisible(false);
-
-        // Posición inicial: hueso o fallback eyeHeight
-        ApplyHeadPosition();
-
-        // Cursor: bloquear ahora que ya tenemos contexto válido
         LockCursor(true);
+        if (headBone == null && target != null)
+            headBone = FindChildByName(target, headBoneName);
 
-        Debug.Log(headBone != null
-            ? $"[ThirdPersonCamera] Anclada al hueso '{headBone.name}'."
-            : $"[ThirdPersonCamera] Hueso '{headBoneName}' no encontrado — usando eyeHeight={eyeHeight}.");
+        SetBodyVisible(false);
+        _started = true;
     }
 
-    void Update()
+    // CORRECCIÓN: Cambiado de Update a LateUpdate para evitar Jitter (temblor) 
+    // al seguir los huesos de la animación del Técnico.
+    void LateUpdate() 
     {
+        if (!_started) return;
+
         var kb = Keyboard.current;
         if (kb != null && kb.escapeKey.wasPressedThisFrame)
         {
             _cursorFree = !_cursorFree;
             LockCursor(!_cursorFree);
         }
-    }
 
-    void LateUpdate()
-    {
-        // Actualizar posición: headBone tiene prioridad sobre target para no requerir Walker_PC
-        bool hasTracking = (headBone != null && headBone.gameObject.activeInHierarchy)
-                        || (target != null);
-        if (!hasTracking) return;
-
-        ApplyHeadPosition();
-
-        if (_cursorFree) return;
-
-        var mouse = Mouse.current;
-        if (mouse != null)
+        if (!_cursorFree)
         {
-            _pitch -= mouse.delta.y.ReadValue() * sensitivity * 0.1f;
-            _pitch  = Mathf.Clamp(_pitch, minPitch, maxPitch);
+            var mouse = Mouse.current;
+            if (mouse != null)
+            {
+                Vector2 delta = mouse.delta.ReadValue();
+                _pitch -= delta.y * sensitivity * 0.1f;
+                _pitch = Mathf.Clamp(_pitch, minPitch, maxPitch);
+
+                if (target != null)
+                {
+                    float yaw = target.eulerAngles.y + delta.x * sensitivity * 0.1f;
+                    target.rotation = Quaternion.Euler(0f, yaw, 0f);
+                }
+            }
         }
 
-        transform.localRotation = Quaternion.Euler(_pitch, 0f, 0f);
-    }
+        transform.rotation = Quaternion.Euler(_pitch, Yaw, 0f);
 
-    void ApplyHeadPosition()
-    {
-        if (headBone != null && headBone.gameObject.activeInHierarchy)
+        if (headBone != null)
         {
-            // Usar posición mundial del hueso + offset (sin heredar la rotación del hueso
-            // para que el mouse controle 100% la orientación de la cámara).
             transform.position = headBone.position
                                + headBone.up      * headOffset.y
                                + headBone.forward * headOffset.z
@@ -144,8 +86,7 @@ public class ThirdPersonCamera : MonoBehaviour
         }
         else if (target != null)
         {
-            // Fallback: altura fija relativa al Walker_PC
-            transform.localPosition = new Vector3(0f, eyeHeight, 0f);
+            transform.position = target.position + new Vector3(0f, eyeHeight, 0f);
         }
     }
 

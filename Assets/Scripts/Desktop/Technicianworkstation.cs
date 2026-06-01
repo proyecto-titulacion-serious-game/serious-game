@@ -1,3 +1,4 @@
+using System;
 using System.Text;
 using UnityEngine;
 using TMPro;
@@ -60,6 +61,10 @@ public class TechnicianWorkstation : MonoBehaviour
     private const float      HUD_INTERVAL = 0.2f;
     private DiagnosticSystem _diagnostic  = new DiagnosticSystem();
 
+    // Referencias a las lambdas bridge guardadas para poder desuscribirlas en OnDestroy
+    private Action           _bridgeCircuit;
+    private Action<LevelType> _bridgeLevel;
+
     // ─────────────────────────────────────────────
     //  Unity Lifecycle
     // ─────────────────────────────────────────────
@@ -76,14 +81,23 @@ public class TechnicianWorkstation : MonoBehaviour
         if (circuit == null && gameManager != null)
             circuit = gameManager.circuit;
 
-        CircuitManager.OnCircuitChanged += RefreshDiagnosticPanel;
-        GameManager.OnLevelLoaded       += OnLevelLoaded;
+        // Observer Pattern: suscribirse a GameEvents
+        GameEvents.OnCircuitUpdated += RefreshDiagnosticPanel;
+        GameEvents.OnLevelChanged   += OnLevelLoaded;
+
+        // Bridges almacenados como campos para poder desuscribirlos en OnDestroy
+        _bridgeCircuit = () => GameEvents.RaiseCircuitUpdated();
+        _bridgeLevel   = l  => GameEvents.RaiseLevelChanged(l);
+        CircuitManager.OnCircuitChanged += _bridgeCircuit;
+        GameManager.OnLevelLoaded       += _bridgeLevel;
     }
 
     void OnDestroy()
     {
-        CircuitManager.OnCircuitChanged -= RefreshDiagnosticPanel;
-        GameManager.OnLevelLoaded       -= OnLevelLoaded;
+        GameEvents.OnCircuitUpdated     -= RefreshDiagnosticPanel;
+        GameEvents.OnLevelChanged       -= OnLevelLoaded;
+        CircuitManager.OnCircuitChanged -= _bridgeCircuit;
+        GameManager.OnLevelLoaded       -= _bridgeLevel;
     }
 
     void Update()
@@ -100,11 +114,19 @@ public class TechnicianWorkstation : MonoBehaviour
 
     void RefreshDiagnosticPanel()
     {
-        // Siempre obtener la referencia actualizada: GameManager.circuit cambia en cada reto
-        // y ForceSimulate() dispara este callback ANTES de que OnLevelLoaded la actualice.
         if (gameManager != null) circuit = gameManager.circuit;
-        if (circuit == null) return;
 
+        // Reto 4 usa ArduinoCore + ProtoboardSimulator en lugar de CircuitSimulator
+        if (gameManager != null && gameManager.currentLevel == LevelType.Arduino)
+        {
+            var arduino  = UnityEngine.Object.FindAnyObjectByType<ArduinoCore>();
+            var protoSim = gameManager.protoSim;
+            Set(txtDiagnostico,     _diagnostic.GetDiagnosisArduino(arduino, protoSim));
+            Set(txtAccionSiguiente, _diagnostic.GetNextActionArduino(arduino, protoSim));
+            return;
+        }
+
+        if (circuit == null) return;
         Set(txtDiagnostico,     _diagnostic.GetDiagnosis(circuit.components, circuit.totalCurrent));
         Set(txtAccionSiguiente, _diagnostic.GetNextAction(circuit.components, circuit.totalCurrent));
     }
@@ -115,7 +137,34 @@ public class TechnicianWorkstation : MonoBehaviour
 
     void RefreshMiniHUD()
     {
-        if (circuit == null || gameManager == null) return;
+        if (gameManager == null) return;
+
+        // Reto 4: mini HUD con datos Arduino
+        if (gameManager.currentLevel == LevelType.Arduino)
+        {
+            var arduino  = UnityEngine.Object.FindAnyObjectByType<ArduinoCore>();
+            var protoSim = gameManager.protoSim;
+            bool  pinOk  = arduino != null && arduino.activePinNumber == 2;
+            float ardMA  = protoSim != null ? protoSim.totalCurrentmA : 0f;
+
+            Set(hudVoltaje,
+                $"Pin: D{(arduino != null ? arduino.activePinNumber : 0)}  " +
+                $"{(pinOk ? "OK" : "FALLA")}  |  I: {ardMA:F1}mA  " +
+                $"{(protoSim != null && protoSim.isOpenCircuit ? "ABIERTO" : ardMA > 25f ? "SOBRECARGA" : "OK")}");
+
+            var sb2 = new StringBuilder();
+            if (arduino != null)
+            {
+                sb2.AppendLine(pinOk ? "Sketch: D2 OK" : $"Sketch: D{arduino.activePinNumber} FALLA");
+                sb2.AppendLine($"Modo: {arduino.activePinMode} | {arduino.activePinState}");
+                sb2.AppendLine($"Vout: {arduino.OutputVoltage:F2}V");
+            }
+            Set(hudCorriente, sb2.Length > 0 ? sb2.ToString().TrimEnd() : "Arduino no iniciado");
+            Set(hudReto, $"RETO 4  —  Tiempo: {gameManager.remainingTime:F0}s");
+            return;
+        }
+
+        if (circuit == null) return;
 
         float  vSource = 0f;
         float  mA      = circuit.totalCurrent * 1000f;

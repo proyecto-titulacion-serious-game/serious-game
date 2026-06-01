@@ -27,6 +27,7 @@ public class ClipboardZoom : MonoBehaviour,
     private Quaternion _restRotation;
     private Vector3    _restScale;
     private bool       _isZoomed;
+    private bool       _isAnimating;
     private Coroutine  _currentAnim;
 
     // ── Hover ─────────────────────────────────────────────────────────────────
@@ -75,14 +76,10 @@ public class ClipboardZoom : MonoBehaviour,
     //  Pointer events (EventSystem + PhysicsRaycaster)
     // ─────────────────────────────────────────────
 
+    // EventSystem + PhysicsRaycaster (New Input System)
     void IPointerClickHandler.OnPointerClick(PointerEventData e) => Toggle();
     void IPointerEnterHandler.OnPointerEnter(PointerEventData e) => SetHover(true);
     void IPointerExitHandler.OnPointerExit(PointerEventData e)   => SetHover(false);
-
-    // Fallback sin EventSystem
-    void OnMouseDown()  => Toggle();
-    void OnMouseEnter() => SetHover(true);
-    void OnMouseExit()  => SetHover(false);
 
     // ─────────────────────────────────────────────
     //  API pública
@@ -102,6 +99,7 @@ public class ClipboardZoom : MonoBehaviour,
 
     void Toggle()
     {
+        if (_isAnimating) return;   // bloquea clicks rapidos durante la animacion
         if (_currentAnim != null) StopCoroutine(_currentAnim);
         _isZoomed    = !_isZoomed;
         _currentAnim = StartCoroutine(AnimateTo(_isZoomed));
@@ -132,6 +130,7 @@ public class ClipboardZoom : MonoBehaviour,
             toScale = _restScale;
         }
 
+        _isAnimating = true;
         float elapsed = 0f;
         while (elapsed < animDuration)
         {
@@ -150,6 +149,7 @@ public class ClipboardZoom : MonoBehaviour,
         transform.rotation   = toRot;
         transform.localScale = toScale;
         _currentAnim = null;
+        _isAnimating = false;
     }
 
     void SetHover(bool on)

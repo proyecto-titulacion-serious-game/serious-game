@@ -5,7 +5,6 @@ using UnityEngine.XR.Interaction.Toolkit.Interactables;
 
 /// Dispensador industrial de cables jumper para la mesa VR del Explorador.
 /// Máquina de estados visual: Idle → Active → Warning → Full.
-/// El tool de editor CableBoxSetupTool asigna todas las referencias visuales.
 [RequireComponent(typeof(Collider))]
 public class CableBoxSpawner : MonoBehaviour
 {
@@ -45,9 +44,6 @@ public class CableBoxSpawner : MonoBehaviour
         (Hex("43AA8B"), Hex("F94144"), Hex("F3722C")),
     };
 
-    // ─────────────────────────────────────────
-    //  Estado
-    // ─────────────────────────────────────────
     enum BoxState { Idle, Active, Warning, Full }
 
     static readonly Color LedGreen = new Color(0f,    0.78f, 0.39f);
@@ -68,9 +64,6 @@ public class CableBoxSpawner : MonoBehaviour
     Vector3   _gateOpenPos;
     Vector3   _gateClosedPos;
 
-    // ─────────────────────────────────────────
-    //  Unity lifecycle
-    // ─────────────────────────────────────────
     void Awake()
     {
         _mpbLed    = new MaterialPropertyBlock();
@@ -100,9 +93,6 @@ public class CableBoxSpawner : MonoBehaviour
         StartCoroutine(PulseLED());
     }
 
-    // ─────────────────────────────────────────
-    //  Interacción
-    // ─────────────────────────────────────────
     void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("RightHand") || other.CompareTag("LeftHand"))
@@ -112,19 +102,14 @@ public class CableBoxSpawner : MonoBehaviour
     void OnHoverEnter() => SetButtonEmission(LedGreen * 3.5f);
     void OnHoverExit()  => UpdateVisuals();
 
-    // ─────────────────────────────────────────
-    //  Spawn
-    // ─────────────────────────────────────────
     public void SpawnCable()
     {
         if (cablePrefab == null) { Debug.LogWarning("[CableBoxSpawner] cablePrefab no asignado."); return; }
         if (_state == BoxState.Full) return;
 
-        // Animación del botón
         if (_buttonCo != null) StopCoroutine(_buttonCo);
         _buttonCo = StartCoroutine(AnimateButtonPress());
 
-        // Instanciar cable
         Vector3 pos   = transform.position + transform.TransformDirection(spawnOffset);
         GameObject go = Instantiate(cablePrefab, pos, Random.rotation);
 
@@ -148,9 +133,6 @@ public class CableBoxSpawner : MonoBehaviour
         if (_state != BoxState.Full && !_gateOpen) StartGateAnim(true);
     }
 
-    // ─────────────────────────────────────────
-    //  Máquina de estados
-    // ─────────────────────────────────────────
     void UpdateState()
     {
         float ratio = maxActiveCables > 0 ? (float)_activeCables / maxActiveCables : 0f;
@@ -174,7 +156,6 @@ public class CableBoxSpawner : MonoBehaviour
         if (counterText != null)
             counterText.text = $"{_activeCables}/{maxActiveCables}";
 
-        // LED principal
         Color led = _state switch
         {
             BoxState.Warning => LedAmber,
@@ -183,14 +164,10 @@ public class CableBoxSpawner : MonoBehaviour
         };
         SetLedEmission(led * 1.5f);
 
-        // Botón
         Color btn = _state == BoxState.Full ? LedRed * 1.5f : LedGreen * 1.2f;
         SetButtonEmission(btn);
     }
 
-    // ─────────────────────────────────────────
-    //  Corrutinas de animación
-    // ─────────────────────────────────────────
     IEnumerator PulseLED()
     {
         float t = 0f;
@@ -235,28 +212,27 @@ public class CableBoxSpawner : MonoBehaviour
     {
         for (float e = 0f; e < dur; e += Time.deltaTime)
         {
+            if (t == null) yield break; // CORRECCIÓN: Previene MissingReferenceException
             float n = Mathf.Clamp01(e / dur);
             float s = n < 0.5f ? 4f * n * n * n : 1f - Mathf.Pow(-2f * n + 2f, 3f) / 2f;
             t.localPosition = Vector3.Lerp(from, to, s);
             yield return null;
         }
-        t.localPosition = to;
+        if (t != null) t.localPosition = to;
     }
 
     static IEnumerator ScaleIn(Transform t, float dur)
     {
         for (float e = 0f; e < dur; e += Time.deltaTime)
         {
+            if (t == null) yield break; // CORRECCIÓN: Salva el sistema si el cable muere antes de terminar de crecer
             float n = Mathf.Clamp01(e / dur);
             t.localScale = Vector3.one * (1f - Mathf.Pow(1f - n, 3f));
             yield return null;
         }
-        t.localScale = Vector3.one;
+        if (t != null) t.localScale = Vector3.one;
     }
 
-    // ─────────────────────────────────────────
-    //  MaterialPropertyBlock helpers
-    // ─────────────────────────────────────────
     void SetLedEmission(Color c)
     {
         if (ledRenderer == null) return;
@@ -275,25 +251,26 @@ public class CableBoxSpawner : MonoBehaviour
 
     static void ApplyCableColors(GameObject go, int idx)
     {
-        var p   = Palettes[idx % Palettes.Length];
-        var mpb = new MaterialPropertyBlock();
+        var p = Palettes[idx % Palettes.Length];
+
         foreach (var r in go.GetComponentsInChildren<Renderer>(true))
         {
-            switch (r.name)
+            var mpb = new MaterialPropertyBlock();   // bloque fresco por renderer — evita herencia de propiedades
+            if (r.name.Contains("Cable_Body"))
             {
-                case "Cable_Body":
-                    mpb.SetColor("_BaseColor",     p.body);
-                    mpb.SetColor("_EmissionColor", p.body * 0.1f);
-                    r.SetPropertyBlock(mpb);
-                    break;
-                case "Probe_A":
-                    mpb.SetColor("_BaseColor", p.probeA);
-                    r.SetPropertyBlock(mpb);
-                    break;
-                case "Probe_B":
-                    mpb.SetColor("_BaseColor", p.probeB);
-                    r.SetPropertyBlock(mpb);
-                    break;
+                mpb.SetColor("_BaseColor",     p.body);
+                mpb.SetColor("_EmissionColor", p.body * 0.1f);
+                r.SetPropertyBlock(mpb);
+            }
+            else if (r.name.Contains("Probe_A"))
+            {
+                mpb.SetColor("_BaseColor", p.probeA);
+                r.SetPropertyBlock(mpb);
+            }
+            else if (r.name.Contains("Probe_B"))
+            {
+                mpb.SetColor("_BaseColor", p.probeB);
+                r.SetPropertyBlock(mpb);
             }
         }
     }
@@ -301,7 +278,6 @@ public class CableBoxSpawner : MonoBehaviour
     static Color Hex(string h) { ColorUtility.TryParseHtmlString("#" + h, out var c); return c; }
 }
 
-// ─────────────────────────────────────────────
 public class CableTracker : MonoBehaviour
 {
     [HideInInspector] public CableBoxSpawner spawner;
