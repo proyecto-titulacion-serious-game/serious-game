@@ -74,11 +74,25 @@ public class ArduinoNetworkBridge : NetworkBehaviour
     [Rpc(RpcSources.All, RpcTargets.All)]
     public void RPC_SubirCodigoArduino(int pin, NetworkBool isOutput, NetworkBool isHigh,float delayMs, NetworkBool isBlink)
     {
-        if (_arduinoCore != null)
-        {
-            Debug.Log($"[NetworkBridge] Sketch recibido — pin D{pin}, output={isOutput}, blink={isBlink}.");
-            _arduinoCore.RecibirCodigoDePC(pin, isOutput, isHigh, delayMs, isBlink);
-        }
+        Debug.Log($"[NetworkBridge] Sketch recibido — pin D{pin}, output={isOutput}, blink={isBlink}.");
+        DeliverSketch(pin, isOutput, isHigh, delayMs, isBlink);
+    }
+
+    /// <summary>
+    /// Aplica un sketch al ArduinoCore de la escena y notifica a los listeners (OnSketchReceived).
+    /// Punto ÚNICO de entrega: lo usa tanto el RPC de este bridge (escena única / IntegratedDemo)
+    /// como GameSession.RPC_SubirCodigoArduino, que es el canal COMPARTIDO del setup asimétrico
+    /// — el bridge es un objeto de escena que solo existe en Explorador.unity y NO se replica al
+    /// Host, así que en escenas separadas el código debe viajar por GameSession (spawneada por el
+    /// Host y replicada a ambos).
+    /// </summary>
+    public static void DeliverSketch(int pin, bool isOutput, bool isHigh, float delayMs, bool isBlink)
+    {
+        // UnityEngine.Object completo: NetworkBehaviour tiene una propiedad de instancia
+        // 'Object' (el NetworkObject de Fusion) que ocultaría a UnityEngine.Object aquí.
+        var core = UnityEngine.Object.FindAnyObjectByType<ArduinoCore>();
+        if (core != null)
+            core.RecibirCodigoDePC(pin, isOutput, isHigh, delayMs, isBlink);
 
         PinMode  mode    = isOutput ? PinMode.OUTPUT : PinMode.INPUT;
         PinState state   = isHigh   ? PinState.HIGH  : PinState.LOW;

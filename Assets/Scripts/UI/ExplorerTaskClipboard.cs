@@ -97,6 +97,11 @@ public class ExplorerTaskClipboard : MonoBehaviour
         GameSession.OnResultadoValidacion              += OnResultadoValidacion;
         ArduinoNetworkBridge.OnSketchReceived          += OnSketchReceived;
         ComponentDeliverySystem.OnComponentSent        += OnComponentSent;
+
+        // Robusto al toggle por zona (ZoneHUDTrigger lo activa/desactiva): al (re)aparecer,
+        // re-sincroniza reto/paso/timer actuales que pudieron cambiar mientras estaba oculto.
+        // Las suscripciones de arriba solo reciben eventos NUEVOS; esto recupera el estado vigente.
+        RefreshAll();
     }
 
     void OnDisable()

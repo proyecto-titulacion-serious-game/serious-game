@@ -84,7 +84,19 @@ public class TechnicianTelemetryUI : MonoBehaviour
 
     void ActualizarTelemetriaGeneral()
     {
-        // Lazy-find una sola vez (no en loop)
+        // Reto 4 asimétrico: si llega telemetría por red (GameSession), usarla. El motor del
+        // sandbox corre en el Explorador y el Host/Técnico no lo tiene localmente.
+        if (GameSession.Instance != null && GameSession.Instance.TelemHasData)
+        {
+            var gs = GameSession.Instance;
+            if (txtVoltage != null) txtVoltage.text = gs.TelemVoltage.ToString("F2") + " V";
+            if (txtCurrent != null) txtCurrent.text = gs.TelemCurrentmA.ToString("F1") + " mA";
+            if (txtPower   != null) txtPower.text   = gs.TelemPowerW.ToString("F3") + " W";
+            AplicarEstadoSistema(gs.TelemStatus);
+            return;
+        }
+
+        // Fallback escena única (IntegratedDemo / offline): leer el simulador local.
         if (circuit == null)
         {
             circuit = FindAnyObjectByType<CircuitSimulator>();
@@ -122,6 +134,13 @@ public class TechnicianTelemetryUI : MonoBehaviour
 
     void ActualizarTelemetriaArduino()
     {
+        // Reto 4 asimétrico: ADC por red (publicado por el Explorador) tiene prioridad.
+        if (GameSession.Instance != null && GameSession.Instance.TelemHasData)
+        {
+            if (txtSensorA0 != null) txtSensorA0.text = $"ADC A0: {GameSession.Instance.TelemAdc}";
+            return;
+        }
+
         // arduinoBridge se asigna por evento — si aún es null mostramos estado
         if (arduinoBridge == null)
         {
@@ -131,5 +150,29 @@ public class TechnicianTelemetryUI : MonoBehaviour
 
         if (txtSensorA0 != null)
             txtSensorA0.text = $"ADC A0: {arduinoBridge.NetworkedAnalogValue}";
+    }
+
+    // ─────────────────────────────────────────────
+    //  Estado del sistema (código → texto/color)
+    // ─────────────────────────────────────────────
+    //  0 = operación segura, 1 = cortocircuito, 2 = circuito abierto.
+    void AplicarEstadoSistema(int code)
+    {
+        if (txtSystemStatus == null) return;
+        switch (code)
+        {
+            case 1:
+                txtSystemStatus.color = Color.red;
+                txtSystemStatus.text  = "¡ALERTA: CORTOCIRCUITO DETECTADO!";
+                break;
+            case 2:
+                txtSystemStatus.color = new Color(1f, 0.5f, 0f);
+                txtSystemStatus.text  = "ESTADO: CIRCUITO ABIERTO (0 mA)";
+                break;
+            default:
+                txtSystemStatus.color = Color.green;
+                txtSystemStatus.text  = "ESTADO: OPERACIÓN SEGURA";
+                break;
+        }
     }
 }

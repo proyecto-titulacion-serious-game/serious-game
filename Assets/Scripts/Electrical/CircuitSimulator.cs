@@ -4,35 +4,9 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-// ─────────────────────────────────────────────
-//  Resultado de la validación sandbox (Reto 4)
-// ─────────────────────────────────────────────
-
-/// <summary>
-/// Resultado del validador dinámico del Reto 4 (sandbox LED blink).
-/// Emitido via <see cref="ProtoboardSimulator.OnSandboxValidated"/>.
-/// </summary>
-public struct SandboxValidationResult
-{
-    /// <summary>True si el circuito cumple TODOS los criterios del objetivo.</summary>
-    public bool   success;
-    /// <summary>Número de pin digital activado por ArduinoCore.</summary>
-    public int    activatedPin;
-    /// <summary>True si ArduinoCore tiene blinkEnabled activo.</summary>
-    public bool   blinkEnabled;
-    /// <summary>True si el DFS encontró un camino desde el pin hasta GND.</summary>
-    public bool   pathFound;
-    /// <summary>True si el camino contiene al menos un LED.</summary>
-    public bool   hasLED;
-    /// <summary>True si el LED está con la polaridad correcta (no invertido).</summary>
-    public bool   ledForwardBiased;
-    /// <summary>True si hay una resistencia >= 100 Ω en el camino.</summary>
-    public bool   hasProtection;
-    /// <summary>Corriente estimada en mA según resistencia total del camino.</summary>
-    public float  currentMa;
-    /// <summary>Mensaje legible para mostrar en el HUD o consola del IDE.</summary>
-    public string message;
-}
+// SandboxValidationResult se movió a su propio archivo (SandboxValidationResult.cs)
+// para que Unity asocie el MonoScript de este archivo con el MonoBehaviour
+// ProtoboardSimulator y no con el struct (evita el error ExtensionOfNativeClass).
 
 /// <summary>
 /// Motor matemático de la protoboard sandbox (Reto 4).
@@ -163,13 +137,69 @@ public class ProtoboardSimulator : MonoBehaviour
     }
 
     // ─────────────────────────────────────────────
+    //  Enganche físico → eléctrico (cables/patas → nodos)
+    // ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Re-engancha cada componente con <see cref="ProtoboardConnector"/> al nodo más cercano
+    /// (slot de protoboard o header de pin del Arduino). Esto es lo que conecta físicamente
+    /// el circuito que arma el Explorador con el grafo eléctrico.
+    /// </summary>
+    void BindConnectors()
+    {
+        var connectors = ProtoboardConnector.Active;
+        if (connectors.Count == 0) return;
+
+        var points = GatherConnectionPoints();
+        for (int i = 0; i < connectors.Count; i++)
+            if (connectors[i] != null) connectors[i].Bind(points);
+    }
+
+    /// <summary>Reúne todos los puntos de conexión: slots de protoboard + headers de pin + GND.</summary>
+    List<ConnectionPoint> GatherConnectionPoints()
+    {
+        var pts = new List<ConnectionPoint>();
+
+        foreach (var slot in todosLosSlots)
+            if (slot != null && slot.assignedNode != null)
+                pts.Add(new ConnectionPoint(slot.transform.position, slot.assignedNode));
+
+        if (_arduino == null)
+            _arduino = GetComponentInChildren<ArduinoCore>(true) ?? FindAnyObjectByType<ArduinoCore>();
+
+        if (_arduino != null)
+        {
+            foreach (var m in _arduino.pinNodeMap)
+                if (m.node != null)
+                    pts.Add(new ConnectionPoint(m.node.transform.position, m.node));
+            if (_arduino.nodoGND != null)
+                pts.Add(new ConnectionPoint(_arduino.nodoGND.transform.position, _arduino.nodoGND));
+        }
+        return pts;
+    }
+
+    /// <summary>
+    /// Todos los componentes del sandbox: hijos del simulador + cualquiera con
+    /// <see cref="ProtoboardConnector"/> (aunque esté spawneado fuera de la jerarquía).
+    /// </summary>
+    List<ElectricalComponent> AllSandboxComponents()
+    {
+        return GetComponentsInChildren<ElectricalComponent>(true)
+            .Concat(ProtoboardConnector.Active.Select(pc => pc != null ? pc.GetComponent<ElectricalComponent>() : null))
+            .Where(c => c != null)
+            .Distinct()
+            .ToList();
+    }
+
+    // ─────────────────────────────────────────────
     //  Núcleo: simulación eléctrica
     // ─────────────────────────────────────────────
     void RunSimulation()
     {
         BuildNodeMap();
+        BindConnectors();
 
-        var allComps = GetComponentsInChildren<ElectricalComponent>(true)
+        var allComps = AllSandboxComponents()
             .Where(c => c.nodeA != null && c.nodeB != null)
             .ToList();
 
@@ -289,13 +319,15 @@ public class ProtoboardSimulator : MonoBehaviour
     /// Evalúa si el circuito cumple el objetivo sandbox:
     /// "Haz parpadear un LED de forma segura desde cualquier pin digital."
     ///
-    /// Algoritmo DFS:
+    /// Algoritmo (grafo dirigido + backtracking):
     ///   1. Verificar que el sketch tiene BLINK + OUTPUT activos en ArduinoCore.
     ///   2. Resolver el nodo del pin activado vía <see cref="ArduinoCore.PinToNode"/>.
-    ///   3. DFS desde ese nodo hasta nodoGND buscando un camino que contenga:
-    ///        a) Al menos un LED con polaridad correcta (ánodo → cátodo).
-    ///        b) Al menos una resistencia >= 100 Ω (protección del LED).
-    ///   4. Verificar que la corriente estimada está en rango seguro (5–20 mA).
+    ///   3. FindPath desde ese nodo hasta nodoGND respetando la dirección del diodo:
+    ///        el LED solo es recorrible ánodo → cátodo, así que un LED invertido
+    ///        bloquea el camino por topología (no por un flag). Si no hay camino
+    ///        dirigido pero sí uno ignorando el diodo → falla = "LED invertido".
+    ///   4. Sobre el camino encontrado: exigir LED + resistencia >= 100 Ω (protección).
+    ///   5. Verificar que la corriente estimada está en rango seguro (≤ maxSafeCurrent).
     /// </summary>
     SandboxValidationResult EvaluateSandbox(ArduinoCore arduino)
     {
@@ -323,8 +355,11 @@ public class ProtoboardSimulator : MonoBehaviour
         if (gndNode == null)
             return Fail(r, "Nodo GND del Arduino no asignado en el Inspector de ArduinoCore.");
 
-        // ── Condición 3: recorrido DFS por el grafo de la protoboard ─────
-        var allComps = GetComponentsInChildren<ElectricalComponent>(true)
+        // ── Condición 3: recorrido por el GRAFO DIRIGIDO de la protoboard ─
+        // El LED se modela como arista dirigida (ánodo → cátodo): el diodo NO
+        // conduce al revés, así que un LED mal orientado bloquea físicamente el
+        // camino — la polaridad se valida por topología, no por un flag.
+        var allComps = AllSandboxComponents()
             .Where(c => c.nodeA != null && c.nodeB != null && !(c is VoltageSource))
             .ToList();
 
@@ -336,28 +371,40 @@ public class ProtoboardSimulator : MonoBehaviour
             return Fail(r, $"Ningún componente conectado al pin D{arduino.activePinNumber} " +
                             "en la protoboard. Conecta un cable desde ese pin.");
 
+        // Búsqueda 1: camino respetando la dirección del diodo (la verdad eléctrica)
         var pathFound = new List<ElectricalComponent>();
-        bool reached = DFS(startNode, gndNode, adj,
-                           new HashSet<ElectricalNode>(),
-                           new List<ElectricalComponent>(),
-                           pathFound);
+        bool reached = FindPath(startNode, gndNode, adj, respectDiode: true,
+                                new HashSet<ElectricalNode>(),
+                                new List<ElectricalComponent>(),
+                                pathFound);
 
         if (!reached)
+        {
+            // Búsqueda 2 (diagnóstico): ¿existe el camino si ignoramos la dirección
+            // del diodo? Si sí y hay un LED, la falla es exactamente la polaridad.
+            var anyPath = new List<ElectricalComponent>();
+            bool physicallyClosed = FindPath(startNode, gndNode, adj, respectDiode: false,
+                                             new HashSet<ElectricalNode>(),
+                                             new List<ElectricalComponent>(),
+                                             anyPath);
+
+            if (physicallyClosed && anyPath.OfType<LED>().Any())
+                return Fail(r, "El LED está con la polaridad invertida. " +
+                                "Gíralo 180° — el ánodo (patita larga) debe apuntar al pin.");
+
             return Fail(r, $"El circuito desde D{arduino.activePinNumber} no llega a GND. " +
-                            "Asegúrate de cerrar el circuito: Pin → LED → Resistencia → GND.");
+                            "Asegúrate de cerrar el circuito: Pin → Resistencia → LED → GND.");
+        }
 
         r.pathFound = true;
 
-        // ── Condición 4: LED con polaridad correcta ───────────────────────
+        // ── Condición 4: LED en el camino (ya garantizado forward por el grafo) ─
         var leds = pathFound.OfType<LED>().ToList();
         if (leds.Count == 0)
             return Fail(r, "No se detectó ningún LED en el camino Pin → GND. " +
                             "Coloca un LED entre el pin y GND.");
 
-        var forwardLED = leds.FirstOrDefault(l => !l.polarityInverted);
-        if (forwardLED == null)
-            return Fail(r, "El LED está con la polaridad invertida. " +
-                            "Gíralo 180° — el ánodo (patita larga) debe apuntar al pin.");
+        var forwardLED = leds[0]; // el grafo dirigido garantiza que se cruzó ánodo→cátodo
 
         r.hasLED           = true;
         r.ledForwardBiased = true;
@@ -393,61 +440,83 @@ public class ProtoboardSimulator : MonoBehaviour
     // ── Utilidades de grafo ──────────────────────────────────────────────
 
     /// <summary>
-    /// Construye lista de adyacencia bidireccional: nodo → [(vecino, componente)].
-    /// Cada componente crea dos aristas (nodeA↔nodeB) para que el DFS pueda
-    /// recorrer el grafo en cualquier dirección.
+    /// Construye la lista de adyacencia del grafo eléctrico con dirección de diodo.
+    /// Cables y resistencias generan dos aristas <c>forward</c> (recorribles en
+    /// ambos sentidos). Un <see cref="LED"/> genera dos aristas, pero solo la que
+    /// va de ánodo → cátodo se marca <c>forward = true</c>; la inversa queda
+    /// <c>forward = false</c> y <see cref="FindPath"/> la descarta cuando
+    /// <c>respectDiode</c> está activo. El ánodo es <c>nodeA</c> salvo que el LED
+    /// tenga <see cref="LED.polarityInverted"/> = true.
     /// </summary>
-    static Dictionary<ElectricalNode, List<(ElectricalNode, ElectricalComponent)>>
+    static Dictionary<ElectricalNode, List<(ElectricalNode node, ElectricalComponent comp, bool forward)>>
         BuildAdjacency(List<ElectricalComponent> comps)
     {
-        var adj = new Dictionary<ElectricalNode, List<(ElectricalNode, ElectricalComponent)>>();
+        var adj = new Dictionary<ElectricalNode, List<(ElectricalNode, ElectricalComponent, bool)>>();
+
+        void AddEdge(ElectricalNode from, ElectricalNode to, ElectricalComponent c, bool forward)
+        {
+            if (!adj.TryGetValue(from, out var list))
+            {
+                list = new List<(ElectricalNode, ElectricalComponent, bool)>();
+                adj[from] = list;
+            }
+            list.Add((to, c, forward));
+        }
 
         foreach (var c in comps)
         {
-            if (!adj.ContainsKey(c.nodeA)) adj[c.nodeA] = new List<(ElectricalNode, ElectricalComponent)>();
-            if (!adj.ContainsKey(c.nodeB)) adj[c.nodeB] = new List<(ElectricalNode, ElectricalComponent)>();
-            adj[c.nodeA].Add((c.nodeB, c));
-            adj[c.nodeB].Add((c.nodeA, c));
+            if (c is LED led)
+            {
+                // ánodo = nodeA salvo polaridad invertida; el diodo solo conduce ánodo→cátodo
+                bool anodeIsA = !led.polarityInverted;
+                AddEdge(c.nodeA, c.nodeB, c,  anodeIsA);  // A→B forward solo si A es ánodo
+                AddEdge(c.nodeB, c.nodeA, c, !anodeIsA);  // B→A forward solo si B es ánodo
+            }
+            else
+            {
+                AddEdge(c.nodeA, c.nodeB, c, true);
+                AddEdge(c.nodeB, c.nodeA, c, true);
+            }
         }
         return adj;
     }
 
     /// <summary>
-    /// DFS con backtracking. Busca la primera ruta desde <paramref name="current"/>
-    /// hasta <paramref name="target"/> que contenga LED (no invertido) + Resistencia >= 100 Ω.
-    /// Si la encuentra, la escribe en <paramref name="bestPath"/> y devuelve true.
-    /// Si existe una ruta hasta GND pero sin los componentes requeridos, devuelve false
-    /// con bestPath vacío para que EvaluateSandbox dé retroalimentación específica.
+    /// DFS con backtracking sobre el grafo dirigido. Encuentra la primera ruta
+    /// desde <paramref name="current"/> hasta <paramref name="target"/> y la escribe
+    /// en <paramref name="outPath"/>.
+    ///
+    /// Cuando <paramref name="respectDiode"/> es true, las aristas de LED marcadas
+    /// <c>forward = false</c> se omiten — modela que un diodo no deja pasar corriente
+    /// en sentido inverso. Con <paramref name="respectDiode"/> = false el grafo se
+    /// recorre como no dirigido (usado para diagnosticar "LED invertido").
     /// </summary>
-    static bool DFS(
+    static bool FindPath(
         ElectricalNode current,
         ElectricalNode target,
-        Dictionary<ElectricalNode, List<(ElectricalNode n, ElectricalComponent c)>> adj,
+        Dictionary<ElectricalNode, List<(ElectricalNode node, ElectricalComponent comp, bool forward)>> adj,
+        bool respectDiode,
         HashSet<ElectricalNode> visited,
         List<ElectricalComponent> pathSoFar,
-        List<ElectricalComponent> bestPath)
+        List<ElectricalComponent> outPath)
     {
         if (current == target)
         {
-            bool hasForwardLED = pathSoFar.OfType<LED>().Any(l => !l.polarityInverted);
-            bool hasProtection = pathSoFar.OfType<Resistor>().Any(res => res.GetResistance() >= 100f);
-            if (hasForwardLED && hasProtection)
-            {
-                bestPath.AddRange(pathSoFar);
-                return true;
-            }
-            return false;
+            outPath.AddRange(pathSoFar);
+            return true;
         }
 
         visited.Add(current);
 
         if (adj.TryGetValue(current, out var neighbors))
         {
-            foreach (var (next, comp) in neighbors)
+            foreach (var (next, comp, forward) in neighbors)
             {
                 if (visited.Contains(next)) continue;
+                if (respectDiode && comp is LED && !forward) continue; // diodo bloquea sentido inverso
+
                 pathSoFar.Add(comp);
-                if (DFS(next, target, adj, visited, pathSoFar, bestPath))
+                if (FindPath(next, target, adj, respectDiode, visited, pathSoFar, outPath))
                     return true;
                 pathSoFar.RemoveAt(pathSoFar.Count - 1);
             }

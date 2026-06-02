@@ -117,8 +117,8 @@ Transform:
   m_GameObject: {fileID: 4387960826470985729}
   serializedVersion: 2
   m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: 0, z: 0.04}
-  m_LocalScale: {x: 0.008, y: 0.055, z: 0.008}
+  m_LocalPosition: {x: 0, y: 0, z: 0.075}
+  m_LocalScale: {x: 0.008, y: 0.075, z: 0.008}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 8911614907471221326}
@@ -207,7 +207,7 @@ Transform:
   m_GameObject: {fileID: 5820556481874909060}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0.08}
+  m_LocalPosition: {x: 0, y: 0, z: 0.15}
   m_LocalScale: {x: 0.018, y: 0.018, z: 0.018}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -283,7 +283,7 @@ GameObject:
   - component: {fileID: 3278741463818546593}
   - component: {fileID: 807267118208541340}
   - component: {fileID: 1579953754275834408}
-  - component: {fileID: 1867177500493849896}
+  - component: {fileID: 2548681992246960899}
   m_Layer: 0
   m_Name: Cable_Jumper
   m_TagString: Untagged
@@ -356,9 +356,9 @@ CapsuleCollider:
   m_Enabled: 1
   serializedVersion: 2
   m_Radius: 0.007
-  m_Height: 0.12
+  m_Height: 0.16
   m_Direction: 2
-  m_Center: {x: 0, y: 0, z: 0.04}
+  m_Center: {x: 0, y: 0, z: 0.075}
 --- !u!114 &807267118208541340
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -613,7 +613,7 @@ LineRenderer:
   m_UseWorldSpace: 1
   m_Loop: 0
   m_ApplyActiveColorSpace: 1
---- !u!114 &1867177500493849896
+--- !u!114 &2548681992246960899
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -622,7 +622,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 7069378363292162049}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6dd5ae15f6609af48baf78f6dd36d987, type: 3}
+  m_Script: {fileID: 11500000, guid: da9aaf14a4771e248b12014194c9df85, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRCableRenderer
   origin: {fileID: 5343252011681190526}

@@ -246,7 +246,20 @@ public class ArduinoIDEUI : MonoBehaviour
             isHigh   = action == "HIGH";
         }
 
-        // ── Enviar por red (Fusion) ──────────────────────────────────────
+        // ── Enviar por el canal de red COMPARTIDO (GameSession) ──────────
+        // GameSession la spawnea el Host y se replica al Explorador, así que su RPC cruza
+        // entre escenas distintas. El bridge de escena solo existe en Explorador.unity y no
+        // llega al Técnico, por eso se prioriza GameSession en el setup asimétrico.
+        if (GameSession.Instance != null)
+        {
+            GameSession.Instance.RPC_SubirCodigoArduino(pinNum, isOutput, isHigh, blink ? blinkMs : 0f, blink);
+            SetStatus($"Codigo subido — Pin D{pinNum}.", Color.green);
+            if (!_freeTextMode)
+                Log($"<color=#00FF7F>> Upload OK — Pin D{pinNum}. No errors.</color>");
+            return;
+        }
+
+        // ── Bridge directo (escena única / IntegratedDemo, sin GameSession) ──
         var nb = bridge != null ? bridge : FindAnyObjectByType<ArduinoNetworkBridge>();
         if (nb != null)
         {

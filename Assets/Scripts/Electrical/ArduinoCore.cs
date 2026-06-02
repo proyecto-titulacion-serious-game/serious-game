@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using UnityEngine;
 
 /// <summary>
@@ -78,8 +79,8 @@ public class ArduinoCore : MonoBehaviour
     // ─────────────────────────────────────────────
     //  Estado interno
     // ─────────────────────────────────────────────
-    private bool             _blinkState = false;
-    private CircuitSimulator _sim;
+    private bool                _blinkState = false;
+    private ProtoboardSimulator _protoSim;   // motor del Reto 4 (sandbox)
 
     // ─────────────────────────────────────────────
     //  Unity
@@ -87,6 +88,7 @@ public class ArduinoCore : MonoBehaviour
     void OnEnable()
     {
         if (nodoGND != null) nodoGND.voltage = 0f;
+        AutoDiscoverPinNodes();
         StartCoroutine(ArduinoLoop());
     }
 
@@ -128,8 +130,7 @@ public class ArduinoCore : MonoBehaviour
         ElectricalNode target = PinToNode(pin);
         if (target != null) target.voltage = _outputVoltage;
 
-        if (_sim == null) _sim = FindAnyObjectByType<CircuitSimulator>();
-        _sim?.MarkDirty();
+        MarkProtoboardDirty();
     }
 
     public bool DigitalRead(int pin)
@@ -179,11 +180,23 @@ public class ArduinoCore : MonoBehaviour
             blinkMs:   Mathf.RoundToInt(delayMs)
         );
 
-        if (_sim == null) _sim = FindAnyObjectByType<CircuitSimulator>();
-        _sim?.MarkDirty();
+        MarkProtoboardDirty();
     }
 
     public int GetAnalogReadA0() => _adcValue;
+
+    /// <summary>
+    /// Marca sucio el motor del Reto 4 (<see cref="ProtoboardSimulator"/>) para que
+    /// recalcule MNA + validación tras un cambio del Arduino. Antes se notificaba al
+    /// CircuitSimulator (motor Retos 1-3, null en Reto 4), por lo que subir el sketch
+    /// no refrescaba el circuito del Explorador.
+    /// </summary>
+    void MarkProtoboardDirty()
+    {
+        if (_protoSim == null)
+            _protoSim = FindAnyObjectByType<ProtoboardSimulator>();
+        _protoSim?.MarkDirty();
+    }
 
     // ─────────────────────────────────────────────
     //  Utilidades
@@ -191,7 +204,8 @@ public class ArduinoCore : MonoBehaviour
 
     /// <summary>
     /// Resuelve un número de pin a su <see cref="ElectricalNode"/> en el modelo 3D.
-    /// Prioridad: 1) <see cref="pinNodeMap"/> explícito, 2) pin 13 → nodoP13, 3) null.
+    /// Prioridad: 1) <see cref="pinNodeMap"/> explícito (pin físico real),
+    /// 2) pin 13 → nodoP13, 3) proxy a nodoP13 si no hay mapa (modo educativo simple).
     /// </summary>
     public ElectricalNode PinToNode(int pin)
     {
@@ -201,10 +215,41 @@ public class ArduinoCore : MonoBehaviour
         // Compatibilidad legacy: pin 13 siempre disponible via nodoP13
         if (pin == 13) return nodoP13;
 
-        // Sin mapa configurado: cualquier pin activo usa nodoP13 como proxy educativo
-        if (pinNodeMap.Count == 0 && pin == activePinNumber) return nodoP13;
+        // Sin mapa por pin: cualquier pin cae a nodoP13 (proxy). El número de pin
+        // es cosmético hasta que se generen los nodos por pin (ArduinoPinNodeGenerator).
+        if (pinNodeMap.Count == 0) return nodoP13;
 
         return null;
+    }
+
+    /// <summary>
+    /// Si <see cref="pinNodeMap"/> está vacío, descubre nodos hijos nombrados
+    /// "Nodo_D7", "Nodo_P7", "Pin_7" o "Nodo_7" y los registra, de modo que cada pin
+    /// tenga su propio <see cref="ElectricalNode"/>. Hace que el número de pin del
+    /// Técnico sea físicamente significativo en el modo creativo sin requerir el
+    /// Inspector (lo llena el editor tool, pero esto cubre el caso sin tool).
+    /// </summary>
+    void AutoDiscoverPinNodes()
+    {
+        if (pinNodeMap.Count > 0) return;
+
+        foreach (var node in GetComponentsInChildren<ElectricalNode>(true))
+        {
+            int pin = ParsePinFromName(node.name);
+            if (pin >= 2 && pin <= 13) RegisterPinNode(pin, node);
+        }
+
+        if (pinNodeMap.Count > 0)
+            Debug.Log($"[ArduinoCore] Auto-descubiertos {pinNodeMap.Count} nodos de pin " +
+                      "desde el modelo 3D (modo creativo: pin físico real activo).");
+    }
+
+    /// <summary>Extrae el número de pin de un nombre tipo "Nodo_D7"/"Nodo_P13"/"Pin_2". −1 si no aplica.</summary>
+    static int ParsePinFromName(string name)
+    {
+        var m = Regex.Match(name, @"(?:Nodo_[DP]|Pin_?|Nodo_D)(\d{1,2})\b", RegexOptions.IgnoreCase);
+        if (m.Success && int.TryParse(m.Groups[1].Value, out int p)) return p;
+        return -1;
     }
 
     /// <summary>

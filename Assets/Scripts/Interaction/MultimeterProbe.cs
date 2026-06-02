@@ -127,6 +127,18 @@ public class MultimeterProbe : MonoBehaviour
     void OnTriggerEnter(Collider other)
     {
         if (multimeter == null) return;
+
+        // Protoboard sandbox (Reto 4): medir tocando un slot de la protoboard.
+        // El ProtoboardSimulator asigna el ElectricalNode por railId a cada slot.
+        var slot = other.GetComponent<ProtoboardSlot>()
+                ?? other.GetComponentInParent<ProtoboardSlot>();
+        if (slot != null && slot.assignedNode != null)
+        {
+            Assign(slot.assignedNode);
+            return;
+        }
+
+        // Nodos clásicos (Retos 1-3): discos NodeInteractable.
         var ni = other.GetComponent<NodeInteractable>()
               ?? other.GetComponentInParent<NodeInteractable>();
         if (ni?.nodeTarget == null) return;

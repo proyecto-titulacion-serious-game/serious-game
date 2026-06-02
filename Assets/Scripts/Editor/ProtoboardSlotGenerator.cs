@@ -60,8 +60,7 @@ public class ProtoboardSlotGenerator : EditorWindow
         // ─── Terminal strips ────────────────────────────────
         for (int fila = 0; fila < _filas; fila++)
         {
-            string railId = $"ROW_{(char)('A' + fila)}";
-
+        string railId = $"ROW_{(char)('A' + fila)}";
             for (int col = 0; col < _columnas; col++)
             {
                 var slot = CreateSlot(root.transform, railId, fila, col);

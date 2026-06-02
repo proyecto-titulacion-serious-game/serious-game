@@ -116,6 +116,8 @@ public class CableBoxSpawner : MonoBehaviour
         ApplyCableColors(go, _paletteIdx);
         _paletteIdx = (_paletteIdx + 1) % Palettes.Length;
 
+        MakeCableElectrical(go);
+
         go.transform.localScale = Vector3.zero;
         StartCoroutine(ScaleIn(go.transform, 0.12f));
 
@@ -247,6 +249,28 @@ public class CableBoxSpawner : MonoBehaviour
         _mpbButton.SetColor("_BaseColor",     c * 0.5f);
         _mpbButton.SetColor("_EmissionColor", c);
         buttonRenderer.SetPropertyBlock(_mpbButton);
+    }
+
+    /// <summary>
+    /// Convierte el cable spawneado en un jumper eléctrico real: <see cref="Jumper"/>
+    /// (≈0 Ω) + <see cref="ProtoboardConnector"/> con las patas enganchadas a las puntas
+    /// físicas Probe_A / Probe_B. Así, al meter cada punta en un slot/pin, el cable conecta
+    /// esos nodos en el grafo del Reto 4. Si el prefab ya los trae, no se duplican.
+    /// </summary>
+    static void MakeCableElectrical(GameObject go)
+    {
+        if (go.GetComponent<Jumper>() != null) return;   // ya configurado en el prefab
+
+        go.AddComponent<Jumper>();                        // satisface RequireComponent del conector
+        var connector = go.AddComponent<ProtoboardConnector>();
+
+        Transform a = null, b = null;
+        foreach (var t in go.GetComponentsInChildren<Transform>(true))
+        {
+            if (a == null && t.name.Contains("Probe_A")) a = t;
+            if (b == null && t.name.Contains("Probe_B")) b = t;
+        }
+        connector.SetLeads(a, b);   // si null, EnsureLeads ya creó patas en los extremos
     }
 
     static void ApplyCableColors(GameObject go, int idx)

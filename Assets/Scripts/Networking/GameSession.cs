@@ -205,4 +205,54 @@ public void RPC_EnviarComponente(int tipo, float valor)
         OnResultadoValidacion?.Invoke(paso, codigoMotivo);
         Debug.Log($"[GameSession] Resultado validación: {(paso ? "✅" : "❌")} cod={codigoMotivo}");
     }
+
+    // ─────────────────────────────────────────────
+    //  Reto 4: código Arduino (canal COMPARTIDO)
+    // ─────────────────────────────────────────────
+
+    /// <summary>
+    /// El Técnico sube un sketch. Viaja por GameSession (objeto spawneado por el Host y
+    /// replicado al Explorador) en lugar del ArduinoNetworkBridge de escena, que no se
+    /// replica entre escenas distintas. El Explorador, que tiene el ArduinoCore real, lo
+    /// aplica vía ArduinoNetworkBridge.DeliverSketch (que además dispara OnSketchReceived,
+    /// por lo que telemetría/validación/monitor siguen reaccionando sin cambios).
+    /// </summary>
+    [Rpc(RpcSources.All, RpcTargets.All)]
+    public void RPC_SubirCodigoArduino(int pin, NetworkBool isOutput, NetworkBool isHigh, float delayMs, NetworkBool isBlink)
+    {
+        ArduinoNetworkBridge.DeliverSketch(pin, isOutput, isHigh, delayMs, isBlink);
+        Debug.Log($"[GameSession] Sketch RPC — pin D{pin}, output={isOutput}, blink={isBlink}.");
+    }
+
+    // ─────────────────────────────────────────────
+    //  Reto 4: telemetría Explorador → Técnico
+    // ─────────────────────────────────────────────
+    //  La simulación del sandbox (ProtoboardSimulator + ArduinoCore) corre en el Explorador.
+    //  El Técnico (Host) NO tiene esos motores localmente, así que recibe la telemetría por
+    //  RPC. Lo publica TelemetryPublisher desde el Explorador a ~5 Hz.
+
+    /// <summary>Último voltaje de fuente del sandbox (V).</summary>
+    public float TelemVoltage   { get; private set; }
+    /// <summary>Última corriente total (mA).</summary>
+    public float TelemCurrentmA { get; private set; }
+    /// <summary>Última potencia total (W).</summary>
+    public float TelemPowerW    { get; private set; }
+    /// <summary>Última lectura ADC del A0 (0–1023).</summary>
+    public int   TelemAdc       { get; private set; }
+    /// <summary>0 = operación segura, 1 = cortocircuito, 2 = circuito abierto.</summary>
+    public int   TelemStatus    { get; private set; }
+    /// <summary>True tras recibir al menos una muestra por red (distingue "sin datos" de 0 V real).</summary>
+    public bool  TelemHasData   { get; private set; }
+
+    /// <summary>El Explorador publica la telemetría del sandbox; llega a todos (incl. Host/Técnico).</summary>
+    [Rpc(RpcSources.All, RpcTargets.All)]
+    public void RPC_PublicarTelemetria(float voltage, float currentmA, float powerW, int adc, int status)
+    {
+        TelemVoltage   = voltage;
+        TelemCurrentmA = currentmA;
+        TelemPowerW    = powerW;
+        TelemAdc       = adc;
+        TelemStatus    = status;
+        TelemHasData   = true;
+    }
 }
