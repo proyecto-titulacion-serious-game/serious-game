@@ -38,9 +38,12 @@ public class ArduinoCore : MonoBehaviour
     public PinMode  activePinMode   = PinMode.OUTPUT;
     [Tooltip("Estado del pin activo en modo OUTPUT.")]
     public PinState activePinState  = PinState.LOW;
-    [Tooltip("Activar blink (alterna HIGH/LOW cada blinkInterval ms).")]
+    [Tooltip("Activar blink (alterna HIGH/LOW según los intervalos).")]
     public bool     blinkEnabled    = false;
-    [SerializeField] private int _blinkIntervalMs = 500;
+    
+    // CORRECCIÓN: Tiempos de encendido y apagado separados para asimetría
+    [SerializeField] private int _blinkIntervalOnMs  = 500;
+    [SerializeField] private int _blinkIntervalOffMs = 500;
 
     [Header("Mapa de pines digitales (sandbox — Reto 4)")]
     [Tooltip("Mapea número de pin → ElectricalNode en el modelo 3D del Arduino. " +
@@ -61,8 +64,10 @@ public class ArduinoCore : MonoBehaviour
     // ─────────────────────────────────────────────
     public int   AdcValue       => _adcValue;
     public float OutputVoltage  => _outputVoltage;
-    /// <summary>Intervalo de blink en ms (lectura pública para telemetría y validación).</summary>
-    public int   blinkIntervalMs => _blinkIntervalMs;
+    
+    // CORRECCIÓN: Lectura pública de los tiempos para el CircuitSimulator
+    public int   blinkIntervalOnMs  => _blinkIntervalOnMs;
+    public int   blinkIntervalOffMs => _blinkIntervalOffMs;
 
     // ─────────────────────────────────────────────
     //  Aliases de compatibilidad (API antigua)
@@ -79,7 +84,7 @@ public class ArduinoCore : MonoBehaviour
     // ─────────────────────────────────────────────
     //  Estado interno
     // ─────────────────────────────────────────────
-    private bool                _blinkState = false;
+    private bool                _blinkState = true; // Inicia en HIGH
     private ProtoboardSimulator _protoSim;   // motor del Reto 4 (sandbox)
 
     // ─────────────────────────────────────────────
@@ -110,7 +115,14 @@ public class ArduinoCore : MonoBehaviour
                 DigitalWrite(activePinNumber, state);
             }
 
-            float waitSec = blinkEnabled ? _blinkIntervalMs / 1000f : 0.05f;
+            // CORRECCIÓN: Esperar el tiempo exacto dependiendo de si el LED está ON u OFF
+            float waitSec = 0.05f;
+            if (blinkEnabled)
+            {
+                waitSec = _blinkState ? (_blinkIntervalOnMs / 1000f) : (_blinkIntervalOffMs / 1000f);
+                if (waitSec <= 0f) waitSec = 0.05f; // Seguro anti-congelamiento
+            }
+            
             yield return new WaitForSeconds(waitSec);
 
             if (blinkEnabled) _blinkState = !_blinkState;
@@ -150,16 +162,20 @@ public class ArduinoCore : MonoBehaviour
     //  API para ArduinoIDEUI / esquemas modernos
     // ─────────────────────────────────────────────
 
-    public void LoadSketch(int pinNumber, PinMode mode, PinState state, bool blink, int blinkMs)
+    // CORRECCIÓN: La carga de Sketch ahora recibe ambos tiempos
+    public void LoadSketch(int pinNumber, PinMode mode, PinState state, bool blink, int blinkOnMs, int blinkOffMs)
     {
-        activePinNumber  = pinNumber;
-        activePinMode    = mode;
-        activePinState   = state;
-        blinkEnabled     = blink;
-        _blinkIntervalMs = blinkMs;
+        activePinNumber      = pinNumber;
+        activePinMode        = mode;
+        activePinState       = state;
+        blinkEnabled         = blink;
+        _blinkIntervalOnMs   = blinkOnMs;
+        _blinkIntervalOffMs  = blinkOffMs;
+        
+        if (blink) _blinkState = true; // Reiniciar estado al cargar código
 
         Debug.Log($"[ArduinoCore] Sketch cargado: pin={pinNumber}, mode={mode}, " +
-                  $"state={state}, blink={blink} ({blinkMs}ms)");
+                  $"state={state}, blink={blink} (ON:{blinkOnMs}ms, OFF:{blinkOffMs}ms)");
     }
 
     // ─────────────────────────────────────────────
@@ -170,14 +186,16 @@ public class ArduinoCore : MonoBehaviour
     /// Recibe el sketch del Técnico por red.
     /// <paramref name="pin"/> es el número de pin D# seleccionado en el ArduinoIDEUI.
     /// </summary>
-    public void RecibirCodigoDePC(int pin, bool isOutput, bool isHigh, float delayMs, bool isBlink)
+    // CORRECCIÓN: Firma de 6 argumentos
+    public void RecibirCodigoDePC(int pin, bool isOutput, bool isHigh, int delayOnMs, int delayOffMs, bool isBlink)
     {
         LoadSketch(
-            pinNumber: pin,
-            mode:      isOutput ? PinMode.OUTPUT : PinMode.INPUT,
-            state:     isHigh   ? PinState.HIGH  : PinState.LOW,
-            blink:     isBlink,
-            blinkMs:   Mathf.RoundToInt(delayMs)
+            pinNumber:  pin,
+            mode:       isOutput ? PinMode.OUTPUT : PinMode.INPUT,
+            state:      isHigh   ? PinState.HIGH  : PinState.LOW,
+            blink:      isBlink,
+            blinkOnMs:  delayOnMs,
+            blinkOffMs: delayOffMs
         );
 
         MarkProtoboardDirty();

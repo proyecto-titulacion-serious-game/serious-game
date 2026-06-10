@@ -12,7 +12,6 @@ Material:
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
-  - _EMISSION
   - _NORMALMAP
   m_InvalidKeywords: []
   m_LightmapFlags: 4
@@ -56,7 +55,7 @@ Material:
     - _BumpScale: 1
     - _Metallic: 0
     - _OcclusionStrength: 1
-    - _Smoothness: 0.6
+    - _Smoothness: 0.25
     - _Surface: 0
     - _WorkflowMode: 1
     - _ZWrite: 1
@@ -65,7 +64,7 @@ Material:
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
---- !u!114 &2032257583596598245
+--- !u!114 &938117933668281302
 MonoBehaviour:
   m_ObjectHideFlags: 11
   m_CorrespondingSourceObject: {fileID: 0}

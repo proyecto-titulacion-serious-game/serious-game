@@ -21,6 +21,18 @@ using UnityEngine.XR.Interaction.Toolkit.UI;
 [DefaultExecutionOrder(200)]
 public class XRBootManager : MonoBehaviour
 {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    static void TrimLogStackTraces()
+    {
+        // En el Editor cada Debug.Log normal captura un stack trace completo (visible en la consola).
+        // Hacerlo varias veces por frame (calibración de altura, multímetro, avisos de OVR canvas)
+        // genera GC y micro-stutters → "a veces baja el FPS". Quitamos la traza solo de los Log
+        // normales; Warning y Error la conservan para no perder diagnóstico.
+        Application.SetStackTraceLogType(LogType.Log, StackTraceLogType.None);
+    }
+#endif
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Boot()
     {

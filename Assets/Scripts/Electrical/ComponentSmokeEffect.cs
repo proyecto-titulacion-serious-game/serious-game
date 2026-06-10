@@ -47,6 +47,9 @@ public class ComponentSmokeEffect : MonoBehaviour
     private VoltageSource       _source;
     private ArduinoPin          _pin;
     private ElectricalComponent _ec;
+    // Motor del Reto 4 (sandbox). Retos 1-3 usan CircuitManager; el Reto 4 usa ProtoboardSimulator,
+    // que dispara su propio OnCircuitChanged. Sin esto, los componentes del sandbox no humeaban.
+    private ProtoboardSimulator _protoSim;
 
     private float    _smokeBaseRate;
     private bool     _smokingActive;
@@ -65,6 +68,8 @@ public class ComponentSmokeEffect : MonoBehaviour
 
         if (circuitManager == null)
             circuitManager = GetComponentInParent<CircuitManager>(true);
+        if (_protoSim == null)
+            _protoSim = GetComponentInParent<ProtoboardSimulator>(true) ?? FindAnyObjectByType<ProtoboardSimulator>();
 
         if (smokeEffect == null) smokeEffect = CreateSmokeParticles();
         if (sparkEffect == null) sparkEffect = CreateSparkParticles();
@@ -81,10 +86,15 @@ public class ComponentSmokeEffect : MonoBehaviour
             sparkEffect.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
     }
 
-    void OnEnable()  => CircuitManager.OnCircuitChanged += Refresh;
+    void OnEnable()
+    {
+        CircuitManager.OnCircuitChanged      += Refresh;
+        ProtoboardSimulator.OnCircuitChanged += Refresh;
+    }
     void OnDisable()
     {
-        CircuitManager.OnCircuitChanged -= Refresh;
+        CircuitManager.OnCircuitChanged      -= Refresh;
+        ProtoboardSimulator.OnCircuitChanged -= Refresh;
         StopAll();
     }
 
@@ -93,10 +103,11 @@ public class ComponentSmokeEffect : MonoBehaviour
     // ─────────────────────────────────────────────
     void Refresh()
     {
-        if (circuitManager == null) return;
+        // Funciona con cualquiera de los dos motores (CircuitManager o ProtoboardSimulator).
+        if (circuitManager == null && _protoSim == null && _ec == null) return;
 
-        // Sin corriente real (switch apagado) → nada
-        bool circuitLive = Mathf.Abs(circuitManager.totalCurrent) > 0.0005f;
+        // Sin corriente real (switch apagado / circuito abierto) → nada
+        bool circuitLive = TotalCurrentAbs() > 0.0005f;
 
         bool damaged    = circuitLive && IsDamaged();
         bool overloaded = circuitLive && IsOverloaded();
@@ -152,10 +163,22 @@ public class ComponentSmokeEffect : MonoBehaviour
         if (_resistor  != null && _resistor.isOverloaded)           return true;
         if (_led       != null && _led.state == LEDState.Overload)  return true;
         if (_capacitor != null && _capacitor.polarityInverted &&
-            Mathf.Abs(circuitManager.totalCurrent) > 0.05f)         return true;
+            TotalCurrentAbs() > 0.05f)                              return true;
         if (_pin       != null && _pin.hasFault &&
-            Mathf.Abs(circuitManager.totalCurrent) > 0.05f)         return true;
+            TotalCurrentAbs() > 0.05f)                              return true;
         return false;
+    }
+
+    /// <summary>
+    /// Corriente |A| del circuito según el motor presente: CircuitManager (retos 1-3) o
+    /// ProtoboardSimulator (Reto 4, en mA → A). Fallback a la corriente propia del componente.
+    /// </summary>
+    float TotalCurrentAbs()
+    {
+        if (circuitManager != null) return Mathf.Abs(circuitManager.totalCurrent);
+        if (_protoSim      != null) return Mathf.Abs(_protoSim.totalCurrentmA) * 0.001f;
+        if (_ec            != null) return Mathf.Abs(_ec.current);
+        return 0f;
     }
 
     // ─────────────────────────────────────────────
@@ -163,6 +186,9 @@ public class ComponentSmokeEffect : MonoBehaviour
     // ─────────────────────────────────────────────
     IEnumerator FadeInSmoke()
     {
+        // Guard: si el ParticleSystem no existe (no se autocreó / prefab sin PS), no crashear.
+        if (smokeEffect == null) { _smokingActive = false; yield break; }
+
         // withChildren:true activa los sub-efectos de prefabs CFXR (múltiples PS hijos)
         smokeEffect.Play(true);
 

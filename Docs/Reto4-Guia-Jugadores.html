@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Reto 4 — Guía para Jugadores</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm; }
+  * { box-sizing: border-box; }
+  body{
+    font-family: "Segoe UI", Arial, sans-serif;
+    color:#1a1a2e; line-height:1.45; font-size:11pt; margin:0;
+  }
+  h1{ font-size:23pt; color:#0b3d91; margin:0 0 2px; }
+  h2{ font-size:15pt; color:#0b3d91; border-bottom:2px solid #0b3d91;
+      padding-bottom:3px; margin:22px 0 8px; }
+  h3{ font-size:12.5pt; color:#13315c; margin:14px 0 4px; }
+  p{ margin:5px 0; }
+  ul,ol{ margin:5px 0 5px 0; padding-left:22px; }
+  li{ margin:2px 0; }
+  code{ font-family:"Consolas","Courier New",monospace; background:#eef1f7;
+        padding:1px 4px; border-radius:3px; font-size:10pt; }
+  pre{ font-family:"Consolas","Courier New",monospace; background:#0f1220; color:#d6e2ff;
+       padding:10px 12px; border-radius:6px; font-size:9.5pt; line-height:1.35;
+       overflow:auto; white-space:pre-wrap; }
+  table{ border-collapse:collapse; width:100%; margin:8px 0; font-size:10pt; }
+  th,td{ border:1px solid #c4ccda; padding:5px 8px; text-align:left; vertical-align:top; }
+  th{ background:#0b3d91; color:#fff; }
+  tr:nth-child(even) td{ background:#f3f6fc; }
+  .sub{ color:#5b6577; font-size:10.5pt; margin-top:0; }
+  .lead{ background:#eef4ff; border-left:4px solid #0b3d91; padding:8px 12px; border-radius:0 6px 6px 0; margin:8px 0; }
+  .tecnico{ color:#0b6e4f; font-weight:bold; }
+  .explorador{ color:#8a4b00; font-weight:bold; }
+  .ok{ color:#0a7d3c; font-weight:bold; }
+  .err{ color:#c01818; font-weight:bold; }
+  .warn{ color:#b06a00; font-weight:bold; }
+  .pill{ display:inline-block; padding:1px 8px; border-radius:10px; font-size:9pt; font-weight:bold; color:#fff; }
+  .pill.t{ background:#0b6e4f; } .pill.e{ background:#8a4b00; }
+  .pagebreak{ page-break-before:always; }
+  .small{ font-size:9.5pt; color:#5b6577; }
+  .diagram{ background:#0f1220; color:#7CFC9A; font-family:"Consolas",monospace;
+            padding:12px; border-radius:6px; font-size:9.5pt; white-space:pre; }
+</style>
+</head>
+<body>
+
+<h1>Reto 4 — Guía para Jugadores</h1>
+<p class="sub">Arduino + Protoboard · Guía para principiantes que nunca han jugado un juego cooperativo
+asimétrico ni han programado un Arduino. Lee la sección de tu rol; al final hay un glosario.</p>
+
+<h2>1 · ¿De qué trata el Reto 4?</h2>
+<p>El equipo (2 personas) debe <b>hacer parpadear un LED de forma segura</b> usando un Arduino.
+A diferencia de los retos 1–3, aquí <b>no hay una falla que reparar</b>: ustedes
+<b>diseñan el circuito desde cero</b>.</p>
+<p>Es un juego <b>cooperativo asimétrico</b>: cada quien ve y hace cosas distintas, y
+<b>solo ganan si se comunican por voz</b>.</p>
+
+<table>
+<tr><th>Rol</th><th>Dónde juega</th><th>Qué ve</th><th>Qué hace</th></tr>
+<tr><td><span class="pill t">TÉCNICO</span></td><td>PC (monitor + teclado)</td>
+    <td>El IDE de Arduino y el monitor de telemetría (2D)</td>
+    <td><b>Programa</b> el Arduino: escribe el código y lo "sube"</td></tr>
+<tr><td><span class="pill e">EXPLORADOR</span></td><td>Visor VR (Meta Quest 3)</td>
+    <td>El Arduino y la protoboard físicos en 3D</td>
+    <td><b>Conecta</b> los cables: arma el circuito con sus manos</td></tr>
+</table>
+
+<p>La idea: el <span class="tecnico">Técnico</span> programa un pin y se lo dice por voz al
+<span class="explorador">Explorador</span>, que conecta físicamente el LED a <b>ese mismo pin</b>.
+Cuando el circuito está bien armado y el código sube correctamente, el reto se valida solo.</p>
+
+<div class="lead"><b>Meta de victoria:</b> el LED <b>parpadea</b> (BLINK), está conectado con una
+<b>resistencia en serie</b> (≥100&nbsp;Ω, recomendado 330&nbsp;Ω) y el circuito <b>cierra a GND</b>.</div>
+
+<h2>2 · Conceptos básicos (para los dos)</h2>
+<ul>
+  <li><b>Arduino:</b> una placa programable. Tiene <b>pines</b> numerados por donde sale o entra electricidad.</li>
+  <li><b>Pin digital:</b> conector con 2 estados: <b>HIGH (5&nbsp;V = encendido)</b> o
+      <b>LOW (0&nbsp;V = apagado)</b>. Los pines digitales útiles van del <b>D2 al D13</b>.</li>
+  <li><b>LED:</b> una lucecita con polaridad: pata <b>larga = + (ánodo)</b>, pata <b>corta = − (cátodo)</b>.
+      Al revés no enciende.</li>
+  <li><b>Resistencia:</b> limita la corriente para que el LED <b>no se queme</b>. Aquí: <b>330&nbsp;Ω</b>.</li>
+  <li><b>GND (tierra):</b> el "retorno" de la electricidad. Todo circuito debe <b>cerrarse en GND</b>.</li>
+  <li><b>Protoboard:</b> la tabla con agujeritos donde el Explorador clava los cables y componentes.</li>
+  <li><b>Parpadear (BLINK):</b> encender y apagar el LED en bucle (HIGH → esperar → LOW → esperar).</li>
+</ul>
+
+<p>El recorrido de la electricidad debe ser:</p>
+<div class="diagram">[ Pin D? ] --> [ LED + ]  [ LED - ] --> [ Resistencia 330&#937; ] --> [ GND ]</div>
+
+<div class="pagebreak"></div>
+<h2>3 · Rol <span class="tecnico">TÉCNICO</span> (PC) — Programar el Arduino</h2>
+<p>Tu trabajo es <b>escribir el programa (sketch)</b> que hace parpadear el LED y elegir <b>en qué pin</b>.</p>
+
+<h3>3.1 · Abrir el IDE</h3>
+<p>En tu pantalla, haz <b>clic en el monitor del PC del Arduino</b>. Se abre el <b>IDE</b> (editor de código),
+en <b>modo Código Libre</b> (escribes el texto directamente).</p>
+
+<h3>3.2 · ¿Cómo elijo y "veo" el número de pin?</h3>
+<ul>
+  <li>El Arduino tiene los pines <b>rotulados en la placa</b>: <code>D2, D3, … D13</code>. El
+      <span class="explorador">Explorador los ve impresos</span> junto a cada agujero en su vista VR.</li>
+  <li><b>Tú eliges cualquiera entre D2 y D13</b> (evita D0 y D1, que son el puerto Serial RX/TX).</li>
+  <li><b>El número que escribas en el código es el pin que se activa.</b> Si escribes <code>7</code>,
+      se enciende el pin <b>D7</b>.</li>
+  <li class="err">Clave de la cooperación: dile por voz al Explorador qué pin elegiste
+      ("¡conéctalo al D7!"), porque él debe enchufar el LED en <b>ese mismo pin físico</b>.</li>
+</ul>
+
+<h3>3.3 · Los comandos de Arduino (qué hace cada uno)</h3>
+<table>
+<tr><th>Comando</th><th>Qué hace</th><th>Ejemplo</th></tr>
+<tr><td><code>pinMode(pin, OUTPUT)</code></td><td>Configura el pin como <b>salida</b> (manda corriente, p. ej. a un LED). Va en <code>setup()</code>.</td><td><code>pinMode(7, OUTPUT);</code></td></tr>
+<tr><td><code>pinMode(pin, INPUT)</code></td><td>Configura el pin como <b>entrada</b> (leer un sensor). <i>No sirve para encender un LED.</i></td><td><code>pinMode(7, INPUT);</code></td></tr>
+<tr><td><code>digitalWrite(pin, HIGH)</code></td><td>Pin a <b>5&nbsp;V → enciende</b> el LED.</td><td><code>digitalWrite(7, HIGH);</code></td></tr>
+<tr><td><code>digitalWrite(pin, LOW)</code></td><td>Pin a <b>0&nbsp;V → apaga</b> el LED.</td><td><code>digitalWrite(7, LOW);</code></td></tr>
+<tr><td><code>delay(ms)</code></td><td><b>Espera</b> milisegundos (1000&nbsp;ms = 1&nbsp;s). Hace visible el parpadeo.</td><td><code>delay(500);</code></td></tr>
+<tr><td><code>analogRead(A0)</code></td><td>Lee el <b>sensor analógico</b> A0: devuelve un número <b>0–1023</b> (0&nbsp;V→0, 5&nbsp;V→1023).</td><td><code>analogRead(A0);</code></td></tr>
+</table>
+<p class="small"><b>OUTPUT</b>=salida · <b>INPUT</b>=entrada · <b>HIGH</b>=encendido (5&nbsp;V) ·
+<b>LOW</b>=apagado (0&nbsp;V). <code>setup()</code> corre <b>una vez</b>; <code>loop()</code> se repite <b>para siempre</b>.</p>
+
+<h3>3.4 · El sketch completo (cópialo y cambia el pin)</h3>
+<pre>void setup() {
+  pinMode(7, OUTPUT);     // D7 será una salida   (cambia 7 por tu pin)
+}
+
+void loop() {
+  digitalWrite(7, HIGH);  // enciende el LED
+  delay(500);             // espera 0.5 s
+  digitalWrite(7, LOW);   // apaga el LED
+  delay(500);             // espera 0.5 s
+}                         // ...y vuelve a empezar (parpadeo)</pre>
+<p class="small">El editor te da una plantilla con <code>__</code>: solo <b>reemplaza los <code>__</code> por tu número de pin</b>.
+El compilador es tolerante (acepta <code>D7</code>, <code>Pin 7</code>, <code>LED_BUILTIN</code>=13, mayúsculas mezcladas
+y hasta puntos y comas faltantes) y te avisa si algo está mal.</p>
+
+<h3>3.5 · Compilar y subir</h3>
+<ol>
+  <li>Pulsa <b>COMPILAR / SUBIR</b> (o <code>Ctrl+Enter</code>).</li>
+  <li>La <b>consola</b> muestra el resultado:
+    <ul>
+      <li><span class="ok">OK&nbsp;&nbsp;Pin D7 | OUTPUT | BLINK ON=500ms / OFF=500ms</span> → todo bien.</li>
+      <li><span class="warn">Avisos amarillos</span> = consejos (ej. "te falta el BLINK", "el pin está en INPUT").</li>
+      <li><span class="err">Rojo</span> = error (corrige y vuelve a subir).</li>
+    </ul></li>
+  <li><code>Ctrl+L</code> limpia la consola. El sketch <b>se guarda solo</b> entre sesiones.</li>
+</ol>
+
+<h3>3.6 · El monitor de telemetría (HUD) — qué significa cada dato</h3>
+<table>
+<tr><th>Indicador</th><th>Qué significa</th><th>Al ganar</th></tr>
+<tr><td><b>V</b> (Voltaje)</td><td>Voltaje en el pin activo.</td><td>~5&nbsp;V cuando el pin está en HIGH</td></tr>
+<tr><td><b>I</b> (Corriente)</td><td>Corriente que circula, en <b>mA</b> (miliamperios).</td><td>Pequeña y estable (no 0, no enorme)</td></tr>
+<tr><td><b>P</b> (Potencia)</td><td>Potencia consumida, en <b>W</b> (vatios).</td><td>Bajo (LED + resistencia)</td></tr>
+<tr><td><b>ADC A0</b></td><td>Lectura del sensor analógico A0: <b>0–1023</b>.</td><td>Cambia según el voltaje que mide</td></tr>
+<tr><td><b class="ok">ESTADO 🟢</b></td><td><b>OPERACIÓN SEGURA</b> — corriente normal.</td><td><b>Este es el objetivo</b></td></tr>
+<tr><td><b class="err">ESTADO 🔴</b></td><td><b>CORTOCIRCUITO</b> — falta la resistencia o hay un corto (peligroso).</td><td>Pide revisar la resistencia</td></tr>
+<tr><td><b class="warn">ESTADO 🟠</b></td><td><b>CIRCUITO ABIERTO (0 mA)</b> — cable suelto o sin cerrar.</td><td>Pide cerrar a GND</td></tr>
+</table>
+<div class="lead">Si ves <span class="err">CORTOCIRCUITO</span>: casi siempre falta la <b>resistencia en serie</b>.
+Si ves <span class="warn">CIRCUITO ABIERTO (0&nbsp;mA)</span>: un cable está suelto o el circuito no llega a <b>GND</b>.</div>
+
+<div class="pagebreak"></div>
+<h2>4 · Rol <span class="explorador">EXPLORADOR</span> (VR) — Armar el circuito</h2>
+<p>Tu trabajo es <b>conectar físicamente</b> el LED al Arduino, con tus manos, en el pin que te diga el Técnico.</p>
+
+<h3>4.1 · Pasos</h3>
+<ol>
+  <li><b>Escucha al Técnico:</b> te dirá qué pin programó (ej. "D7").</li>
+  <li><b>Mira el Arduino</b> en 3D: los pines están <b>rotulados</b> (<code>D2</code>…<code>D13</code>). Ubica <b>el pin que te dijeron</b>.</li>
+  <li><b>Toma el LED</b> de la bandeja VR (con el gatillo/grip del mando).</li>
+  <li>Conecta la <b>pata larga (+, ánodo)</b> del LED al <b>pin indicado</b>.</li>
+  <li>Toma la <b>resistencia de 330&nbsp;Ω</b> y conéctala <b>en serie</b> después del LED (LED − → resistencia).</li>
+  <li>Cierra el circuito llevando el otro extremo de la resistencia a <b>GND</b>.</li>
+  <li>Pulsa el <b>botón físico de validación</b> (el botón VR del puesto).</li>
+</ol>
+
+<h3>4.2 · Orden correcto de conexión</h3>
+<div class="diagram">[ Pin D7 ] --> [ LED + ]   [ LED - ] --> [ Resistencia 330&#937; ] --> [ GND ]</div>
+
+<h3>4.3 · Cómo saber si va bien</h3>
+<ul>
+  <li>Si el Técnico ve <span class="err">CORTOCIRCUITO</span> → te falta la <b>resistencia</b> o está mal puesta.</li>
+  <li>Si ve <span class="warn">CIRCUITO ABIERTO (0&nbsp;mA)</span> → un <b>cable está suelto</b> o no cerraste a <b>GND</b>.</li>
+  <li>Con todo bien y el código subido, al pulsar validar: <span class="ok">botón VR verde + vibración (háptica) = ¡RETO COMPLETADO!</span></li>
+</ul>
+
+<h2>5 · Trabajo en equipo (lo más importante)</h2>
+<ol>
+  <li><span class="tecnico">Técnico</span> elige el pin y programa el parpadeo → <b>dice el pin por voz</b>.</li>
+  <li><span class="explorador">Explorador</span> conecta el LED a <b>ese pin</b>, con resistencia, cerrando a GND.</li>
+  <li><span class="tecnico">Técnico</span> vigila el HUD y avisa: "veo cortocircuito, revisa la resistencia" / "veo 0&nbsp;mA, revisa el cable a GND".</li>
+  <li><span class="explorador">Explorador</span> corrige y pulsa validar.</li>
+</ol>
+<div class="lead">El validador detecta el éxito <b>automáticamente</b> sin importar qué pin usaron, siempre que:
+el sketch suba con <b>BLINK</b>, haya <b>LED + resistencia ≥100&nbsp;Ω</b> y el circuito <b>cierre a GND</b>.</div>
+
+<h2>6 · Glosario rápido</h2>
+<table>
+<tr><th>Término</th><th>Significado</th></tr>
+<tr><td>Sketch</td><td>El programa que corre en el Arduino.</td></tr>
+<tr><td>Compilar</td><td>Revisar que el código no tenga errores antes de subirlo.</td></tr>
+<tr><td>Subir</td><td>Enviar el programa al Arduino para que lo ejecute.</td></tr>
+<tr><td>HIGH / LOW</td><td>5&nbsp;V (encendido) / 0&nbsp;V (apagado).</td></tr>
+<tr><td>OUTPUT / INPUT</td><td>Pin de salida / de entrada.</td></tr>
+<tr><td>mA · W · V</td><td>Miliamperio (corriente) · Vatio (potencia) · Voltio (voltaje).</td></tr>
+<tr><td>ADC</td><td>Convertidor analógico→digital: convierte 0–5&nbsp;V en un número 0–1023.</td></tr>
+<tr><td>GND</td><td>Tierra, el retorno del circuito.</td></tr>
+<tr><td>Protoboard</td><td>Tablero de prototipos donde se clavan los componentes.</td></tr>
+<tr><td>Háptica</td><td>La vibración del mando VR.</td></tr>
+</table>
+
+<h2>7 · Checklist antes de validar</h2>
+<table>
+<tr><th><span class="tecnico">TÉCNICO</span></th><th><span class="explorador">EXPLORADOR</span></th></tr>
+<tr><td>
+  ☐ Elegí un pin entre <b>D2 y D13</b> y se lo dije al Explorador.<br>
+  ☐ El sketch tiene <code>pinMode(pin, OUTPUT)</code> y el patrón <b>BLINK</b>.<br>
+  ☐ La consola dice <b>OK</b> (subido sin errores).<br>
+  ☐ El HUD muestra <b>OPERACIÓN SEGURA</b>.
+</td><td>
+  ☐ El LED está en el <b>pin correcto</b>, con la <b>pata larga al +</b>.<br>
+  ☐ Hay una <b>resistencia ≥100&nbsp;Ω (330&nbsp;Ω)</b> en serie.<br>
+  ☐ El circuito <b>cierra a GND</b>.<br>
+  ☐ Presioné el <b>botón físico de validación</b>.
+</td></tr>
+</table>
+
+<p class="small" style="margin-top:18px; border-top:1px solid #c4ccda; padding-top:6px;">
+Proyecto TITA · Serious Game de circuitos eléctricos (Reto 4) · Guía para jugadores.</p>
+
+</body>
+</html>

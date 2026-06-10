@@ -7,16 +7,17 @@ using UnityEngine;
 /// Herramienta de editor para generar la cuadrícula magnética de ProtoboardSlots.
 /// Tools > TITA > Generador de Slots de Protoboard
 ///
-/// Genera una cuadrícula de N filas × M columnas con los railIds correctos
-/// (A1-A30 para filas de terminal, VCC y GND para rieles de alimentación).
-/// Añade automáticamente los slots a ProtoboardSimulator.todosLosSlots.
+/// CORRECCIÓN ARQUITECTÓNICA: 
+/// Divide físicamente las filas en Bloque Izquierdo (L) y Bloque Derecho (R) 
+/// para respetar el canal central (DIP gap) y evitar cortocircuitos lógicos en el motor MNA.
 /// </summary>
 public class ProtoboardSlotGenerator : EditorWindow
 {
     private ProtoboardSimulator _target;
     private int    _filas       = 10;
-    private int    _columnas    = 5;
-    private float  _spacing     = 0.02f;   // 2 cm entre slots
+    private int    _columnas    = 5;       // Columnas por lado (5 izq, 5 der)
+    private float  _spacing     = 0.02f;   // Distancia entre huecos
+    private float  _centerGap   = 0.01f;   // Distancia extra del canal central aislante
     private bool   _addPowerRails = true;
     private GameObject _slotPrefab;
 
@@ -25,14 +26,15 @@ public class ProtoboardSlotGenerator : EditorWindow
 
     void OnGUI()
     {
-        GUILayout.Label("Generador de Cuadrícula de Protoboard", EditorStyles.boldLabel);
+        GUILayout.Label("Generador de Cuadrícula de Protoboard (Corregido)", EditorStyles.boldLabel);
         EditorGUILayout.Space();
 
         _target       = (ProtoboardSimulator)EditorGUILayout.ObjectField("ProtoboardSimulator", _target, typeof(ProtoboardSimulator), true);
         _slotPrefab   = (GameObject)EditorGUILayout.ObjectField("Prefab de Slot (opcional)", _slotPrefab, typeof(GameObject), false);
-        _filas        = EditorGUILayout.IntSlider("Filas (terminal strips)", _filas, 2, 30);
-        _columnas     = EditorGUILayout.IntSlider("Columnas por fila", _columnas, 2, 10);
+        _filas        = EditorGUILayout.IntSlider("Filas", _filas, 2, 60);
+        _columnas     = EditorGUILayout.IntSlider("Columnas por bloque", _columnas, 2, 10);
         _spacing      = EditorGUILayout.Slider("Separación (m)", _spacing, 0.005f, 0.05f);
+        _centerGap    = EditorGUILayout.Slider("Canal Central (m)", _centerGap, 0.005f, 0.05f);
         _addPowerRails = EditorGUILayout.Toggle("Añadir rieles VCC / GND", _addPowerRails);
 
         EditorGUILayout.Space();
@@ -48,7 +50,6 @@ public class ProtoboardSlotGenerator : EditorWindow
 
     void GenerateGrid()
     {
-        // Limpiar slots anteriores
         var oldRoot = _target.transform.Find("[ProtoboardSlots]");
         if (oldRoot != null) DestroyImmediate(oldRoot.gameObject);
 
@@ -57,14 +58,27 @@ public class ProtoboardSlotGenerator : EditorWindow
 
         var nuevosSlots = new List<ProtoboardSlot>();
 
-        // ─── Terminal strips ────────────────────────────────
-        for (int fila = 0; fila < _filas; fila++)
+        // ─── Terminal strips (Dividido por el DIP Gap central) ──────────────
+        for (int fila = 1; fila <= _filas; fila++)
         {
-        string railId = $"ROW_{(char)('A' + fila)}";
+            // BLOQUE IZQUIERDO (Aislado eléctricamente)
+            string railIdLeft = $"ROW_{fila}_L";
             for (int col = 0; col < _columnas; col++)
             {
-                var slot = CreateSlot(root.transform, railId, fila, col);
+                var slot = CreateSlot(root.transform, railIdLeft, fila, col);
                 slot.transform.localPosition = new Vector3(col * _spacing, 0f, -fila * _spacing);
+                nuevosSlots.Add(slot);
+            }
+
+            // BLOQUE DERECHO (Aislado eléctricamente)
+            string railIdRight = $"ROW_{fila}_R";
+            for (int col = 0; col < _columnas; col++)
+            {
+                var slot = CreateSlot(root.transform, railIdRight, fila, col + _columnas);
+                
+                // Calculamos el desplazamiento en X saltando el bloque izquierdo y el canal central
+                float offsetX = (_columnas * _spacing) + _centerGap;
+                slot.transform.localPosition = new Vector3(offsetX + (col * _spacing), 0f, -fila * _spacing);
                 nuevosSlots.Add(slot);
             }
         }
@@ -74,25 +88,32 @@ public class ProtoboardSlotGenerator : EditorWindow
         {
             float vccZ = -(_filas + 1) * _spacing;
             float gndZ = -(_filas + 2) * _spacing;
-
-            for (int col = 0; col < _columnas; col++)
+            
+            // Calculamos el ancho total para centrar los rieles de poder
+            int totalCols = _columnas * 2;
+            
+            for (int col = 0; col < totalCols; col++)
             {
+                float posX = col < _columnas 
+                    ? col * _spacing 
+                    : (_columnas * _spacing) + _centerGap + ((col - _columnas) * _spacing);
+
                 var vcc = CreateSlot(root.transform, "VCC", 99, col);
-                vcc.transform.localPosition = new Vector3(col * _spacing, 0f, vccZ);
+                vcc.transform.localPosition = new Vector3(posX, 0f, vccZ);
                 nuevosSlots.Add(vcc);
 
                 var gnd = CreateSlot(root.transform, "GND", 100, col);
-                gnd.transform.localPosition = new Vector3(col * _spacing, 0f, gndZ);
+                gnd.transform.localPosition = new Vector3(posX, 0f, gndZ);
                 nuevosSlots.Add(gnd);
             }
         }
 
-        // Asignar al CircuitSimulator
+        // Asignar al ProtoboardSimulator
         Undo.RecordObject(_target, "Generar slots protoboard");
         _target.todosLosSlots = nuevosSlots;
         EditorUtility.SetDirty(_target);
 
-        Debug.Log($"[ProtoboardSlotGenerator] {nuevosSlots.Count} slots generados en '{_target.gameObject.name}'.");
+        Debug.Log($"[ProtoboardSlotGenerator] {nuevosSlots.Count} slots generados en '{_target.gameObject.name}'. Aislamiento central aplicado.");
     }
 
     ProtoboardSlot CreateSlot(Transform parent, string railId, int row, int col)

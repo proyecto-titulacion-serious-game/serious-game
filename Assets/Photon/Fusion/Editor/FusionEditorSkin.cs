@@ -11,7 +11,7 @@ namespace Fusion.Editor {
   [CreateAssetMenu(menuName = "Fusion/Editor Skin")]
 #endif
   partial class FusionEditorSkin : ScriptableObject {
-    
+
     private static FusionEditorSkin s_Instance;
 
     public static FusionEditorSkin instance {
@@ -24,9 +24,9 @@ namespace Fusion.Editor {
         return s_Instance;
       }
     }
-    
+
     public GUISkin Skin;
-    
+
     public static GUIStyle HelpButtonStyle              => instance.Skin.GetStyle(EditorGUIUtility.isProSkin ? "dark-help-button" : "light-help-button");
     public static GUIStyle InlineBoxFullWidthStyle      => instance.Skin.GetStyle("inline-box-full-width");
     public static GUIStyle InlineBoxFullWidthScopeStyle => instance.Skin.GetStyle("inline-box-full-width-scope");
@@ -36,18 +36,18 @@ namespace Fusion.Editor {
     public static GUIStyle RichLabelStyle               => instance.Skin.GetStyle(EditorGUIUtility.isProSkin ? "dark-rich-label" : "light-rich-label");
     public static GUIStyle InlineSelectorStyle          => instance.Skin.GetStyle("inline-selector");
     public static GUIStyle OutlineBoxStyle              => instance.Skin.GetStyle("outline-box");
-    
-    
+
+
     public static Color    HelpInlineBoxColor          => EditorGUIUtility.isProSkin ? new Color(0.317f, 0.337f, 0.352f, 1.000f) : new Color(0.686f, 0.776f, 0.859f);
     public static Color    WarningInlineBoxColor       => EditorGUIUtility.isProSkin ? new Color(0.36f, 0.33f, 0.22f, 1.00f) : new Color(0.98f, 0.94f, 0.80f, 0.90f);
     public static Color    ErrorInlineBoxColor         => EditorGUIUtility.isProSkin ? new Color(0.40f, 0.15f, 0.10f, 1.00f) : new Color(0.9f, 0.70f, 0.70f, 1.00f);
-    
+
     public static readonly LazyAsset<Texture2D> InfoIcon      = LazyAsset.Create(() => FindTextureOrThrow(EditorGUIUtility.isProSkin ? "d_console.infoicon.sml@2x" : "console.infoicon.sml@2x"));
     public static readonly LazyAsset<Texture2D> WarningIcon   = LazyAsset.Create(() => FindTextureOrThrow(EditorGUIUtility.isProSkin ? "d_console.warnicon.sml@2x" : "console.warnicon.sml@2x"));
     public static readonly LazyAsset<Texture2D> ErrorIcon     = LazyAsset.Create(() => FindTextureOrThrow(EditorGUIUtility.isProSkin ? "d_console.erroricon.sml@2x" : "console.erroricon.sml@2x"));
     public static readonly LazyAsset<Texture2D> LoadStateIcon = LazyAsset.Create(() => FindTextureOrThrow("blendSampler"));
     public static readonly LazyAsset<Texture2D> RefreshIcon   = LazyAsset.Create(() => FindTextureOrThrow(EditorGUIUtility.isProSkin ? "d_Refresh@2x" : "Refresh@2x"));
-    
+
     public static readonly LazyGUIStyle OverlayLabelStyle = LazyGUIStyle.Create(_ => {
       var result = new GUIStyle(EditorStyles.miniLabel);
       result.alignment        = TextAnchor.MiddleRight;
@@ -55,7 +55,7 @@ namespace Fusion.Editor {
       result.normal.textColor = EditorGUIUtility.isProSkin ? new Color(255f / 255f, 221 / 255f, 0 / 255f, 1f) : Color.blue;
       return result;
     });
-    
+
     public static readonly LazyGUIStyle RawDataStyle = LazyGUIStyle.Create(_ => new GUIStyle(EditorStyles.textArea) { wordWrap = true });
     public static readonly LazyGUIStyle DropDownListStyle = LazyGUIStyle.Create(_ => FindBuiltInStyleOrThrow("DropDownButton"));
 
@@ -64,12 +64,12 @@ namespace Fusion.Editor {
       if (texture) {
         return texture;
       }
-      
+
       var icon = EditorGUIUtility.IconContent(id);
       if (icon?.image) {
         return (Texture2D)icon.image;
       }
-      
+
       throw new ArgumentOutOfRangeException($"Could not find texture with id {id}");
     }
 

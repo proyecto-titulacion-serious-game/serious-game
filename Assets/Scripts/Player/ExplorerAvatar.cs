@@ -19,7 +19,6 @@ using UnityEngine;
 ///   - Oculta el mesh de la cabeza del robot para que no tape el visor VR.
 ///   - Las manos las proveen LeftHandQuestVisual / RightHandQuestVisual del XR rig.
 /// </summary>
-[RequireComponent(typeof(CharacterController))]
 public class ExplorerAvatar : MonoBehaviour
 {
     [Header("Referencias")]
@@ -38,6 +37,15 @@ public class ExplorerAvatar : MonoBehaviour
     public string headBoneName = "head";
     [Tooltip("Oculta la cabeza del robot en VR. Desactivar en modo PC para debug.")]
     public bool hideHeadInVR = true;
+
+    [Header("Anclaje del cuerpo a la cámara")]
+    [Tooltip("Ancla el avatar por el hueso de la cabeza (que la cabeza quede justo bajo la cámara).\n" +
+             "Evita que el cuerpo aparezca DELANTE de la vista cuando el modelo tiene la cabeza\n" +
+             "adelantada respecto a su raíz. Si no hay hueso de cabeza, ancla por la raíz.")]
+    public bool anchorByHead = true;
+    [Tooltip("Ajuste fino de la posición del cuerpo respecto a la cámara, en metros y en el marco\n" +
+             "del avatar. Z negativo = empuja el cuerpo más hacia atrás (fuera de la vista).")]
+    public Vector3 bodyOffset = Vector3.zero;
 
     [Header("Rotación del cuerpo")]
     [Range(1f, 30f)]
@@ -144,7 +152,27 @@ public class ExplorerAvatar : MonoBehaviour
             ? Mathf.Lerp(_smoothedY, targetY, ySmoothing * Time.deltaTime)
             : targetY;
 
-        avatarRoot.position = new Vector3(camPos.x, _smoothedY, camPos.z);
+        float offX = 0f, offZ = 0f;
+
+        // Anclar por la cabeza: que el hueso de la cabeza quede en la XZ de la cámara.
+        // Compensa que el modelo tenga la cabeza adelantada respecto a su raíz, evitando
+        // que el cuerpo se vea delante de la cámara. No hace nada si la cabeza ya está
+        // sobre la raíz (offset ≈ 0).
+        if (anchorByHead && _headBone != null)
+        {
+            offX += avatarRoot.position.x - _headBone.position.x;
+            offZ += avatarRoot.position.z - _headBone.position.z;
+        }
+
+        // Ajuste fino opcional, relativo a la orientación del avatar.
+        if (bodyOffset != Vector3.zero)
+        {
+            Vector3 w = avatarRoot.TransformVector(bodyOffset);
+            offX += w.x;
+            offZ += w.z;
+        }
+
+        avatarRoot.position = new Vector3(camPos.x + offX, _smoothedY, camPos.z + offZ);
     }
 
     // ─────────────────────────────────────────────────────────
@@ -153,6 +181,7 @@ public class ExplorerAvatar : MonoBehaviour
 
     void RotateAvatarWithMovement()
     {
+        if (_cc == null) return;
         // El cuerpo SOLO gira cuando el jugador se mueve físicamente.
         // Girar la cabeza/cámara sin desplazarse no afecta la orientación del torso.
         Vector3 hVel = new Vector3(_cc.velocity.x, 0f, _cc.velocity.z);
@@ -169,7 +198,7 @@ public class ExplorerAvatar : MonoBehaviour
 
     void UpdateAnimation()
     {
-        if (avatarAnimator == null) return;
+        if (avatarAnimator == null || _cc == null) return;
 
         float speed = new Vector3(_cc.velocity.x, 0f, _cc.velocity.z).magnitude;
 

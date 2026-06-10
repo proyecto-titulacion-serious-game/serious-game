@@ -142,18 +142,32 @@ public class CircuitSimulator : MonoBehaviour
         sourceVoltage = 9f;
         ComponentSlot slotR   = todosLosSlots.Find(s => s.targetElectricalValue == 850f);
 
-        // Buscar LED pre-instalado en cualquier slot del circuito
+        // Buscar el LED del reto. Primero en los slots; si no, como pieza FIJA del circuito
+        // (el LED del Reto 1 normalmente está soldado al circuito, no se instala en un slot).
         LED           led     = null;
         foreach (var slot in todosLosSlots)
         {
             if (slot?.InstalledObject == null) continue;
             if (slot.InstalledObject.TryGetComponent<LED>(out var l)) { led = l; break; }
         }
+        if (led == null) led = BuscarLEDActivoEnEscena();
 
-        // Sin resistencia instalada → LED ya fue apagado en el paso de reset de ForceSimulate
-        if (slotR?.InstalledObject == null) return;
-        if (!slotR.InstalledObject.TryGetComponent<Resistor>(out var res)) return;
-        if (res.nodeA == null || res.nodeB == null) return;
+        // Buscar el RESISTOR del reto. Primero en el slot 850; si no, como pieza FIJA del circuito
+        // (en esta escena el resistor del Reto 1 NO está en un slot → hay que buscarlo en escena,
+        // si no nunca se leía su valor real y se quedaba en 10Ω).
+        Resistor res = null;
+        if (slotR?.InstalledObject != null) slotR.InstalledObject.TryGetComponent<Resistor>(out res);
+        if (res == null) res = BuscarResistorActivoEnEscena();
+
+        // Sin resistor con nodos → apagar el LED y salir.
+        if (res == null || res.nodeA == null || res.nodeB == null)
+        {
+            if (led != null && led.nodeA != null && led.nodeB != null)
+            {
+                led.nodeA.voltage = 0f; led.nodeB.voltage = 0f; led.Calculate();
+            }
+            return;
+        }
 
         // ── Circuito serie correcto: V_src → Resistor → LED → GND ──────────
         float rRes   = Mathf.Max(res.resistance, 0.001f);
@@ -184,6 +198,36 @@ public class CircuitSimulator : MonoBehaviour
             led.nodeB.voltage = 0f;
             led.Calculate();
         }
+    }
+
+    /// <summary>
+    /// LED activo del reto que NO está instalado en un slot (pieza fija/soldada del circuito).
+    /// Solo considera LEDs activos (el de la zona del reto actual) y con nodos asignados.
+    /// </summary>
+    private LED BuscarLEDActivoEnEscena()
+    {
+        foreach (var l in FindObjectsByType<LED>(FindObjectsInactive.Exclude))
+        {
+            if (l == null) continue;
+            if (l.nodeA == null || l.nodeB == null) continue;
+            return l;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Resistor activo del reto cableado al circuito (con nodos). Ignora el resistor de la bandeja
+    /// (que no tiene nodos asignados). Permite leer el valor real aunque no esté en un slot.
+    /// </summary>
+    private Resistor BuscarResistorActivoEnEscena()
+    {
+        foreach (var r in FindObjectsByType<Resistor>(FindObjectsInactive.Exclude))
+        {
+            if (r == null) continue;
+            if (r.nodeA == null || r.nodeB == null) continue;
+            return r;
+        }
+        return null;
     }
 
     private void SimularReto2_Parallel()
@@ -285,6 +329,19 @@ public class CircuitSimulator : MonoBehaviour
                 if (led.isOn && led.state == LEDState.Correct) ledsEncendidos++;
             }
         }
+
+        // Si no hay LEDs en slots (Retos 1-2: los LEDs son piezas FIJAS del circuito), contar los
+        // LEDs CABLEADOS activos de la escena. Se ignoran los sin nodos (el de la bandeja de envío).
+        if (ledsTotales == 0)
+        {
+            foreach (var led in FindObjectsByType<LED>(FindObjectsInactive.Exclude))
+            {
+                if (led == null || led.nodeA == null || led.nodeB == null) continue;
+                ledsTotales++;
+                if (led.isOn && led.state == LEDState.Correct) ledsEncendidos++;
+            }
+        }
+
         return ledsTotales > 0 && ledsEncendidos == ledsTotales;
     }
 }

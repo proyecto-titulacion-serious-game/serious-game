@@ -60,20 +60,7 @@ public static class Reto4BocetoImporter
             panel = go.AddComponent<Reto4GoalBlueprint>();
             Undo.RegisterCreatedObjectUndo(go, "Crear Reto4_GoalBlueprint");
 
-            // Colocar ~1.5 m frente a la cámara del Explorador si existe
-            var cam = FindExplorerCamera();
-            if (cam != null)
-            {
-                Vector3 fwd = cam.transform.forward; fwd.y = 0f; fwd.Normalize();
-                go.transform.position = cam.transform.position + fwd * 1.5f + Vector3.up * 0.0f;
-                go.transform.rotation = Quaternion.LookRotation(fwd, Vector3.up);
-            }
-            else
-            {
-                go.transform.position = new Vector3(0f, 1.5f, 1.5f);
-                Debug.LogWarning("[Reto4Boceto] No se encontró ExplorerCamera. " +
-                    "El panel se colocó en (0,1.5,1.5) — muévelo frente al Explorador.", go);
-            }
+            ColocarPanel(go);
         }
 
         panel.bocetoSprite = sprite;
@@ -90,10 +77,48 @@ public static class Reto4BocetoImporter
                   "El panel se construye al entrar en Play (Toggle con tecla B o botón VR).", panel);
     }
 
+    /// <summary>
+    /// Ancla el panel en un punto visible y estable para el Explorador. Prioridad:
+    /// 1) sobre la protoboard (zona de trabajo del Reto 4) — el lugar natural para mirar el boceto;
+    /// 2) frente a la cámara del Explorador; 3) fallback fijo (0,1.5,1.5).
+    /// Orienta el panel para que mire hacia el jugador (cámara) o, si no hay, hacia -Z.
+    /// </summary>
+    private static void ColocarPanel(GameObject go)
+    {
+        var cam   = FindExplorerCamera();
+        var proto = Object.FindAnyObjectByType<ProtoboardSimulator>();
+
+        Vector3 pos;
+        if (proto != null)
+        {
+            // Sobre la protoboard, elevado y un poco atrás para no tapar los slots.
+            pos = proto.transform.position + Vector3.up * 0.45f - Vector3.forward * 0.18f;
+        }
+        else if (cam != null)
+        {
+            Vector3 fwd = cam.transform.forward; fwd.y = 0f; fwd.Normalize();
+            pos = cam.transform.position + fwd * 1.2f + Vector3.up * 0.1f;
+        }
+        else
+        {
+            pos = new Vector3(0f, 1.5f, 1.5f);
+            Debug.LogWarning("[Reto4Boceto] Sin ProtoboardSimulator ni ExplorerCamera. " +
+                "Panel en (0,1.5,1.5) — muévelo donde el Explorador lo vea.", go);
+        }
+
+        go.transform.position = pos;
+
+        // Mirar hacia el jugador (cámara) si existe; si no, hacia -Z.
+        Vector3 lookTarget = cam != null ? cam.transform.position : pos + Vector3.back;
+        Vector3 dir = lookTarget - pos; dir.y = 0f;
+        if (dir.sqrMagnitude > 0.001f)
+            go.transform.rotation = Quaternion.LookRotation(-dir.normalized, Vector3.up);
+    }
+
     /// <summary>Busca una cámara que parezca la del Explorador (por nombre).</summary>
     private static Camera FindExplorerCamera()
     {
-        foreach (var c in Object.FindObjectsByType<Camera>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        foreach (var c in Object.FindObjectsByType<Camera>(FindObjectsInactive.Include))
         {
             string n = c.name.ToLowerInvariant();
             if (n.Contains("explorer") || n.Contains("explorador") || n.Contains("centereye") || n.Contains("xr"))

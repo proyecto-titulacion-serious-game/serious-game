@@ -47,8 +47,7 @@ public class NetworkDataIntercept : MonoBehaviour
     }
 
     // ─── Handlers (cada RPC real = una fila) ─────────────────────────────
-    void HandleSketch(int pin, PinMode mode, PinState state, bool blink, int blinkMs)
-        => AddRow($"D{pin}", "SKETCH", blink ? 18 : 12);
+    void HandleSketch(int pin, PinMode mode, PinState state, bool blink, int blinkOnMs, int blinkOffMs)        => AddRow($"D{pin}", "SKETCH", blink ? 18 : 12);
 
     void HandleComponente(ComponentType tipo, float valor)
         => AddRow(tipo.ToString().Substring(0, Mathf.Min(4, tipo.ToString().Length)).ToUpper(), "COMP", 8);

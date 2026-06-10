@@ -109,11 +109,12 @@ public static class CableBoxSetupTool
         lr.shadowCastingMode     = UnityEngine.Rendering.ShadowCastingMode.Off;
         lr.sharedMaterial        = LineMat(new Color(0.12f, 0.12f, 0.12f));
 
-        var vcr      = root.AddComponent<VRCableRenderer>();
-        vcr.origin   = probeA.transform;
-        vcr.target   = probeB.transform;
-        vcr.segments = 8;
-        vcr.sag      = 0.022f;
+        var vcr           = root.AddComponent<VRCableRenderer>();
+        vcr.origin        = probeA.transform;
+        vcr.target        = probeB.transform;
+        vcr.segments      = 12;
+        vcr.sagAmount     = 0.06f;
+        vcr.maxCableLength = 0.5f;
 
         var prefab = PrefabUtility.SaveAsPrefabAsset(root, CABLE_PATH);
         Object.DestroyImmediate(root);

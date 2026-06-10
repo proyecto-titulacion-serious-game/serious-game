@@ -64,12 +64,11 @@ public class SerialMonitorFeed : MonoBehaviour
 
     void HandleBridgeLost(ArduinoNetworkBridge _) => Warn("Link lost. Node offline.");
 
-    void HandleSketch(int pin, PinMode mode, PinState state, bool blink, int blinkMs)
-    {
+    void HandleSketch(int pin, PinMode mode, PinState state, bool blink, int blinkOnMs, int blinkOffMs){
         nodeId = pin;
         Sys($"Uploading sketch to Node {pin}...");
         Lcd($"PinMode {pin} {mode}");
-        string action = blink ? $"BLINK {state} @ {blinkMs}ms" : $"digitalWrite -> {state}";
+        string action = blink ? $"BLINK {state} @ {blinkOnMs}ms" : $"digitalWrite -> {state}";
         Net($"D{pin}: {action}");
         Sys($"Upload OK. {RoleString()}");
     }

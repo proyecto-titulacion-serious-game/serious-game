@@ -10,6 +10,16 @@ public class ConnectionManager : MonoBehaviour, INetworkRunnerCallbacks
     [Header("Configuración de Red")]
     [SerializeField] private NetworkPrefabRef playerPrefab = default;
 
+    [Header("Código de sala (multi-grupo en aula)")]
+    [Tooltip("Código de la sala Fusion. Dos dispositivos con el MISMO código entran a la misma " +
+             "sesión. Pon el mismo valor en el PC del Técnico y el visor del Explorador de cada " +
+             "estación para evitar que se crucen los grupos. Vacío → PlayerPrefs o valor por defecto.")]
+    [SerializeField] private string roomCode = "";
+
+    [Tooltip("Solo escena del Técnico: si está activo NO se crea la sala automáticamente; espera a " +
+             "que se escriba el código en la UI (RoomCodeEntryUI) y se pulse 'Crear sala'.")]
+    public bool esperarEntradaDeCodigo = false;
+
     public enum AutoConnectRole { Ninguno, Explorador, Tecnico }
 
     [Header("Configuración de Escena")]
@@ -113,9 +123,89 @@ public class ConnectionManager : MonoBehaviour, INetworkRunnerCallbacks
         }
         else if (esTecnico)
         {
+            if (esperarEntradaDeCodigo)
+            {
+                Debug.Log("[Red] Técnico: esperando código de sala desde la UI antes de crear la sala.");
+                return; // RoomCodeEntryUI llamará a CrearSalaComoTecnico() al pulsar 'Crear sala'.
+            }
             Debug.Log("[Red] Creando servidor automáticamente como Técnico...");
             StartSimulation(GameMode.Host);
         }
+    }
+
+    // ─────────────────────────────────────────────
+    //  Código de sala (room code)
+    // ─────────────────────────────────────────────
+
+    private const string DEFAULT_ROOM   = "LaboratorioUbicua";
+    private const string PREFS_ROOM_KEY  = "TITA.RoomCode";
+
+    /// <summary>Código fijado en runtime por la UI antes de conectar. Tiene prioridad.</summary>
+    public static string PendingRoomCode { get; private set; }
+
+    /// <summary>
+    /// Fija el código de sala (UI / menú) y lo persiste para el próximo arranque del dispositivo.
+    /// Acepta texto libre; se normaliza (mayúsculas, sin espacios ni símbolos).
+    /// </summary>
+    public static void SetRoomCode(string code)
+    {
+        string norm = NormalizeRoomCode(code);
+        PendingRoomCode = norm;
+        if (!string.IsNullOrEmpty(norm))
+        {
+            PlayerPrefs.SetString(PREFS_ROOM_KEY, norm);
+            PlayerPrefs.Save();
+        }
+    }
+
+    /// <summary>
+    /// Código de sala efectivo, por prioridad:
+    /// runtime (UI) → Inspector → PlayerPrefs (persistido) → valor por defecto.
+    /// </summary>
+    public string ResolveRoomCode()
+    {
+        if (!string.IsNullOrEmpty(PendingRoomCode)) return PendingRoomCode;
+
+        string fromInspector = NormalizeRoomCode(roomCode);
+        if (!string.IsNullOrEmpty(fromInspector)) return fromInspector;
+
+        // PlayerPrefs solo se consulta en el flujo de lobby del Técnico (gateo activo).
+        // Así, con el gateo apagado, la resolución es determinista (Inspector → default) y
+        // ningún equipo —en especial el visor— queda "pegado" a un código tecleado antes.
+        if (esperarEntradaDeCodigo)
+        {
+            string fromPrefs = NormalizeRoomCode(PlayerPrefs.GetString(PREFS_ROOM_KEY, ""));
+            if (!string.IsNullOrEmpty(fromPrefs)) return fromPrefs;
+        }
+
+        return DEFAULT_ROOM;
+    }
+
+    /// <summary>Normaliza: trim, MAYÚSCULAS, solo A-Z/0-9/guion, máx. 24 caracteres.</summary>
+    public static string NormalizeRoomCode(string code)
+    {
+        if (string.IsNullOrWhiteSpace(code)) return "";
+        var sb = new System.Text.StringBuilder();
+        foreach (char c in code.Trim().ToUpperInvariant())
+        {
+            if (char.IsLetterOrDigit(c) || c == '-') sb.Append(c);
+            if (sb.Length >= 24) break;
+        }
+        return sb.ToString();
+    }
+
+    /// <summary>Crea la sala como Técnico (Host) con el código indicado. La llama RoomCodeEntryUI.</summary>
+    public void CrearSalaComoTecnico(string code)
+    {
+        SetRoomCode(code);
+        StartSimulation(GameMode.Host);
+    }
+
+    /// <summary>Se une como Explorador (Client) al código indicado.</summary>
+    public void UnirseComoExplorador(string code)
+    {
+        SetRoomCode(code);
+        StartSimulation(GameMode.Client);
     }
 
     void ActivarEntornoExplorador()
@@ -162,7 +252,8 @@ public class ConnectionManager : MonoBehaviour, INetworkRunnerCallbacks
         if (connectionTimeoutSeconds > 0f)
             _connectionTimeout = StartCoroutine(ConnectionTimeout());
 
-        Debug.Log($"[Red] Iniciando sesión como: {mode}");
+        string sala = ResolveRoomCode();
+        Debug.Log($"[Red] Iniciando sesión '{sala}' como: {mode}");
 
         StartGameResult result;
         try
@@ -170,7 +261,7 @@ public class ConnectionManager : MonoBehaviour, INetworkRunnerCallbacks
             result = await _runner.StartGame(new StartGameArgs()
             {
                 GameMode    = mode,
-                SessionName = "LaboratorioUbicua",
+                SessionName = sala,
             });
         }
         catch (Exception ex)

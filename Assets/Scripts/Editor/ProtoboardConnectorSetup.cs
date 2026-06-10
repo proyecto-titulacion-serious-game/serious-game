@@ -54,7 +54,7 @@ public static class ProtoboardConnectorSetup
 
         // ── 2. Instancias en la escena activa ────────────────────────────────
         foreach (var comp in Object.FindObjectsByType<ElectricalComponent>(
-                     FindObjectsInactive.Include, FindObjectsSortMode.None))
+                     FindObjectsInactive.Include))
         {
             if (comp is VoltageSource) continue;
             if (comp.GetComponent<ProtoboardConnector>() != null) continue;

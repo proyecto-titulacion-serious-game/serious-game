@@ -102,3 +102,12 @@ UserSettings/
 *.csproj
 *.slnx
 .vscode/
+/Build-Tecnico/
+Build-Tecnico*/
+/Build-Explorador/
+Build-Explorador*/
+/Explorador/
+/_backup_openxr_dup/
+/Build/
+/Builds/
+*.zip

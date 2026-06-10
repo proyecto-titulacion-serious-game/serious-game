@@ -75,8 +75,7 @@ public class NetworkDemoOverlay : MonoBehaviour
         GameSession.OnRetoChanged             -= HandleReto;
     }
 
-    void HandleSketch(int pin, PinMode mode, PinState state, bool blink, int ms)
-        => Push($"SKETCH   pin D{pin}  {state}{(blink ? "  BLINK " + ms + "ms" : "")}");
+    void HandleSketch(int pin, PinMode mode, PinState state, bool blink, int delayOnMs, int delayOffMs)        => Push($"SKETCH   pin D{pin}  {state}{(blink ? "  BLINK " + delayOnMs + "ms" : "")}");
 
     void HandleComponente(ComponentType tipo, float valor)
         => Push($"COMPONENTE   {tipo} = {valor:0.##}");

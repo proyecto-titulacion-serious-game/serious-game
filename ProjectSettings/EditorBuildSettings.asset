@@ -9,9 +9,9 @@ EditorBuildSettings:
     path: Assets/UnityJapanOffice/Scenes/Base.unity
     guid: 7f62db489cfbb3c48b9401495a7a653f
   - enabled: 1
-    path: Assets/Scenes/Tecnico.unity
+    path: Assets/Scenes/Tecnico/Tecnico.unity
     guid: 99c9720ab356a0642a771bea13969a05
-  - enabled: 0
+  - enabled: 1
     path: Assets/Scenes/Explorador.unity
     guid: c0b3084dc3bbef443adb26d03d5a743e
   - enabled: 0
@@ -21,7 +21,7 @@ EditorBuildSettings:
     path: Assets/UnityJapanOffice/Scenes/EveningB.unity
     guid: 6e51415c66579e847bd2b4581df67294
   - enabled: 1
-    path: Assets/UnityJapanOffice/Scenes/NoonA.unity
+    path: Assets/Scenes/Tecnico/NoonA.unity
     guid: 670f15f008c3a3f498fb2b30d26ddc90
   - enabled: 0
     path: Assets/UnityJapanOffice/Scenes/NoonB.unity

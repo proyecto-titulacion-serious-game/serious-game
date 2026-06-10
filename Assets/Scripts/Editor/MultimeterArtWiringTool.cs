@@ -30,7 +30,7 @@ public static class MultimeterArtWiringTool
         var touched = new List<Object>();
 
         foreach (var mb in Object.FindObjectsByType<MonoBehaviour>(
-                     FindObjectsInactive.Include, FindObjectsSortMode.None))
+                     FindObjectsInactive.Include))
         {
             if (mb == null) continue;
             bool changedThis = false;
@@ -85,7 +85,7 @@ public static class MultimeterArtWiringTool
 
     static Multimeter ResolveTargetMultimeter()
     {
-        var all = Object.FindObjectsByType<Multimeter>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        var all = Object.FindObjectsByType<Multimeter>(FindObjectsInactive.Include);
 
         // Preferir uno cuyo GO se llame como el prefab ART
         foreach (var m in all)

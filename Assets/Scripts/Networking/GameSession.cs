@@ -73,11 +73,30 @@ public class GameSession : NetworkBehaviour
 
         if (Object.HasStateAuthority)
             HeartbeatTimer = TickTimer.CreateFromSeconds(Runner, HeartbeatTimeout);
+
+        // Señal "Explorador (Arduino VR) listo": el ArduinoNetworkBridge solo existe en la escena
+        // del Explorador, así que su OnBridgeReady solo se dispara allí. Lo reportamos por red para
+        // que el IDE del Técnico pueda gatear el botón "Subir" y no enviar sketches al vacío.
+        ArduinoNetworkBridge.OnBridgeReady     += HandleBridgeReady;
+        ArduinoNetworkBridge.OnBridgeDestroyed += HandleBridgeGone;
+        if (FindAnyObjectByType<ArduinoNetworkBridge>() != null)
+            ReportarExploradorListo(true); // el bridge ya estaba spawneado antes que GameSession
     }
 
     public override void Despawned(NetworkRunner runner, bool hasState)
     {
+        ArduinoNetworkBridge.OnBridgeReady     -= HandleBridgeReady;
+        ArduinoNetworkBridge.OnBridgeDestroyed -= HandleBridgeGone;
         if (Instance == this) Instance = null;
+    }
+
+    void HandleBridgeReady(ArduinoNetworkBridge _) => ReportarExploradorListo(true);
+    void HandleBridgeGone (ArduinoNetworkBridge _) => ReportarExploradorListo(false);
+
+    void ReportarExploradorListo(bool listo)
+    {
+        if (Object == null || !Object.IsValid) return;
+        RPC_ReportarExploradorListo(listo);
     }
 
     public override void FixedUpdateNetwork()
@@ -169,6 +188,18 @@ public void RPC_EnviarComponente(int tipo, float valor)
         RPC_CambiarReto(nuevoReto);
     }
 
+    /// <summary>
+    /// Permite que un cliente (p.ej. el Explorador) PIDA al Host cambiar de reto.
+    /// El cambio real es host-autoritativo: el Host aplica AvanzarReto y lo propaga a
+    /// todos vía RPC_CambiarReto. Usado por el DebugLevelSkipper para que F1-F4 funcionen
+    /// también desde el Explorador sin que el Host lo revierta.
+    /// </summary>
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    public void RPC_SolicitarCambioReto(int nuevoReto)
+    {
+        AvanzarReto(nuevoReto);
+    }
+
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_CambiarReto(int reto)
     {
@@ -218,9 +249,9 @@ public void RPC_EnviarComponente(int tipo, float valor)
     /// por lo que telemetría/validación/monitor siguen reaccionando sin cambios).
     /// </summary>
     [Rpc(RpcSources.All, RpcTargets.All)]
-    public void RPC_SubirCodigoArduino(int pin, NetworkBool isOutput, NetworkBool isHigh, float delayMs, NetworkBool isBlink)
+    public void RPC_SubirCodigoArduino(int pin, NetworkBool isOutput, NetworkBool isHigh, int delayOnMs, int delayOffMs, NetworkBool isBlink)
     {
-        ArduinoNetworkBridge.DeliverSketch(pin, isOutput, isHigh, delayMs, isBlink);
+        ArduinoNetworkBridge.DeliverSketch(pin, isOutput, isHigh, delayOnMs, delayOffMs, isBlink);
         Debug.Log($"[GameSession] Sketch RPC — pin D{pin}, output={isOutput}, blink={isBlink}.");
     }
 
@@ -243,6 +274,12 @@ public void RPC_EnviarComponente(int tipo, float valor)
     public int   TelemStatus    { get; private set; }
     /// <summary>True tras recibir al menos una muestra por red (distingue "sin datos" de 0 V real).</summary>
     public bool  TelemHasData   { get; private set; }
+    /// <summary>
+    /// Momento (Time.unscaledTime) de la última telemetría recibida. La telemetría llega a ~5 Hz
+    /// mientras el Explorador está despierto en el Reto 4; un corte = posible suspensión del visor.
+    /// Lo usa <see cref="ExplorerLinkOverlay"/> como heartbeat para avisar al Técnico.
+    /// </summary>
+    public float LastTelemetryRealtime { get; private set; }
 
     /// <summary>El Explorador publica la telemetría del sandbox; llega a todos (incl. Host/Técnico).</summary>
     [Rpc(RpcSources.All, RpcTargets.All)]
@@ -254,5 +291,54 @@ public void RPC_EnviarComponente(int tipo, float valor)
         TelemAdc       = adc;
         TelemStatus    = status;
         TelemHasData   = true;
+        LastTelemetryRealtime = Time.unscaledTime;
+    }
+
+    // ─────────────────────────────────────────────
+    //  Reto 4: feedback graduado del circuito (Explorador → Técnico)
+    // ─────────────────────────────────────────────
+    //  El Explorador valida el circuito (ProtoboardSimulator vive en su escena) y publica
+    //  el diagnóstico por RPC. El Técnico (ArduinoIDEUI) lo muestra en la consola del IDE.
+    //  Ver Reto4Feedback para la lógica de niveles y los textos.
+
+    /// <summary>True si la última validación fue exitosa.</summary>
+    public bool DiagExito  { get; private set; }
+    /// <summary>Nivel de ayuda: 1=síntoma, 2=pista de zona, 3=diagnóstico explícito.</summary>
+    public int  DiagNivel  { get; private set; }
+    /// <summary>Pin digital activado por el código del Técnico.</summary>
+    public int  DiagPin    { get; private set; }
+    /// <summary>Código de <see cref="Reto4Diagnostico"/> (motivo del fallo).</summary>
+    public int  DiagMotivo { get; private set; }
+    /// <summary>Se incrementa en cada diagnóstico nuevo; el Técnico lo usa para detectar cambios.</summary>
+    public int  DiagSeq    { get; private set; }
+
+    /// <summary>El Explorador publica el resultado de validar el circuito; llega a todos (incl. Técnico).</summary>
+    [Rpc(RpcSources.All, RpcTargets.All)]
+    public void RPC_PublicarDiagnostico(NetworkBool exito, int nivel, int pin, int motivo)
+    {
+        DiagExito  = exito;
+        DiagNivel  = nivel;
+        DiagPin    = pin;
+        DiagMotivo = motivo;
+        DiagSeq++;
+    }
+
+    // ─────────────────────────────────────────────
+    //  Reto 4: handshake "Explorador listo" (para gatear el botón Subir del Técnico)
+    // ─────────────────────────────────────────────
+
+    /// <summary>
+    /// True cuando el Explorador tiene su Arduino (ArduinoNetworkBridge) vivo en VR.
+    /// El IDE del Técnico (<see cref="ArduinoIDEUI"/>) gatea el botón "Subir" con esto para no
+    /// enviar sketches al vacío antes de que el visor termine de cargar su escena.
+    /// </summary>
+    public bool ExploradorListo { get; private set; }
+
+    /// <summary>El Explorador reporta si su Arduino VR está vivo; llega a todos (incl. Host/Técnico).</summary>
+    [Rpc(RpcSources.All, RpcTargets.All)]
+    public void RPC_ReportarExploradorListo(NetworkBool listo)
+    {
+        ExploradorListo = listo;
+        Debug.Log($"[GameSession] Explorador {(listo ? "LISTO" : "NO listo")} (Arduino VR).");
     }
 }

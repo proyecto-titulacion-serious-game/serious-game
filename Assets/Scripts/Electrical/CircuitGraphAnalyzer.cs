@@ -13,6 +13,15 @@ using UnityEngine;
 /// Ventaja sobre el análisis lineal anterior: soporta topologías serie,
 /// paralelo y mixtas sin asumir ningún orden de componentes.
 ///
+/// Diodos (LED): el MNA es lineal, pero un LED no lo es. Se resuelve por
+/// iteración de punto fijo (modelo lineal a tramos / companion model):
+///   • En directa → conductancia 1/R + una fuente de corriente que representa la
+///     caída Vf, de modo que I = (V_ánodo − V_cátodo − Vf) / R.
+///   • En inversa → conductancia ínfima (≈1 GΩ) → corriente ~0 A.
+/// Tras cada solución se reevalúa el estado de cada LED y se vuelve a resolver
+/// hasta que ningún diodo cambia de estado. Esto elimina la incoherencia previa
+/// en la que un LED invertido seguía mostrando corriente en el multímetro.
+///
 /// Uso:
 ///   bool ok = CircuitGraphAnalyzer.SolveMNA(comps, pinNode, 5f, gndNode);
 ///   if (!ok) { /* cortocircuito o sin ruta */ }
@@ -26,6 +35,13 @@ public static class CircuitGraphAnalyzer
     // Conductancia de regularización: 1 GΩ a GND para todos los nodos flotantes.
     // Evita que la matriz G sea singular cuando hay nodos sin componentes.
     private const double G_LEAK = 1e-9;
+
+    // Conductancia de un diodo en inversa (≈1 GΩ) → corriente despreciable.
+    private const double G_DIODE_OFF = 1e-9;
+
+    // Tope de iteraciones del punto fijo para los diodos. Circuitos educativos
+    // (pocos LEDs) convergen en 2-3; el tope solo evita oscilaciones patológicas.
+    private const int    MAX_DIODE_ITERS = 16;
 
     /// <summary>
     /// Resuelve los voltajes nodales del circuito por Modified Nodal Analysis.
@@ -92,61 +108,127 @@ public static class CircuitGraphAnalyzer
         var idx = new Dictionary<ElectricalNode, int>(n);
         for (int i = 0; i < n; i++) idx[nodeList[i]] = i;
 
-        // ── 2. Construir matriz G ────────────────────────────────────────────
-        var G = new double[n, n];
-        var b = new double[n];
+        // ── 2. Estado inicial de conducción de los diodos (LED) ──────────────
+        // Arrancan en directa; la iteración de punto fijo los corrige. Un LED
+        // marcado isOpenCircuit (pata suelta) arranca y permanece en inversa.
+        var ledForward = new Dictionary<LED, bool>();
+        foreach (var comp in components)
+            if (comp is LED led && led.AnodeNode != null && led.CathodeNode != null)
+                ledForward[led] = !led.isOpenCircuit;
 
+        // ── 3. Punto fijo: (re)construir y resolver G·v = b hasta que ningún
+        //       LED cambie de estado directa/inversa. ──────────────────────────
+        double[] v = null;
+        for (int iter = 0; iter < MAX_DIODE_ITERS; iter++)
+        {
+            var G = new double[n, n];
+            var b = new double[n];
+
+            // 3a. Estampar cada componente en la matriz de conductancias
+            foreach (var comp in components)
+            {
+                if (comp == null || comp.nodeA == null || comp.nodeB == null) continue;
+
+                int ia = idx[comp.nodeA];
+                int ib = idx[comp.nodeB];
+
+                if (comp is LED led)
+                {
+                    bool   fwd = ledForward.TryGetValue(led, out bool f) && f;
+                    double g   = fwd ? 1.0 / Mathf.Max(led.resistance, (float)MIN_R)
+                                     : G_DIODE_OFF;
+
+                    G[ia, ia] += g; G[ib, ib] += g;
+                    G[ia, ib] -= g; G[ib, ia] -= g;
+
+                    if (fwd)
+                    {
+                        // Companion del diodo: fuente de corriente g·Vf que impone la
+                        // caída directa Vf en sentido ánodo → cátodo, de modo que
+                        // I = (V_ánodo − V_cátodo − Vf) / R.
+                        int    ian = idx[led.AnodeNode];
+                        int    ica = idx[led.CathodeNode];
+                        double iEq = g * led.forwardVoltage;
+                        b[ian] += iEq;
+                        b[ica] -= iEq;
+                    }
+                }
+                else
+                {
+                    float  r = Mathf.Max(comp.GetResistance(), (float)MIN_R);
+                    double g = 1.0 / r;
+                    G[ia, ia] += g; G[ib, ib] += g;
+                    G[ia, ib] -= g; G[ib, ia] -= g;
+                }
+            }
+
+            // 3b. Regularización: 1 GΩ de cada nodo no-GND a GND (evita singular)
+            for (int i = 1; i < n; i++)
+            {
+                G[i, i] += G_LEAK;
+                G[i, 0] -= G_LEAK;
+                G[0, 0] += G_LEAK; // será sobreescrito por Dirichlet GND
+                G[0, i] -= G_LEAK; // será sobreescrito por Dirichlet GND
+            }
+
+            // 3c. Condiciones de frontera Dirichlet
+            ApplyDirichlet(G, b, n, 0, 0.0);                       // GND = 0 V
+            if (sourceNode != null && idx.TryGetValue(sourceNode, out int srcIdx))
+                ApplyDirichlet(G, b, n, srcIdx, sourceVoltage);    // Pin = srcV
+
+            // 3d. Resolver
+            v = GaussElim(G, b, n);
+            if (v == null) return false; // matriz singular → cortocircuito ideal
+
+            // 3e. Volcar voltajes (necesarios para reevaluar los diodos)
+            for (int i = 0; i < n; i++) nodeList[i].voltage = (float)v[i];
+
+            // 3f. Reevaluar estado de cada LED: conduce si el voltaje ánodo→cátodo
+            //     supera su Vf. Si algún LED cambió, hay que re-resolver.
+            bool changed = false;
+            foreach (var led in new List<LED>(ledForward.Keys))
+            {
+                float forwardV    = led.AnodeNode.voltage - led.CathodeNode.voltage;
+                bool  wantForward = !led.isOpenCircuit && forwardV > led.forwardVoltage;
+                if (wantForward != ledForward[led])
+                {
+                    ledForward[led] = wantForward;
+                    changed = true;
+                }
+            }
+
+            if (!changed) break;
+        }
+
+        // ── 4. Voltajes ya volcados en los ElectricalNode (paso 3e). ──────────
+
+        // ── 5. Corrientes por componente ─────────────────────────────────────
         foreach (var comp in components)
         {
             if (comp == null || comp.nodeA == null || comp.nodeB == null) continue;
 
-            float  r = Mathf.Max(comp.GetResistance(), (float)MIN_R);
-            double g = 1.0 / r;
-
-            int ia = idx[comp.nodeA];
-            int ib = idx[comp.nodeB];
-
-            G[ia, ia] += g;
-            G[ib, ib] += g;
-            G[ia, ib] -= g;
-            G[ib, ia] -= g;
-        }
-
-        // ── 3. Regularización: conductancia de 1 GΩ de cada nodo no-GND a GND ─
-        // Evita nodos flotantes que harían G singular.
-        // GND row será sobreescrita por Dirichlet, pero los off-diagonals no.
-        for (int i = 1; i < n; i++)
-        {
-            G[i, i] += G_LEAK;
-            G[i, 0] -= G_LEAK;
-            G[0, 0] += G_LEAK; // será sobreescrito por Dirichlet GND
-            G[0, i] -= G_LEAK; // será sobreescrito por Dirichlet GND
-        }
-
-        // ── 4. Condiciones de frontera Dirichlet ─────────────────────────────
-        ApplyDirichlet(G, b, n, 0, 0.0);                          // GND = 0 V
-
-        if (sourceNode != null && idx.TryGetValue(sourceNode, out int srcIdx))
-            ApplyDirichlet(G, b, n, srcIdx, sourceVoltage);       // Pin = srcV
-
-        // ── 5. Resolver G·v = b ──────────────────────────────────────────────
-        double[] v = GaussElim(G, b, n);
-        if (v == null) return false; // matriz singular
-
-        // ── 6. Escribir voltajes en los ElectricalNode ───────────────────────
-        for (int i = 0; i < n; i++)
-            nodeList[i].voltage = (float)v[i];
-
-        // ── 7. Calcular corrientes por componente (I = ΔV / R) ───────────────
-        foreach (var comp in components)
-        {
-            if (comp == null || comp.nodeA == null || comp.nodeB == null) continue;
-            float r          = Mathf.Max(comp.GetResistance(), (float)MIN_R);
             comp.voltageDrop = comp.nodeA.voltage - comp.nodeB.voltage;
-            comp.current     = comp.voltageDrop / r;
+
+            if (comp is LED led)
+            {
+                // En inversa la corriente es ~0 (lo que el multímetro debe mostrar).
+                bool fwd = ledForward.TryGetValue(led, out bool f) && f;
+                if (!fwd) { comp.current = 0f; continue; }
+
+                float ron      = Mathf.Max(led.resistance, (float)MIN_R);
+                float forwardV = led.AnodeNode.voltage - led.CathodeNode.voltage;
+                float mag      = Mathf.Max(0f, (forwardV - led.forwardVoltage) / ron);
+                // Signo en convención nodeA → nodeB (positivo = corriente sale de nodeA)
+                comp.current   = led.polarityInverted ? -mag : mag;
+            }
+            else
+            {
+                float r      = Mathf.Max(comp.GetResistance(), (float)MIN_R);
+                comp.current = comp.voltageDrop / r;
+            }
         }
 
-        // Actualizar ElectricalNode.current = suma de corrientes salientes
+        // ── 6. ElectricalNode.current = suma de corrientes salientes ──────────
         foreach (var node in nodeList) node.current = 0f;
         foreach (var comp in components)
         {

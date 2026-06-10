@@ -267,8 +267,22 @@ public class Multimeter : MonoBehaviour
         _isReading = true;
         if (!wasReading) OnReadingTaken?.Invoke();
 
+        // 1. Voltaje (Diferencia de potencial real)
         float vDiff = _nodeRed.voltage - _nodeBlack.voltage;
-        float i     = _nodeRed.current;   // ← funciona tras el Parche 1
+        
+        // 2. Corriente (CORRECCIÓN: Buscar el componente puente)
+        float i = 0f;
+        var allComps = FindObjectsByType<ElectricalComponent>(FindObjectsInactive.Exclude);
+        foreach (var comp in allComps)
+        {
+            if ((comp.nodeA == _nodeRed && comp.nodeB == _nodeBlack) || 
+                (comp.nodeA == _nodeBlack && comp.nodeB == _nodeRed))
+            {
+                // Extraer la corriente que fluye a través del componente conectado en serie
+                i = Mathf.Abs(comp.current);
+                break;
+            }
+        }
 
         switch (mode)
         {

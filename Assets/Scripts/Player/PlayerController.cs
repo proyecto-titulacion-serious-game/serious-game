@@ -10,7 +10,6 @@ using UnityEngine.XR.Interaction.Toolkit.Locomotion.Turning;
 /// VERSIÓN CORREGIDA: Incluye validaciones matemáticas estrictas contra valores NaN/Infinity
 /// para prevenir el error 'Screen position out of view frustum'.
 /// </summary>
-[RequireComponent(typeof(CharacterController))]
 public class PlayerController : MonoBehaviour
 {
     //      
@@ -42,6 +41,9 @@ public class PlayerController : MonoBehaviour
     public Transform xrRig;
     [Tooltip("Camara principal del visor (hijo de XR Origin).")]
     public Camera headCamera;
+    [Tooltip("CharacterController a mover. Vacío = se busca en este GO o en el xrRig.\n" +
+             "En el setup consolidado apunta al CC del XR Origin (XR Rig).")]
+    public CharacterController characterController;
 
     [Header("Input Actions (New Input System)")]
     [Tooltip("Accion de movimiento del joystick izquierdo (Vector2). Asignar desde InputSystem_Actions.")]
@@ -63,6 +65,10 @@ public class PlayerController : MonoBehaviour
     private Vector3 _lastKatPosition;
     private bool    _usedSimpleMove;
     private bool    _katActive;
+    private bool    _katBtnWasPressed;
+    private float   _lastKatDiag;
+    private double  _lastKatUpdateTime;
+    private string  _resolvedSerial = "";
 
     // Snap turn
     private InputAction _snapTurnAct;
@@ -77,7 +83,7 @@ public class PlayerController : MonoBehaviour
     //      
     void Awake()
     {
-        _cc = GetComponent<CharacterController>();
+        EnsureCharacterController();
         _lastKatPosition = transform.position;
         if (headCamera == null)
             headCamera = Camera.main;
@@ -191,10 +197,11 @@ public class PlayerController : MonoBehaviour
 
     void EnsureCharacterController()
     {
-        if (_cc == null)
-        {
-            _cc = GetComponent<CharacterController>();
-        }
+        if (_cc != null) return;
+        if (characterController != null) { _cc = characterController; return; }
+        _cc = GetComponent<CharacterController>();
+        if (_cc == null && xrRig != null)
+            _cc = xrRig.GetComponent<CharacterController>() ?? xrRig.GetComponentInChildren<CharacterController>();
     }
 
     void Update()
@@ -209,17 +216,14 @@ public class PlayerController : MonoBehaviour
         if (!_frozen)
         {
             if (useKatVR)
-            {
                 HandleKatVRLocomotion();
-                if (!_usedSimpleMove)
-                {
-                    ApplyGravity(); 
-                }
-            }
             else
-            {
                 HandleJoystickLocomotion();
-            }
+
+            // Gravedad SIEMPRE que no se haya usado SimpleMove (KAT), que ya la aplica
+            // internamente. Sin esto, en modo joystick el rig nunca cae al suelo → flota.
+            if (!_usedSimpleMove)
+                ApplyGravity();
 
             HandleSnapTurn();
         }
@@ -255,25 +259,85 @@ public class PlayerController : MonoBehaviour
         try
         {
             int deviceCount = KATNativeSDK.DeviceCount();
+            Debug.Log($"[PlayerController/KAT] DeviceCount = {deviceCount}");
             if (deviceCount == 0)
             {
+                Debug.LogWarning("[PlayerController/KAT] No se detectó ninguna caminadora KAT. " +
+                                 "Verifica KAT Gateway abierto y la caminadora conectada/encendida. " +
+                                 "→ Fallback a joystick.");
                 useKatVR = false;
                 return;
             }
 
-            KATNativeSDK.TreadMillData data = KATNativeSDK.GetWalkStatus(katSerialNumber);
+            // Resolver el SERIAL real del dispositivo. Llamar GetWalkStatus("") suele devolver una
+            // estructura congelada (lastUpdateTimePoint no avanza) → hay que pasar el serial real.
+            ResolveKatSerial(deviceCount);
+
+            // Enganchar el streaming de datos en vivo del dispositivo.
+            try { KATNativeSDK.ForceConnect(_resolvedSerial); Debug.Log($"[PlayerController/KAT] ForceConnect('{_resolvedSerial}')"); }
+            catch (System.Exception e) { Debug.LogWarning("[PlayerController/KAT] ForceConnect falló: " + e.Message); }
+
+            KATNativeSDK.TreadMillData data = KATNativeSDK.GetWalkStatus(KatSerial());
+            Debug.Log($"[PlayerController/KAT] GetWalkStatus(sn='{KatSerial()}') → connected={data.connected}, device='{data.deviceName}', updT={data.lastUpdateTimePoint:0.000}");
             if (!data.connected)
             {
+                Debug.LogWarning("[PlayerController/KAT] La caminadora aparece pero NO está 'connected'. " +
+                                 "→ Fallback a joystick.");
                 useKatVR = false;
                 return;
             }
 
             CalibrateOrientation(data);
+            Debug.Log("[PlayerController/KAT] ✓ Caminadora KAT inicializada y calibrada. Camina sobre la plataforma.");
         }
-        catch (System.Exception)
+        catch (System.DllNotFoundException e)
         {
+            Debug.LogError("[PlayerController/KAT] No se cargó KATSDKWarpper.dll: " + e.Message +
+                           "\n→ Fallback a joystick.");
             useKatVR = false;
         }
+        catch (System.Exception e)
+        {
+            Debug.LogError("[PlayerController/KAT] Error inicializando KAT: " + e.Message + "\n→ Fallback a joystick.");
+            useKatVR = false;
+        }
+    }
+
+    /// <summary>Serial a usar en GetWalkStatus: el del Inspector si se puso, si no el auto-resuelto.</summary>
+    string KatSerial() => string.IsNullOrEmpty(katSerialNumber) ? _resolvedSerial : katSerialNumber;
+
+    /// <summary>
+    /// Resuelve el número de serie real de la caminadora (deviceType==1) recorriendo los
+    /// dispositivos del SDK. GetWalkStatus necesita el serial real para entregar datos en vivo;
+    /// con "" suele devolver una estructura congelada.
+    /// </summary>
+    void ResolveKatSerial(int deviceCount)
+    {
+        if (!string.IsNullOrEmpty(katSerialNumber)) { _resolvedSerial = katSerialNumber; return; }
+
+        for (uint i = 0; i < deviceCount; i++)
+        {
+            try
+            {
+                var desc = KATNativeSDK.GetDevicesDesc(i);
+                Debug.Log($"[PlayerController/KAT] device[{i}]: name='{desc.device}' sn='{desc.serialNumber}' " +
+                          $"type={desc.deviceType} (1=caminadora, 2=tracker)");
+                if (desc.deviceType == 1 && !string.IsNullOrEmpty(desc.serialNumber))
+                {
+                    _resolvedSerial = desc.serialNumber;
+                    Debug.Log($"[PlayerController/KAT] Serial de caminadora resuelto: '{_resolvedSerial}'");
+                    return;
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"[PlayerController/KAT] GetDevicesDesc({i}) falló: {e.Message}");
+            }
+        }
+
+        // Fallback: serial del primer dispositivo.
+        try { _resolvedSerial = KATNativeSDK.GetDevicesDesc(0).serialNumber; } catch { }
+        Debug.Log($"[PlayerController/KAT] Serial fallback: '{_resolvedSerial}'");
     }
 
     void HandleKatVRLocomotion()
@@ -281,17 +345,32 @@ public class PlayerController : MonoBehaviour
         EnsureCharacterController();
         if (_cc == null) return;
 
-        KATNativeSDK.TreadMillData data = KATNativeSDK.GetWalkStatus(katSerialNumber);
-        if (!data.connected || data.deviceDatas == null || data.deviceDatas.Length == 0)
+        KATNativeSDK.TreadMillData data = KATNativeSDK.GetWalkStatus(KatSerial());
+
+        // SOLO se exige 'connected'. NO exigir deviceDatas: ese array de structs se marshala por
+        // P/Invoke (ByValArray) y con frecuencia vuelve NULL aunque la caminadora esté conectada;
+        // si lo exigíamos, la KAT siempre caía a joystick y nunca movía.
+        if (!data.connected)
         {
+            DiagKat("NO conectada (connected=false) → joystick. ¿KAT Gateway abierto y caminadora encendida?");
             HandleJoystickLocomotion();
             return;
         }
 
-        if (data.deviceDatas[0].btnPressed)
+        // Botón de calibración: solo si el SDK reportó deviceDatas. Calibrar en el FLANCO de
+        // pulsación (no mientras se mantiene), para que un botón "siempre presionado" no bloquee.
+        bool btn = false;
+        if (data.deviceDatas != null && data.deviceDatas.Length > 0)
         {
-            CalibrateOrientation(data);
-            return;
+            btn = data.deviceDatas[0].btnPressed;
+            if (btn && !_katBtnWasPressed)
+            {
+                _katBtnWasPressed = true;
+                CalibrateOrientation(data);
+                Debug.Log("[PlayerController/KAT] Recentrado (botón de calibración).");
+                return;
+            }
+            if (!btn) _katBtnWasPressed = false;
         }
 
         Quaternion bodyRot = data.bodyRotationRaw
@@ -302,9 +381,27 @@ public class PlayerController : MonoBehaviour
         // PARCHE DE SEGURIDAD: Evitar velocidades de caminadora corruptas al inicio
         if (float.IsNaN(moveVelocity.x) || float.IsNaN(moveVelocity.z)) moveVelocity = Vector3.zero;
 
+        // ¿El SDK está entregando datos VIVOS? Si lastUpdateTimePoint avanza pero moveSpeed=0,
+        // el dispositivo reporta bien pero NO detecta pasos → calibración/sensores de la KAT.
+        // Si lastUpdateTimePoint NO avanza, los datos están congelados/mal marshalados.
+        bool datosFrescos = data.lastUpdateTimePoint != _lastKatUpdateTime;
+        _lastKatUpdateTime = data.lastUpdateTimePoint;
+
+        DiagKat($"moveSpeed raw=({data.moveSpeed.x:0.000}, {data.moveSpeed.y:0.000}, {data.moveSpeed.z:0.000}) " +
+                $"|{data.moveSpeed.magnitude:0.00}|  body={data.bodyRotationRaw.eulerAngles}  " +
+                $"updT={data.lastUpdateTimePoint:0.000} fresco={datosFrescos}  btn={btn}  cc={(_cc != null ? _cc.name : "NULL")}");
+
         _cc.SimpleMove(moveVelocity);
         _usedSimpleMove = true;
-        _katActive = true;   
+        _katActive = true;
+    }
+
+    // Diagnóstico KAT throttleado (~1 vez por segundo) para no inundar la consola.
+    void DiagKat(string msg)
+    {
+        if (Time.unscaledTime - _lastKatDiag < 1f) return;
+        _lastKatDiag = Time.unscaledTime;
+        Debug.Log("[PlayerController/KAT] " + msg);
     }
 
     void CalibrateOrientation(KATNativeSDK.TreadMillData data)

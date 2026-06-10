@@ -40,7 +40,7 @@ public class ExplorerOnboarding : MonoBehaviour
             "<b>Trigger derecho</b>  →  Punta roja\n<b>Trigger izquierdo</b> →  Punta negra\n\nApunta la mano hacia un nodo del circuito\ny presiona el trigger para medir."),
         new Slide(
             "¡Todo listo!",
-            "El <b>HUD flotante</b> te indicará exactamente\nqué hacer en cada paso.\n\n<b>Comunícate con el Técnico</b> — él\ntiene el diagrama y las herramientas.\n\n¡Buena suerte!")
+            "Al llegar a la <b>zona de trabajo</b> aparecerán\nel <b>tablero de pasos</b> y la <b>telemetría</b>\ncon lo que debes hacer en cada momento.\n\n<b>Comunícate con el Técnico</b> — él\ntiene el diagrama y las herramientas.\n\n¡Buena suerte!")
     };
 
     // ─────────────────────────────────────────────

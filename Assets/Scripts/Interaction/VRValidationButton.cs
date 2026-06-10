@@ -86,15 +86,26 @@ public class VRValidationButton : MonoBehaviour
         // 3. Feedback visual de "Procesando"
         SetLedColor(ColorWait);
 
-        // 4. Avisar al Técnico por red
+        // 4a. En red: pedir validación al Host (responde por GameSession.OnResultadoValidacion).
         if (GameSession.Instance != null)
         {
             GameSession.Instance.SolicitarValidacion();
             Debug.Log("[VR Button] Petición de validación enviada a la PC.");
+            return;
+        }
+
+        // 4b. Offline (modo de prueba sin Host): evaluar localmente para que el Explorador pueda
+        //     comprobar su propio circuito y ver "¡Misión cumplida!" o seguir construyendo.
+        var gm = FindAnyObjectByType<GameManager>();
+        if (gm != null)
+        {
+            var (paso, _) = gm.EvaluacionManualBotonFisicoConResultado();
+            HandleResultadoRed(paso, paso ? 0 : 1);
+            Debug.Log($"[VR Button] Validación local (offline): {(paso ? "OK — misión cumplida" : "circuito incompleto")}.");
         }
         else
         {
-            Debug.LogWarning("[VR Button] No se encontró GameSession en la escena.");
+            Debug.LogWarning("[VR Button] No hay GameSession ni GameManager: no se pudo validar.");
             ResetToIdle();
         }
     }

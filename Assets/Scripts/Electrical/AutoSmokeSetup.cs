@@ -40,6 +40,11 @@ public class AutoSmokeSetup : MonoBehaviour
                             || comp is ArduinoPin;
 
             if (!isFaultable) continue;
+
+            // Las LEDs además explotan/salen volando si reciben sobrecarga catastrófica.
+            if (comp is LED && comp.GetComponent<LEDBlowEffect>() == null)
+                comp.gameObject.AddComponent<LEDBlowEffect>();
+
             if (comp.GetComponent<ComponentSmokeEffect>() != null) continue;
 
             var fx = comp.gameObject.AddComponent<ComponentSmokeEffect>();

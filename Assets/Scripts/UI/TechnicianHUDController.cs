@@ -41,6 +41,7 @@ public class TechnicianHUDController : MonoBehaviour
         GameManager.OnTimerExpired        += OnTimerExpired;
         GameManager.OnZoneTransitionStart += OnZoneTransitionStart;
         GameManager.OnZoneActivated       += OnZoneActivated;
+        GameManager.OnGameCompleted       += OnGameCompleted;
     }
 
     void OnDisable()
@@ -50,6 +51,7 @@ public class TechnicianHUDController : MonoBehaviour
         GameManager.OnTimerExpired        -= OnTimerExpired;
         GameManager.OnZoneTransitionStart -= OnZoneTransitionStart;
         GameManager.OnZoneActivated       -= OnZoneActivated;
+        GameManager.OnGameCompleted       -= OnGameCompleted;
     }
 
     void Start()
@@ -98,18 +100,33 @@ public class TechnicianHUDController : MonoBehaviour
         if (panelTransicion == null) return;
         panelTransicion.SetActive(true);
 
-        int num = (int)level + 1;
+        int  num     = (int)level + 1;
+        bool esReto4 = level == LevelType.Arduino;   // reto libre / final
+
         if (txtTransicionTitulo != null)
-            txtTransicionTitulo.text = success
-                ? $"RETO {num} COMPLETADO"
-                : $"RETO {num} — Tiempo agotado";
+            txtTransicionTitulo.text = !success
+                ? $"RETO {num} — Tiempo agotado"
+                : esReto4 ? "¡FELICIDADES!"
+                          : $"RETO {num} COMPLETADO";
 
         if (txtTransicionSub != null)
-            txtTransicionSub.text = "Cargando siguiente zona...";
+            txtTransicionSub.text = !success
+                ? "Revisa el procedimiento."
+                : esReto4 ? "¡Su circuito funciona! Diseñaron y validaron su propio diseño."
+                          : "Cargando siguiente zona...";
     }
 
     void OnZoneActivated(int index)
     {
         // El panel de transición se oculta cuando el nuevo nivel ya cargó (OnLevelLoaded)
+    }
+
+    /// <summary>Se completaron los 4 retos: felicitación final en la pantalla del Técnico.</summary>
+    void OnGameCompleted()
+    {
+        if (panelTransicion != null) panelTransicion.SetActive(true);
+        if (txtTransicionTitulo != null) txtTransicionTitulo.text = "¡MISIÓN CUMPLIDA!";
+        if (txtTransicionSub != null)
+            txtTransicionSub.text = "Completaron los 4 retos en equipo. ¡Excelente trabajo, técnico y explorador!";
     }
 }

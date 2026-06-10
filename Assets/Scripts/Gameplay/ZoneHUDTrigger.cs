@@ -29,6 +29,11 @@ public class ZoneHUDTrigger : MonoBehaviour
     [Tooltip("Reto asociado a esta zona (para modos PorReto / PosicionYReto).")]
     public LevelType reto = LevelType.OhmLaw;
 
+    [Tooltip("Si está activo, la condición de reto se cumple con CUALQUIER reto activo " +
+             "(no solo el de arriba). Útil cuando el Explorador trabaja en una sola zona física " +
+             "para los 4 retos: basta con estar dentro de la zona y que el juego esté en un reto.")]
+    public bool cualquierReto = false;
+
     [Header("Objetivos a mostrar")]
     [Tooltip("HUD holográfico, Clipboard_VR, paneles… Pueden compartirse entre varias zonas.")]
     public GameObject[] targets;
@@ -47,13 +52,22 @@ public class ZoneHUDTrigger : MonoBehaviour
     // Demanda compartida: cuántas zonas piden visible cada objetivo.
     private static readonly Dictionary<GameObject, int> _demand = new();
 
+    // Presentación (onboarding): mientras está activa, NINGÚN HUD de zona aparece.
+    private static bool _presentacionTerminada;
+    private static bool _presentacionInit;
+
     private Collider _col;
     private Transform _head;
     private GameManager _gm;
     private bool _shown;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void ResetStatics() => _demand.Clear();
+    static void ResetStatics()
+    {
+        _demand.Clear();
+        _presentacionTerminada = false;
+        _presentacionInit = false;
+    }
 
     void Reset()
     {
@@ -83,12 +97,13 @@ public class ZoneHUDTrigger : MonoBehaviour
     // ─── Lógica de visibilidad ───────────────────────────────────────────
     void Evaluate()
     {
-        bool show = modo switch
+        // Mientras la presentación (onboarding) esté activa, los HUD permanecen ocultos.
+        bool show = PresentacionTerminada() && (modo switch
         {
             ActivationMode.PorReto     => RetoOk(),
             ActivationMode.PorPosicion => InsideZone(),
             _                          => InsideZone() && RetoOk(),
-        };
+        });
 
         if (show == _shown) return;
         _shown = show;
@@ -96,9 +111,24 @@ public class ZoneHUDTrigger : MonoBehaviour
         if (show) onShow?.Invoke(); else onHide?.Invoke();
     }
 
+    // La presentación está terminada si: no hay onboarding en la escena, o ya emitió su evento.
+    bool PresentacionTerminada()
+    {
+        if (_presentacionTerminada) return true;
+        if (!_presentacionInit)
+        {
+            _presentacionInit = true;
+            ExplorerOnboarding.OnOnboardingComplete += () => _presentacionTerminada = true;
+            if (FindAnyObjectByType<ExplorerOnboarding>(FindObjectsInactive.Include) == null)
+                _presentacionTerminada = true;
+        }
+        return _presentacionTerminada;
+    }
+
     bool RetoOk()
     {
         if (_gm == null) _gm = FindAnyObjectByType<GameManager>();
+        if (cualquierReto) return _gm != null;
         return _gm != null && _gm.currentLevel == reto;
     }
 

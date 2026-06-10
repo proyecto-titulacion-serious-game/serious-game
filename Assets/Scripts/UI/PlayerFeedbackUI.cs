@@ -75,6 +75,7 @@ public class PlayerFeedbackUI : MonoBehaviour
     {
         GameManager.OnLevelLoaded               += OnLevelLoaded;
         GameManager.OnLevelCompleted            += OnLevelCompleted;
+        GameManager.OnGameCompleted             += OnGameCompleted;
         ComponentDeliverySystem.OnComponentSent += OnComponentSent;
     }
 
@@ -82,6 +83,7 @@ public class PlayerFeedbackUI : MonoBehaviour
     {
         GameManager.OnLevelLoaded               -= OnLevelLoaded;
         GameManager.OnLevelCompleted            -= OnLevelCompleted;
+        GameManager.OnGameCompleted             -= OnGameCompleted;
         ComponentDeliverySystem.OnComponentSent -= OnComponentSent;
     }
 
@@ -312,10 +314,29 @@ public class PlayerFeedbackUI : MonoBehaviour
 
     void OnLevelCompleted(LevelType level, bool success)
     {
+        // Reto 4 es el reto LIBRE y final: cuando su circuito creado por ellos funciona, mensaje especial.
+        if (success && level == LevelType.Arduino)
+        {
+            Mostrar("¡FELICIDADES!",
+                    "¡Su circuito funciona! El LED parpadea de forma segura.\nDiseñaron y validaron su propio diseño.",
+                    Color.clear, colorCompletado);
+            return;
+        }
+
         string msg = success
             ? $"¡Reto {(int)level + 1} superado!"
             : $"Reto {(int)level + 1} — intenta mejor";
         Mostrar(msg, success ? "Excelente trabajo en equipo." : "Revisa el procedimiento.", Color.clear, colorCompletado);
+    }
+
+    /// <summary>
+    /// Se completaron los 4 retos (fin de la misión). Felicitación final destacada.
+    /// </summary>
+    void OnGameCompleted()
+    {
+        Mostrar("¡MISIÓN CUMPLIDA!",
+                "Completaron los 4 retos en equipo. ¡Excelente trabajo, técnico y explorador!",
+                Color.clear, colorCompletado);
     }
 
     // ─────────────────────────────────────────────

@@ -209,10 +209,10 @@ public class ExplorerTaskClipboard : MonoBehaviour
         }
     }
 
-    void OnSketchReceived(int pin, PinMode mode, PinState state, bool blink, int blinkMs)
+    void OnSketchReceived(int pin, PinMode mode, PinState state, bool blink, int delayOnMs, int delayOffMs)
     {
         string modeStr  = mode  == PinMode.OUTPUT  ? "SALIDA" : "ENTRADA";
-        string blinkStr = blink ? $" · BLINK {blinkMs}ms" : "";
+        string blinkStr = blink ? $" · BLINK {delayOnMs}ms" : "";
         string detail   = $"Pin D{pin} · {modeStr}{blinkStr}";
         ShowNetEvento($"Arduino programado: {detail}", _cyan);
 

@@ -1,7 +1,10 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.InputSystem;   // New Input System (activeInputHandler = 1)
 using TMPro;
 
 /// <summary>
@@ -11,8 +14,16 @@ using TMPro;
 ///   - Modo Bloques: 4 dropdowns (pin, mode, state, extra) → generan preview de código.
 ///   - Modo Código Libre: TMP_InputField con parser Regex (<see cref="ArduinoCodeParser"/>).
 ///
-/// Al compilar, extrae (pin, mode, state, blink, blinkMs) y envía al Explorador
-/// via ArduinoNetworkBridge (Fusion) o ArduinoCore local (modo offline).
+/// Experiencia de IDE (todo con los campos ya cableados — codeEditor, btnUploadCode,
+/// txtConsoleOutput, txtStatus):
+///   - Consola acumulativa con historial (no sobrescribe una sola línea).
+///   - Secuencia "Compilando… → Subiendo…" con feedback por pasos.
+///   - Muestra todas las advertencias pedagógicas del parser, no solo el log principal.
+///   - Atajos: Ctrl+Enter = subir, Ctrl+L = limpiar consola.
+///   - El sketch se guarda en PlayerPrefs (no se pierde al cerrar).
+///
+/// Al compilar, extrae (pin, mode, state, blink, blinkMs) y lo envía al Explorador por el
+/// canal de red COMPARTIDO (GameSession), con fallback a bridge directo y a ArduinoCore local.
 /// </summary>
 public class ArduinoIDEUI : MonoBehaviour
 {
@@ -46,8 +57,27 @@ public class ArduinoIDEUI : MonoBehaviour
     [Tooltip("Label en btnToggleFreeText — se actualiza al cambiar modo.")]
     public TMP_Text       txtToggleLabel;
 
+    [Header("Validación del circuito (Reto 4)")]
+    [Tooltip("Botón opcional del Técnico para COMPROBAR el circuito que arma el Explorador. " +
+             "Si funciona → misión cumplida; si no → seguir construyendo. Atajo: tecla F5.")]
+    public Button btnComprobarCircuito;
+
     [Header("Red (opcional — auto-detectado si vacío)")]
     public ArduinoNetworkBridge bridge;
+
+    [Header("Experiencia de IDE")]
+    [Tooltip("Líneas máximas que conserva la consola antes de descartar las más viejas.")]
+    public int maxConsoleLines = 14;
+    [Tooltip("Retraso simulado de compilación (s) para que se sienta como un compilador real.")]
+    public float compileDelay = 0.45f;
+    [Tooltip("Retraso simulado de subida a la placa (s).")]
+    public float uploadDelay = 0.35f;
+    [Tooltip("Guardar/recuperar el último sketch entre sesiones (PlayerPrefs).")]
+    public bool persistSketch = true;
+    [Tooltip("Resaltado de sintaxis en el editor (overlay construido en runtime).")]
+    public bool enableSyntaxHighlight = true;
+    [Tooltip("Numeración de líneas a la izquierda del editor.")]
+    public bool enableLineNumbers = true;
 
     // ─────────────────────────────────────────────
     //  Aliases para compatibilidad con scripts de editor
@@ -64,10 +94,25 @@ public class ArduinoIDEUI : MonoBehaviour
     // ─────────────────────────────────────────────
     //  Estado interno
     // ─────────────────────────────────────────────
-    private bool _freeTextMode = true;  // Reto 4 sandbox: arrancar siempre en código libre
+    private bool _freeTextMode = true;   // Reto 4 sandbox: arrancar siempre en código libre
+    private bool _isCompiling   = false; // anti doble-click / doble Ctrl+Enter
+    private int  _lastDiagSeq   = -1;    // -1 = aún sin sincronizar con GameSession
+
+    // Gating del botón "Subir": solo habilitado cuando hay una placa que reciba el sketch.
+    private float _readyCheckCd    = 0f;     // throttle del chequeo (no cada frame)
+    private bool? _lastReadyLogged = null;   // para avisar solo al cambiar de estado
+
+    private readonly List<string> _console = new List<string>();
+    private const string PrefKey = "TITA.Reto4.LastSketch";
+
+    // Colores reutilizables
+    static readonly Color CInfo  = new Color(0.67f, 1f, 1f);     // cian claro
+    static readonly Color COk    = new Color(0f, 1f, 0.5f);
+    static readonly Color CWarn  = new Color(1f, 0.67f, 0f);
+    static readonly Color CErr   = new Color(1f, 0.27f, 0.27f);
 
     // ─────────────────────────────────────────────
-    //  Unity — Opción A: suscripción a evento de red
+    //  Unity — suscripción a evento de red
     // ─────────────────────────────────────────────
 
     void OnEnable()
@@ -83,19 +128,21 @@ public class ArduinoIDEUI : MonoBehaviour
     {
         ArduinoNetworkBridge.OnBridgeReady     -= OnBridgeConnected;
         ArduinoNetworkBridge.OnBridgeDestroyed -= OnBridgeDisconnected;
+
+        if (persistSketch && codeEditor != null)
+            SaveSketch();
     }
 
     void OnBridgeConnected(ArduinoNetworkBridge b)
     {
         bridge = b;
-        SetStatus("Placa conectada.", new Color(0f, 1f, 0.7f));
-        Debug.Log("[ArduinoIDEUI] ArduinoNetworkBridge conectado automáticamente.");
+        RefreshBoardReady(); // habilita el botón y avisa al cambiar de estado
     }
 
     void OnBridgeDisconnected(ArduinoNetworkBridge _)
     {
         bridge = null;
-        SetStatus("Placa desconectada.", Color.yellow);
+        RefreshBoardReady(); // re-gatea según si aún queda canal (red) hacia la placa
     }
 
     void Start()
@@ -107,21 +154,92 @@ public class ArduinoIDEUI : MonoBehaviour
 
         if (btnUploadCode    != null) btnUploadCode.onClick.AddListener(CompileAndSend);
         if (btnToggleFreeText != null) btnToggleFreeText.onClick.AddListener(ToggleFreeTextMode);
+        if (btnComprobarCircuito != null) btnComprobarCircuito.onClick.AddListener(ComprobarCircuito);
 
-        // Iniciar en modo bloques
+        // El editor nunca arranca vacío: recupera el último sketch o carga el template.
+        if (codeEditor != null && string.IsNullOrWhiteSpace(codeEditor.text))
+        {
+            string saved = persistSketch ? PlayerPrefs.GetString(PrefKey, "") : "";
+            codeEditor.text = !string.IsNullOrWhiteSpace(saved)
+                ? saved
+                : ArduinoCodeParser.StarterTemplate;
+        }
+
+        // Resaltado de sintaxis + números de línea (overlay construido en runtime, sin tocar prefab).
+        if (codeEditor != null && (enableSyntaxHighlight || enableLineNumbers))
+        {
+            var hl = codeEditor.GetComponent<ArduinoSyntaxHighlighter>();
+            if (hl == null) hl = codeEditor.gameObject.AddComponent<ArduinoSyntaxHighlighter>();
+            hl.Initialize(codeEditor, enableLineNumbers, enableSyntaxHighlight);
+        }
+
         ApplyModeVisibility();
         UpdateCodePreview();
+
+        // Banner de bienvenida en la consola (estilo IDE).
+        LogLine("<color=#7FDBFF>TITA Arduino IDE - Reto 4</color>");
+        LogLine("<color=#888888>Ctrl+Enter = Subir   |   Ctrl+L = Limpiar consola</color>");
         SetStatus("Esperando conexión de placa...", Color.grey);
+
+        // El botón "Subir" arranca deshabilitado hasta que haya placa que reciba el sketch.
+        if (btnUploadCode != null) btnUploadCode.interactable = false;
+        RefreshBoardReady();
+    }
+
+    // ─────────────────────────────────────────────
+    //  Atajos de teclado (New Input System)
+    // ─────────────────────────────────────────────
+    void Update()
+    {
+        PollDiagnosticoReto4();
+
+        // Re-evaluar (con throttle) si la placa está lista → habilita/deshabilita "Subir".
+        _readyCheckCd -= Time.unscaledDeltaTime;
+        if (_readyCheckCd <= 0f) { _readyCheckCd = 0.25f; RefreshBoardReady(); }
+
+        var kb = Keyboard.current;
+        if (kb == null) return;
+
+        // F5 = comprobar el circuito (sin Ctrl).
+        if (kb.f5Key.wasPressedThisFrame) { ComprobarCircuito(); return; }
+
+        bool ctrl = kb.leftCtrlKey.isPressed || kb.rightCtrlKey.isPressed;
+        if (!ctrl) return;
+
+        if (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame)
+            CompileAndSend();
+        else if (kb.lKey.wasPressedThisFrame)
+            ClearConsole();
+    }
+
+    // ─────────────────────────────────────────────
+    //  Feedback graduado del Reto 4 (Explorador → consola del Técnico)
+    // ─────────────────────────────────────────────
+    void PollDiagnosticoReto4()
+    {
+        var gs = GameSession.Instance;
+        if (gs == null) return;
+
+        // Sincronización inicial: no mostrar diagnósticos previos a esta sesión de UI.
+        if (_lastDiagSeq < 0) { _lastDiagSeq = gs.DiagSeq; return; }
+        if (gs.DiagSeq == _lastDiagSeq) return;
+        _lastDiagSeq = gs.DiagSeq;
+
+        if (gs.DiagExito)
+        {
+            LogLine("<color=#00FF7F>> Circuito validado por el Explorador. Reto completado.</color>");
+            SetStatus("Circuito validado.", COk);
+            return;
+        }
+
+        string txt = Reto4Feedback.Construir(gs.DiagNivel, gs.DiagPin, (Reto4Diagnostico)gs.DiagMotivo);
+        if (!string.IsNullOrEmpty(txt)) LogLine(txt);
     }
 
     // ─────────────────────────────────────────────
     //  Toggle de modo
     // ─────────────────────────────────────────────
 
-    /// <summary>
-    /// Alterna entre Modo Bloques y Modo Texto Libre.
-    /// Al entrar al modo libre por primera vez, carga la plantilla starter.
-    /// </summary>
     public void ToggleFreeTextMode()
     {
         _freeTextMode = !_freeTextMode;
@@ -133,14 +251,13 @@ public class ArduinoIDEUI : MonoBehaviour
         }
 
         ApplyModeVisibility();
-        Log(_freeTextMode
+        LogLine(_freeTextMode
             ? "<color=#AAFFFF>> Modo Texto Libre activado. Edita el sketch directamente.</color>"
             : "<color=#AAFFFF>> Modo Bloques activado.</color>");
     }
 
     void ApplyModeVisibility()
     {
-        // Elementos solo del modo bloques
         SetActiveIfNotNull(pinDropdown?.gameObject,    !_freeTextMode);
         SetActiveIfNotNull(modeDropdown?.gameObject,   !_freeTextMode);
         SetActiveIfNotNull(actionDropdown?.gameObject, !_freeTextMode);
@@ -148,7 +265,6 @@ public class ArduinoIDEUI : MonoBehaviour
         SetActiveIfNotNull(blinkMsInput?.gameObject,   !_freeTextMode);
         SetActiveIfNotNull(txtCodePreview?.gameObject, !_freeTextMode);
 
-        // Elemento solo del modo libre
         SetActiveIfNotNull(codeEditor?.gameObject, _freeTextMode);
 
         if (txtToggleLabel != null)
@@ -190,10 +306,88 @@ public class ArduinoIDEUI : MonoBehaviour
     }
 
     // ─────────────────────────────────────────────
-    //  Compilar y enviar
+    //  Compilar y enviar  (kick → corrutina)
     // ─────────────────────────────────────────────
     void CompileAndSend()
     {
+        if (_isCompiling) return;
+        if (!isActiveAndEnabled) return;   // no arrancar corrutina si el GO está inactivo
+
+        // Gate: no enviar al vacío. Cubre también el atajo Ctrl+Enter (no solo el botón gris).
+        if (!IsBoardReady())
+        {
+            SetStatus("Esperando al Explorador (VR)...", CWarn);
+            LogLine("<color=#FFAA00>> Aún no hay placa conectada. Espera a que el Explorador " +
+                    "cargue su escena VR antes de subir.</color>");
+            return;
+        }
+
+        StartCoroutine(CompileRoutine());
+    }
+
+    // ─────────────────────────────────────────────
+    //  Gating del botón "Subir"
+    // ─────────────────────────────────────────────
+
+    /// <summary>
+    /// La placa está lista para recibir el sketch si:
+    ///   • hay un ArduinoNetworkBridge local (escena única / IntegratedDemo), o
+    ///   • el Explorador reportó su Arduino vivo por red (<see cref="GameSession.ExploradorListo"/>), o
+    ///   • existe un ArduinoCore local (modo offline / escena única).
+    /// En el setup asimétrico el bridge NO llega al PC del Técnico, de ahí la vía de red.
+    /// </summary>
+    bool IsBoardReady()
+    {
+        if (bridge != null) return true;
+        if (GameSession.Instance != null && GameSession.Instance.ExploradorListo) return true;
+        return FindAnyObjectByType<ArduinoCore>() != null;
+    }
+
+    /// <summary>Refresca el estado interactable del botón "Subir" y avisa solo al cambiar de estado.</summary>
+    void RefreshBoardReady()
+    {
+        bool ready = IsBoardReady();
+
+        if (btnUploadCode != null)
+            btnUploadCode.interactable = ready && !_isCompiling;
+
+        if (_lastReadyLogged != ready)
+        {
+            _lastReadyLogged = ready;
+            if (ready)
+            {
+                SetStatus("Placa lista para subir.", COk);
+                LogLine("<color=#00FF7F>> Placa Arduino lista. Ya puedes subir el sketch.</color>");
+            }
+            else
+            {
+                SetStatus("Esperando al Explorador (VR)...", Color.grey);
+            }
+        }
+    }
+
+    IEnumerator CompileRoutine()
+    {
+        _isCompiling = true;
+        if (btnUploadCode != null) btnUploadCode.interactable = false;
+
+        // ── Validación temprana de modo libre ───────────────────────────────
+        if (_freeTextMode && (codeEditor == null || string.IsNullOrWhiteSpace(codeEditor.text)))
+        {
+            SetStatus("El editor está vacío.", CErr);
+            LogLine("<color=#FF4444>> ERROR: Escribe un sketch antes de compilar.</color>");
+            FinishCompile();
+            yield break;
+        }
+
+        if (persistSketch) SaveSketch();
+
+        // ── Fase 1: compilar ────────────────────────────────────────────────
+        LogLine($"<color=#666666>------------ {DateTime.Now:HH:mm:ss} ------------</color>");
+        LogLine("<color=#AAFFFF>> Compilando sketch...</color>");
+        SetStatus("Compilando...", CWarn);
+        if (compileDelay > 0f) yield return new WaitForSeconds(compileDelay);
+
         int  pinNum   = 13;
         bool isOutput = true;
         bool isHigh   = true;
@@ -202,23 +396,23 @@ public class ArduinoIDEUI : MonoBehaviour
 
         if (_freeTextMode)
         {
-            // ── Ruta texto libre: parsear con ArduinoCodeParser ──────────
-            if (codeEditor == null || string.IsNullOrWhiteSpace(codeEditor.text))
-            {
-                SetStatus("El editor está vacío.", Color.red);
-                Log("<color=#FF4444>> ERROR: Escribe un sketch antes de compilar.</color>");
-                return;
-            }
-
             var data = ArduinoCodeParser.Parse(codeEditor.text);
 
-            // Mostrar resultado del compilador en la consola del IDE
             bool isOk = data.log != null && data.log.StartsWith("OK");
-            Log(isOk
-                ? $"<color=#00FF7F>> {data.log}</color>"
-                : $"<color=#FFAA00>> {data.log}</color>");
+            LogLine(isOk ? $"<color=#00FF7F>> {data.log}</color>"
+                         : $"<color=#FFAA00>> {data.log}</color>");
 
-            if (!data.isValid) return;
+            // Mostrar TODAS las advertencias pedagógicas (antes se ignoraban).
+            if (data.warnings != null)
+                foreach (var w in data.warnings)
+                    LogLine($"<color=#FFD27F>   [!] {w}</color>");
+
+            if (!data.isValid)
+            {
+                SetStatus("Error de compilación.", CErr);
+                FinishCompile();
+                yield break;
+            }
 
             pinNum   = data.pinNumber;
             isOutput = data.mode  == PinMode.OUTPUT;
@@ -228,12 +422,11 @@ public class ArduinoIDEUI : MonoBehaviour
         }
         else
         {
-            // ── Ruta modo bloques ────────────────────────────────────────
-            string pinStr  = GetOption(pinDropdown, "13");
-            string mode    = GetOption(modeDropdown, "OUTPUT");
-            string action  = GetOption(actionDropdown, "HIGH");
-            blink   = action == "BLINK" ||
-                      (extraDropdown != null && GetOption(extraDropdown, "NONE") == "BLINK");
+            string pinStr = GetOption(pinDropdown, "13");
+            string mode   = GetOption(modeDropdown, "OUTPUT");
+            string action = GetOption(actionDropdown, "HIGH");
+            blink = action == "BLINK" ||
+                    (extraDropdown != null && GetOption(extraDropdown, "NONE") == "BLINK");
 
             if (!int.TryParse(pinStr, out pinNum))
             {
@@ -242,48 +435,136 @@ public class ArduinoIDEUI : MonoBehaviour
             }
 
             if (blinkMsInput != null && int.TryParse(blinkMsInput.text, out int parsed)) blinkMs = parsed;
-            isOutput = mode == "OUTPUT";
+            isOutput = mode   == "OUTPUT";
             isHigh   = action == "HIGH";
+            LogLine($"<color=#00FF7F>> Bloques compilados - Pin D{pinNum}.</color>");
         }
 
-        // ── Enviar por el canal de red COMPARTIDO (GameSession) ──────────
-        // GameSession la spawnea el Host y se replica al Explorador, así que su RPC cruza
-        // entre escenas distintas. El bridge de escena solo existe en Explorador.unity y no
-        // llega al Técnico, por eso se prioriza GameSession en el setup asimétrico.
-        if (GameSession.Instance != null)
+        // ── Fase 2: subir a la placa ────────────────────────────────────────
+        LogLine("<color=#AAFFFF>> Subiendo a la placa...</color>");
+        SetStatus("Subiendo...", CWarn);
+        if (uploadDelay > 0f) yield return new WaitForSeconds(uploadDelay);
+
+        string channel = SendToBoard(pinNum, isOutput, isHigh, blink, blinkMs);
+        if (channel == null)
         {
-            GameSession.Instance.RPC_SubirCodigoArduino(pinNum, isOutput, isHigh, blink ? blinkMs : 0f, blink);
-            SetStatus($"Codigo subido — Pin D{pinNum}.", Color.green);
-            if (!_freeTextMode)
-                Log($"<color=#00FF7F>> Upload OK — Pin D{pinNum}. No errors.</color>");
+            Debug.LogWarning("[ArduinoIDEUI] No hay GameSession, ArduinoNetworkBridge ni ArduinoCore en escena.");
+            SetStatus("Sin conexión con Arduino.", CErr);
+            LogLine("<color=#FF4444>> ERROR: Arduino no encontrado en escena.</color>");
+            FinishCompile();
+            yield break;
+        }
+
+        string suffix = channel == "offline" ? " (offline)" : "";
+        SetStatus($"Código subido - Pin D{pinNum}.", COk);
+        LogLine($"<color=#00FF7F>> Upload OK{suffix} - Pin D{pinNum}. No errors.</color>");
+
+        FinishCompile();
+    }
+
+    void FinishCompile()
+    {
+        _isCompiling = false;
+        RefreshBoardReady(); // restaura interactable según si la placa sigue lista (no a ciegas)
+    }
+
+    /// <summary>
+    /// Comprueba el circuito del Reto 4 (lo arma el Explorador). Si funciona → misión cumplida
+    /// (dispara el flujo de victoria: ¡FELICIDADES!); si no → mensaje para seguir construyendo.
+    /// Lo llama el botón 'btnComprobarCircuito' o la tecla F5.
+    /// </summary>
+    public void ComprobarCircuito()
+    {
+        var gm = FindAnyObjectByType<GameManager>();
+        if (gm == null)
+        {
+            SetStatus("No se encontró el GameManager.", CErr);
+            LogLine("<color=#FF4444>> ERROR: no se pudo comprobar (GameManager ausente).</color>");
             return;
         }
 
-        // ── Bridge directo (escena única / IntegratedDemo, sin GameSession) ──
+        LogLine("<color=#AAFFFF>> Comprobando circuito del Explorador...</color>");
+        bool ok = gm.EvaluacionManualBotonFisico();   // dispara CompleteLevel + ¡FELICIDADES! si pasa
+
+        if (ok)
+        {
+            SetStatus("¡Circuito validado! Misión cumplida.", COk);
+            LogLine("<color=#00FF7F>> ¡EL CIRCUITO FUNCIONA! Misión cumplida.</color>");
+        }
+        else
+        {
+            SetStatus("Circuito incompleto — sigan construyendo.", CWarn);
+            LogLine("<color=#FFAA00>> Aún no funciona. Sigan construyendo: LED + resistencia (>=100Ω) + " +
+                    "cierre a GND, y que el sketch tenga BLINK.</color>");
+        }
+    }
+
+    /// <summary>
+    /// Envía el sketch por la cascada de canales y devuelve cuál se usó
+    /// ("red" / "bridge" / "offline"), o null si no hay ninguno.
+    ///
+    /// Se prioriza GameSession (objeto spawneado por el Host y replicado al Explorador) porque
+    /// el ArduinoNetworkBridge es de escena y solo existe en Explorador.unity — no llega al
+    /// Técnico en el setup asimétrico de 2 escenas.
+    /// </summary>
+    string SendToBoard(int pin, bool isOutput, bool isHigh, bool blink, int blinkMs)
+    {
+        if (GameSession.Instance != null)
+        {
+            GameSession.Instance.RPC_SubirCodigoArduino(pin, isOutput, isHigh, blinkMs, blinkMs, blink);
+            return "red";
+        }
+
         var nb = bridge != null ? bridge : FindAnyObjectByType<ArduinoNetworkBridge>();
         if (nb != null)
         {
-            nb.RPC_SubirCodigoArduino(pinNum, isOutput, isHigh, blink ? blinkMs : 0f, blink);
-            SetStatus($"Codigo subido — Pin D{pinNum}.", Color.green);
-            if (!_freeTextMode)
-                Log($"<color=#00FF7F>> Upload OK — Pin D{pinNum}. No errors.</color>");
-            return;
+            nb.RPC_SubirCodigoArduino(pin, isOutput, isHigh, blinkMs, blinkMs, blink);
+            return "bridge";
         }
 
-        // ── Fallback offline: aplicar directo al ArduinoCore local ───────
         var core = FindAnyObjectByType<ArduinoCore>();
         if (core != null)
         {
-            core.RecibirCodigoDePC(pinNum, isOutput, isHigh, blinkMs, blink);
-            SetStatus($"Codigo subido (offline) — Pin D{pinNum}.", Color.green);
-            if (!_freeTextMode)
-                Log($"<color=#00FF7F>> Upload OK (offline) — Pin D{pinNum}. No errors.</color>");
+            core.RecibirCodigoDePC(pin, isOutput, isHigh, blinkMs, blinkMs, blink);
+            return "offline";
+        }
+
+        return null;
+    }
+
+    // ─────────────────────────────────────────────
+    //  Persistencia del sketch
+    // ─────────────────────────────────────────────
+    void SaveSketch()
+    {
+        if (codeEditor == null) return;
+        PlayerPrefs.SetString(PrefKey, codeEditor.text);
+        PlayerPrefs.Save();
+    }
+
+    // ─────────────────────────────────────────────
+    //  Consola acumulativa (estilo IDE)
+    // ─────────────────────────────────────────────
+    void LogLine(string richText)
+    {
+        if (txtConsoleOutput == null)
+        {
+            Debug.Log($"[ArduinoIDEUI] {richText}");
             return;
         }
 
-        Debug.LogWarning("[ArduinoIDEUI] No hay ArduinoNetworkBridge ni ArduinoCore en escena.");
-        SetStatus("Sin conexión con Arduino.", Color.red);
-        Log("<color=#FF4444>> ERROR: Arduino no encontrado en escena.</color>");
+        _console.Add(richText);
+        int max = Mathf.Max(1, maxConsoleLines);
+        while (_console.Count > max) _console.RemoveAt(0);
+
+        txtConsoleOutput.text = string.Join("\n", _console);
+    }
+
+    /// <summary>Limpia la consola (Ctrl+L o desde botón).</summary>
+    public void ClearConsole()
+    {
+        _console.Clear();
+        if (txtConsoleOutput != null) txtConsoleOutput.text = string.Empty;
     }
 
     // ─────────────────────────────────────────────
@@ -303,11 +584,5 @@ public class ArduinoIDEUI : MonoBehaviour
             txtStatus.color = c;
         }
         Debug.Log($"[ArduinoIDEUI] {msg}");
-    }
-
-    void Log(string richText)
-    {
-        if (txtConsoleOutput != null)
-            txtConsoleOutput.text = richText;
     }
 }

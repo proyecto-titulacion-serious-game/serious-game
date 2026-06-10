@@ -155,22 +155,42 @@ public class TechnicianManual : MonoBehaviour
             "circuito es correcto, sin importar que pin usaron.",
 
         formula =
-            "COMO ESCRIBIR EL SKETCH:\n\n" +
-            "1. Clic en el monitor del PC_Arduino\n" +
-            "   → Se abre el IDE de codigo libre\n\n" +
-            "2. Escribe (reemplaza __ con tu pin):\n\n" +
+            "QUE HACE CADA COMANDO:\n" +
+            "━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+            "pinMode(pin, OUTPUT)\n" +
+            "   Configura el pin como SALIDA (manda\n" +
+            "   corriente). Va en setup(). Para un LED\n" +
+            "   SIEMPRE OUTPUT (INPUT = entrada, no sirve).\n" +
+            "digitalWrite(pin, HIGH)\n" +
+            "   Pin a 5V -> ENCIENDE el LED.\n" +
+            "digitalWrite(pin, LOW)\n" +
+            "   Pin a 0V -> APAGA el LED.\n" +
+            "delay(ms)\n" +
+            "   ESPERA (1000 ms = 1 s). Hace visible el\n" +
+            "   parpadeo.\n" +
+            "setup() corre 1 vez | loop() se repite siempre\n\n" +
+            "COMO ELEGIR / VER EL PIN:\n" +
+            "━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+            "Los pines van rotulados D2..D13 en la placa\n" +
+            "(el Explorador los ve en VR). El NUMERO que\n" +
+            "escribas = el pin que se activa. Escribe 7 ->\n" +
+            "se enciende D7. AVISA AL EXPLORADOR que pin\n" +
+            "elegiste: el debe conectar el LED a ESE pin.\n\n" +
+            "PASOS:\n" +
+            "1. Clic en el monitor del PC_Arduino (abre IDE)\n" +
+            "2. Escribe el sketch (reemplaza __ por tu pin):\n" +
             "     void setup() {\n" +
             "       pinMode(__, OUTPUT);\n" +
-            "     }\n\n" +
+            "     }\n" +
             "     void loop() {\n" +
             "       digitalWrite(__, HIGH);\n" +
             "       delay(500);\n" +
             "       digitalWrite(__, LOW);\n" +
             "       delay(500);\n" +
-            "     }\n\n" +
-            "3. Clic COMPILAR → consola muestra:\n" +
-            "     OK  Pin D__  OUTPUT  BLINK 500ms\n\n" +
-            "4. Clic SUBIR → pin activo en ArduinoCore",
+            "     }\n" +
+            "3. COMPILAR (Ctrl+Enter) -> consola:\n" +
+            "     OK  Pin D__  OUTPUT  BLINK 500ms\n" +
+            "4. SUBIR -> el pin queda activo en el Arduino",
 
         objetivo =
             "PASOS DEL RETO:\n\n" +
@@ -195,18 +215,28 @@ public class TechnicianManual : MonoBehaviour
             "PINES DIGITALES DISPONIBLES:\n" +
             "━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
             "D2  D3  D4  D5  D6  D7\n" +
-            "D8  D9  D10 D11 D12 D13\n\n" +
-            "  → Cualquiera sirve para el LED\n" +
-            "  → Evita D0 y D1 (Serial RX/TX)\n\n" +
+            "D8  D9  D10 D11 D12 D13\n" +
+            "  → Cualquiera sirve · Evita D0 y D1 (RX/TX)\n\n" +
             "RESISTENCIA RECOMENDADA:\n" +
-            "  330 Ohm = Naranja-Naranja-Marron-Oro\n\n" +
-            "CALCULO SEGURO:\n" +
-            "  R = (5V - 2V) / 0.01A = 300 Ohm\n" +
-            "  → 330 Ohm (standard, seguro)\n\n" +
-            "TELEMETRIA (monitor derecho):\n" +
-            "  V: voltaje en pin activo\n" +
-            "  I: corriente en mA\n" +
-            "  ADC: lectura analogica A0",
+            "  330 Ohm = Naranja-Naranja-Marron-Oro\n" +
+            "  R = (5V - 2V) / 0.01A = 300 -> usa 330 Ohm\n\n" +
+            "HUD / TELEMETRIA — QUE SIGNIFICA CADA DATO:\n" +
+            "━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+            "  V   : voltaje en el pin activo (~5V en HIGH)\n" +
+            "  I   : corriente en mA (pequena y estable)\n" +
+            "  P   : potencia en W (consumo, debe ser bajo)\n" +
+            "  ADC : sensor analogico A0, valor 0..1023\n" +
+            "        (0V=0 ; 5V=1023)\n\n" +
+            "ESTADO DEL SISTEMA (texto de color):\n" +
+            "  VERDE  OPERACION SEGURA  -> objetivo OK\n" +
+            "  ROJO   CORTOCIRCUITO     -> FALTA la\n" +
+            "         resistencia o hay un corto\n" +
+            "  NARANJA CIRCUITO ABIERTO (0 mA) -> cable\n" +
+            "         suelto o no cierra a GND\n\n" +
+            "COMO GUIAR AL EXPLORADOR CON EL HUD:\n" +
+            "  Ves ROJO    -> 'revisa/agrega la resistencia'\n" +
+            "  Ves 0 mA    -> 'revisa el cable a GND'\n" +
+            "  Ves VERDE   -> 'cierra y valida'",
 
         programaReferencia =
             "EJEMPLO DE SKETCH — RETO 4:\n\n" +

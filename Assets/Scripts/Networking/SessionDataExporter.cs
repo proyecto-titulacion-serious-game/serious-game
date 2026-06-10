@@ -16,12 +16,16 @@ public class SessionDataExporter : MonoBehaviour
 
     private readonly object      _lock = new object();
     private SessionExportData    _data = new SessionExportData();
+    private SessionHistory       _history = new SessionHistory();
+
+    const string HISTORY_FILE = "sessions_history.json";
 
     // ─────────────────────────────────────────────
     void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
+        LoadHistory();
     }
 
     void OnEnable()
@@ -43,6 +47,12 @@ public class SessionDataExporter : MonoBehaviour
     public SessionExportData GetSnapshot()
     {
         lock (_lock) { return _data; }
+    }
+
+    /// <summary>Historial (lista) de todas las sesiones finalizadas — para el dashboard.</summary>
+    public SessionHistory GetHistorySnapshot()
+    {
+        lock (_lock) { return _history; }
     }
 
     public void SetAccessCode(string code)
@@ -72,16 +82,26 @@ public class SessionDataExporter : MonoBehaviour
         for (int i = 0; i < records.Count; i++)
             serialized[i] = new LevelRecordDto(records[i]);
 
+        string stamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+
         lock (_lock)
         {
             _data.hasResult    = true;
             _data.state        = "Sesión finalizada";
             _data.summary      = new SessionResultDto(result);
             _data.records      = serialized;
-            _data.timestamp    = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+            _data.timestamp    = stamp;
+
+            // Añadir esta sesión al HISTORIAL (lista de todas las sesiones).
+            var lista = new List<SessionSummaryDto>(_history.sessions)
+            {
+                new SessionSummaryDto(result, stamp, _data.accessCode)
+            };
+            _history.sessions = lista.ToArray();
         }
 
         SaveToDisk();
+        SaveHistory();
     }
 
     // ─────────────────────────────────────────────
@@ -101,6 +121,40 @@ public class SessionDataExporter : MonoBehaviour
         catch (Exception e)
         {
             Debug.LogWarning($"[SessionDataExporter] Error al guardar: {e.Message}");
+        }
+    }
+
+    void LoadHistory()
+    {
+        try
+        {
+            string path = Path.Combine(Application.persistentDataPath, HISTORY_FILE);
+            if (!File.Exists(path)) return;
+            var loaded = JsonUtility.FromJson<SessionHistory>(File.ReadAllText(path));
+            if (loaded != null && loaded.sessions != null) _history = loaded;
+            Debug.Log($"[SessionDataExporter] Historial cargado: {_history.sessions.Length} sesiones.");
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[SessionDataExporter] No se pudo cargar el historial: {e.Message}");
+        }
+    }
+
+    void SaveHistory()
+    {
+        try
+        {
+            SessionHistory snapshot;
+            lock (_lock) { snapshot = _history; }
+
+            string json = JsonUtility.ToJson(snapshot, prettyPrint: true);
+            string path = Path.Combine(Application.persistentDataPath, HISTORY_FILE);
+            File.WriteAllText(path, json);
+            Debug.Log($"[SessionDataExporter] Historial guardado ({snapshot.sessions.Length} sesiones) en: {path}");
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[SessionDataExporter] Error al guardar el historial: {e.Message}");
         }
     }
 
@@ -169,5 +223,41 @@ public class LevelRecordDto
         errors      = r.errors;
         success     = r.success;
         evaluation  = r.evaluation;
+    }
+}
+
+// ─────────────────────────────────────────────────────────
+//  Historial de sesiones (lista para el dashboard)
+// ─────────────────────────────────────────────────────────
+
+[Serializable]
+public class SessionHistory
+{
+    public SessionSummaryDto[] sessions = Array.Empty<SessionSummaryDto>();
+}
+
+[Serializable]
+public class SessionSummaryDto
+{
+    public string timestamp  = "";
+    public string accessCode = "----";
+    public string evaluation = "";
+    public int    totalScore;
+    public int    maxScore;
+    public float  scorePercent;
+    public int    totalErrors;
+    public float  totalTimeSeconds;
+
+    public SessionSummaryDto() { }
+    public SessionSummaryDto(SessionResult r, string stamp, string code)
+    {
+        timestamp        = stamp;
+        accessCode       = code;
+        evaluation       = r.evaluation;
+        totalScore       = r.totalScore;
+        maxScore         = r.maxScore;
+        scorePercent     = r.scorePercent;
+        totalErrors      = r.totalErrors;
+        totalTimeSeconds = r.totalTimeSeconds;
     }
 }

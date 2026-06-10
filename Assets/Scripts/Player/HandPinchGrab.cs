@@ -9,26 +9,16 @@ using UnityEngine.XR.Hands;
 /// <summary>
 /// Complemento para XRDirectInteractor que activa el grab cuando detecta
 /// gesto de pinch de la mano (pulgar + índice).
-///
-/// SETUP:
-///   Añadir al mismo GO que XRDirectInteractor en cada mano.
-///   Requiere: com.unity.xr.hands instalado.
-///
-/// FALLBACK:
-///   Si XR Hands no está disponible (compilado sin Quest o sin el paquete),
-///   usa el trigger del controlador como activador equivalente.
 /// </summary>
 [RequireComponent(typeof(XRBaseInteractor))]
 public class HandPinchGrab : MonoBehaviour
 {
     [Header("Configuración del pinch")]
-    [Tooltip("Qué mano controla este interactor.")]
     public Handedness handedness = Handedness.Right;
 
     [Tooltip("Umbral de distancia pulgar-índice (metros) para considerar pinch activo.")]
     [Range(0.005f, 0.05f)] public float pinchThreshold = 0.025f;
 
-    // ─────────────────────────────────────────────
     private XRBaseInteractor _interactor;
     private bool             _pinchActive;
 
@@ -61,8 +51,8 @@ public class HandPinchGrab : MonoBehaviour
         {
             _pinchActive = pinchThisFrame;
 
-            // Activar/desactivar el interactor según el gesto
-            _interactor.enabled = _pinchActive;
+            // CORRECCIÓN: Permitir explorar (Hover) siempre, pero solo agarrar (Select) al hacer pinza.
+            _interactor.allowSelect = _pinchActive;
         }
     }
 
@@ -88,17 +78,11 @@ public class HandPinchGrab : MonoBehaviour
             }
         }
 #endif
-        // Fallback: leer trigger del controlador físico
         return ReadControllerTrigger();
     }
 
     bool ReadControllerTrigger()
     {
-        string axis = handedness == Handedness.Right
-            ? "XRI_Right_Trigger"
-            : "XRI_Left_Trigger";
-
-        // Intenta leer el eje de Input System — si no existe, usa valor 0
         try
         {
             var triggerAction = handedness == Handedness.Right
@@ -111,5 +95,4 @@ public class HandPinchGrab : MonoBehaviour
     }
 }
 
-// Enum para evitar dependencia de OVR
 public enum Handedness { Left, Right }

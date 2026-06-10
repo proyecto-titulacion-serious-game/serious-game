@@ -3,31 +3,38 @@ using UnityEngine;
 
 /// <summary>
 /// Genera el prefab GameManager_System con todos los subsistemas
-/// del juego en un solo GameObject, con las referencias internas
-/// ya cableadas.
+/// del juego en un solo GameObject, con las referencias internas ya cableadas.
 ///
-/// Menú: Tools → TITA → Generar Prefab GameManager
+/// Menu: Tools → TITA → Generar Prefab GameManager
 /// Resultado: Assets/Prefabs/GameManager_System.prefab
 ///
-/// Scripts incluidos y su cableado interno:
-///   GameManager          ← núcleo del juego
-///   PerformanceTracker   ← gm.performance
-///   InstructionSystem    ← gm.instructionSystem / instr.gameManager / instr.technicianActions
-///   ObjectiveSystem      ← obj.gameManager / obj.performance
+/// Motor dual de simulacion:
+///   Retos 1-3 → CircuitSimulator  (campo gm.circuit,  se resuelve en runtime)
+///   Reto  4   → ProtoboardSimulator (campo gm.protoSim, se resuelve en runtime)
+///
+/// Scripts incluidos y cableado interno:
+///   GameManager             ← nucleo del juego
+///   PerformanceTracker      ← gm.performance
+///   InstructionSystem       ← gm.instructionSystem / instr.gameManager / instr.technicianActions
+///   ObjectiveSystem         ← obj.gameManager / obj.performance
 ///   ComponentDeliverySystem ← delivery.gameManager
-///   TechnicianActions    ← techAct.gameManager / techAct.performance / techAct.instructionSystem
+///   TechnicianActions       ← techAct.gameManager / techAct.performance / techAct.instructionSystem
+///   ConnectionManager       ← connMgr.gameManager (red Fusion Host<->Client)
 ///
 /// REFERENCIAS EXTERNAS — asignar en Inspector tras colocar en escena:
-///   GameManager          → multimeter, reto1Zone–reto4Zone
-///   InstructionSystem    → multimeter
-///   TechnicianActions    → circuit, multimeter
-///   ComponentDeliverySystem → puntoDeEntrega, resistorPrefab, ledPrefab,
-///                             capacitorPrefab, arduinoPinPrefab
-///
-/// NOTA: gameManager.circuit y technicianActions.circuit se resuelven
-///   en runtime: ActivateComponentsForLevel() actualiza gameManager.circuit
-///   automáticamente al cambiar de zona. Asigna también technicianActions.circuit
-///   a la zona activa inicial (Reto1_Zone → su CircuitManager).
+///   GameManager
+///     • multimeter         → Multimeter_VR
+///     • reto1Zone–reto4Zone → zonas generadas por Vol2RetosBuilder
+///     • circuit            → CircuitSimulator del Reto1_Zone (Retos 1-3; auto-detecta al cambiar zona)
+///     • protoSim           → ProtoboardSimulator del Reto4 (auto-detecta en runtime si se deja vacio)
+///   InstructionSystem
+///     • multimeter         → Multimeter_VR
+///   TechnicianActions
+///     • circuit            → CircuitManager del Reto1_Zone (solo Retos 1-3)
+///     • multimeter         → Multimeter_VR
+///   ComponentDeliverySystem
+///     • puntoDeEntrega     → Bandeja_Recepcion (Explorer)
+///     • resistorPrefab / ledPrefab / capacitorPrefab / arduinoPinPrefab
 /// </summary>
 public static class GameManagerPrefabGenerator
 {
@@ -36,69 +43,81 @@ public static class GameManagerPrefabGenerator
     [MenuItem("Tools/TITA/Generar Prefab GameManager")]
     public static void Generate()
     {
-        // ── Confirmar sobreescritura ────────────────────────────────────────
+        // ── Confirmar sobreescritura ───────────────────────────────────────
         if (AssetDatabase.LoadAssetAtPath<GameObject>(PREFAB_PATH) != null)
         {
             bool overwrite = EditorUtility.DisplayDialog(
                 "Prefab ya existe",
                 $"Ya existe:\n{PREFAB_PATH}\n\n¿Sobreescribir?",
-                "Sí, sobreescribir", "Cancelar");
+                "Si, sobreescribir", "Cancelar");
             if (!overwrite) return;
         }
 
-        // ── Raíz ────────────────────────────────────────────────────────────
+        // ── Crear carpeta si no existe ─────────────────────────────────────
+        if (!AssetDatabase.IsValidFolder("Assets/Prefabs"))
+            AssetDatabase.CreateFolder("Assets", "Prefabs");
+
+        // ── Raiz ──────────────────────────────────────────────────────────
         var root = new GameObject("GameManager_System");
 
-        // ── Añadir subsistemas ───────────────────────────────────────────────
+        // ── Subsistemas ────────────────────────────────────────────────────
         var gm       = root.AddComponent<GameManager>();
         var perf     = root.AddComponent<PerformanceTracker>();
         var instr    = root.AddComponent<InstructionSystem>();
         var obj      = root.AddComponent<ObjectiveSystem>();
         var delivery = root.AddComponent<ComponentDeliverySystem>();
         var techAct  = root.AddComponent<TechnicianActions>();
+        var connMgr  = root.AddComponent<ConnectionManager>();
 
-        // ── Cableado interno ─────────────────────────────────────────────────
+        // ── Cableado interno ──────────────────────────────────────────────
 
-        // GameManager → subsistemas del mismo GO
+        // GameManager
         gm.performance       = perf;
         gm.instructionSystem = instr;
-        // gm.circuit, gm.multimeter, gm.reto*Zone → manual (dependen de la escena)
+        // gm.circuit    → CircuitSimulator  de Reto1_Zone (Retos 1-3); se auto-actualiza en ActivateComponentsForLevel
+        // gm.protoSim   → ProtoboardSimulator de Reto4;                auto-detectado en runtime si queda vacio
+        // gm.multimeter / gm.reto*Zone → asignar en Inspector
 
-        // InstructionSystem → mismos GO
-        instr.gameManager        = gm;
-        instr.technicianActions  = techAct;
+        // InstructionSystem
+        instr.gameManager       = gm;
+        instr.technicianActions = techAct;
         // instr.multimeter → manual
 
-        // ObjectiveSystem → mismos GO
-        obj.gameManager  = gm;
-        obj.performance  = perf;
+        // ObjectiveSystem
+        obj.gameManager = gm;
+        obj.performance = perf;
 
-        // ComponentDeliverySystem → mismo GO
+        // ComponentDeliverySystem
         delivery.gameManager = gm;
-        // delivery.puntoDeEntrega → manual (Transform de la bandeja del Explorador)
-        // delivery.resistorPrefab / ledPrefab / capacitorPrefab / arduinoPinPrefab → manual
+        // delivery.puntoDeEntrega / *Prefab → manual
 
-        // TechnicianActions → mismos GO
+        // TechnicianActions (circuit = CircuitManager para Retos 1-3; Reto 4 usa ProtoboardSimulator)
         techAct.gameManager       = gm;
         techAct.performance       = perf;
         techAct.instructionSystem = instr;
-        // techAct.circuit   → manual (mismo CircuitManager que GameManager usa)
+        // techAct.circuit   → CircuitManager del Reto1_Zone (solo Retos 1-3)
         // techAct.multimeter → manual
 
-        // ── Valores por defecto ──────────────────────────────────────────────
-        gm.timeLimits           = new float[] { 480f, 600f, 720f, 900f };
-        gm.zoneTransitionDelay  = 3f;
+        // ConnectionManager (red Fusion Host<->Client)
+        connMgr.gameManager            = gm;
+        connMgr.rolAutomatico          = ConnectionManager.AutoConnectRole.Ninguno;
+        connMgr.modoOffline            = false;
+        connMgr.connectionTimeoutSeconds = 12f;
+        // connMgr.playerPrefab / entornoExplorador → asignar en Inspector
+
+        // ── Valores por defecto ───────────────────────────────────────────
+        gm.timeLimits          = new float[] { 480f, 600f, 720f, 900f };
+        gm.zoneTransitionDelay = 3f;
 
         perf.excellentTimeLimits = new float[] { 240f, 300f, 360f, 450f };
         perf.maxErrorsForGood    = 3;
 
-        techAct.demoMode              = true;   // permite reparar sin completar pasos
-        techAct.correctResistance     = 100f;   // Reto 1
-        techAct.normalLedResistance   = 50f;    // Reto 2
+        techAct.demoMode            = true;
+        techAct.correctResistance   = 100f;
+        techAct.normalLedResistance = 50f;
 
-        // ── Guardar prefab ───────────────────────────────────────────────────
-        bool saved;
-        var prefab = PrefabUtility.SaveAsPrefabAsset(root, PREFAB_PATH, out saved);
+        // ── Guardar prefab ────────────────────────────────────────────────
+        var prefab = PrefabUtility.SaveAsPrefabAsset(root, PREFAB_PATH, out bool saved);
         Object.DestroyImmediate(root);
 
         if (saved)
@@ -109,24 +128,33 @@ public static class GameManagerPrefabGenerator
                 "GameManager_System creado",
                 $"Guardado en:\n{PREFAB_PATH}\n\n" +
                 "Scripts incluidos (referencias internas cableadas):\n" +
-                "  ✓ GameManager\n" +
-                "  ✓ PerformanceTracker\n" +
-                "  ✓ InstructionSystem\n" +
-                "  ✓ ObjectiveSystem\n" +
-                "  ✓ ComponentDeliverySystem\n" +
-                "  ✓ TechnicianActions\n\n" +
+                "  GameManager\n" +
+                "  PerformanceTracker\n" +
+                "  InstructionSystem\n" +
+                "  ObjectiveSystem\n" +
+                "  ComponentDeliverySystem\n" +
+                "  TechnicianActions\n\n" +
+                "Motor dual de simulacion:\n" +
+                "  Retos 1-3 → circuit   (CircuitSimulator,   auto-update al cambiar zona)\n" +
+                "  Reto  4   → protoSim  (ProtoboardSimulator, auto-detectado en runtime)\n\n" +
                 "ASIGNAR MANUALMENTE en el Inspector:\n" +
                 "  GameManager\n" +
-                "    • multimeter      → Multimeter_VR\n" +
-                "    • reto1Zone–reto4Zone → zonas generadas\n" +
+                "    multimeter      → Multimeter_VR\n" +
+                "    reto1Zone-reto4Zone → zonas generadas\n" +
+                "    circuit         → CircuitSimulator de Reto1_Zone\n" +
+                "    protoSim        → ProtoboardSimulator (opcional, auto-detecta)\n" +
                 "  InstructionSystem\n" +
-                "    • multimeter      → Multimeter_VR\n" +
+                "    multimeter      → Multimeter_VR\n" +
                 "  TechnicianActions\n" +
-                "    • circuit         → CircuitManager del Reto1_Zone\n" +
-                "    • multimeter      → Multimeter_VR\n" +
+                "    circuit         → CircuitManager del Reto1_Zone\n" +
+                "    multimeter      → Multimeter_VR\n" +
+                "  ConnectionManager\n" +
+                "    playerPrefab    → NetworkObject del avatar de red\n" +
+                "    entornoExplorador → GO raiz del entorno VR\n" +
+                "    rolAutomatico   → Explorador / Tecnico / Ninguno\n" +
                 "  ComponentDeliverySystem\n" +
-                "    • puntoDeEntrega  → Bandeja_Recepcion (Explorer)\n" +
-                "    • resistorPrefab / ledPrefab / capacitorPrefab / arduinoPinPrefab",
+                "    puntoDeEntrega  → Bandeja_Recepcion (Explorer)\n" +
+                "    resistorPrefab / ledPrefab / capacitorPrefab / arduinoPinPrefab",
                 "OK");
             Debug.Log($"[GameManagerPrefabGenerator] Prefab guardado en {PREFAB_PATH}");
         }
@@ -134,8 +162,7 @@ public static class GameManagerPrefabGenerator
         {
             EditorUtility.DisplayDialog("Error",
                 "No se pudo guardar el prefab.\n" +
-                "Verifica que exista la carpeta Assets/Prefabs/.",
-                "OK");
+                "Verifica que exista la carpeta Assets/Prefabs/.", "OK");
         }
     }
 }

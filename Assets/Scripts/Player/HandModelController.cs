@@ -1,17 +1,15 @@
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.XR;
 
 /// <summary>
-/// Crea visualmente una mano (palma + dedos) sobre el controlador VR.
-/// Añadir a LeftHand_Controller y RightHand_Controller.
-/// El TrackedPoseDriver ya mueve el GameObject — este script solo construye la geometría.
+/// Crea visualmente una mano (palma + dedos articulados) sobre el controlador VR y ANIMA los
+/// dedos según el grip/gatillo del mando. Añadir a LeftHand / RightHand (los GO con
+/// TrackedPoseDriver que siguen al controlador).
 ///
-/// Correcciones vs versión anterior:
-///   - La mano derecha se construye con scale.x = -1 en el pivot para que el
-///     pulgar quede hacia adentro (lado correcto para cada mano).
-///   - Material URP con Smoothness + Specular para aspecto de piel real.
-///   - Dedos con 2 segmentos (falange proximal + media) para que no parezcan
-///     palos de madera.
-///   - Falanges ligeramente escalonadas por tamaño.
+///   - El TrackedPoseDriver mueve el GameObject → la mano sigue al mando exacto.
+///   - Cada dedo cuelga de una articulación (joint) en el nudillo, así se puede cerrar.
+///   - grip  → cierra los 4 dedos.  gatillo → cierra extra el índice + pulgar.
 /// </summary>
 public class HandModelController : MonoBehaviour
 {
@@ -27,123 +25,153 @@ public class HandModelController : MonoBehaviour
     [Tooltip("Material de la mano. Se crea automaticamente con shader URP si queda vacio.")]
     public Material handMaterial;
 
+    [Header("Animación de dedos")]
+    [Tooltip("Anima los dedos con el grip/gatillo del mando.")]
+    public bool animarDedos = true;
+    [Tooltip("Ángulo máximo de cierre (grados). Si los dedos se cierran AL REVÉS, ponlo negativo.")]
+    public float curlMaximo = 80f;
+    [Tooltip("Suavizado del cierre.")]
+    public float velocidadCurl = 14f;
+
     // ─────────────────────────────────────────────
     //  Datos anatómicos de dedos (mano izquierda — se espeja para la derecha)
-    //  x = posición lateral (- = lado del meñique, + = lado del índice)
-    //  len0 = longitud proximal, len1 = longitud media (en metros)
     // ─────────────────────────────────────────────
     static readonly float[] FingerX     = { -0.029f, -0.010f,  0.009f,  0.028f };
     static readonly float[] FingerLen0  = {  0.042f,  0.047f,  0.043f,  0.032f }; // proximal
     static readonly float[] FingerLen1  = {  0.028f,  0.030f,  0.028f,  0.022f }; // media+distal
     static readonly float[] FingerRad   = {  0.0075f, 0.0080f, 0.0075f, 0.0065f };
 
+    // Articulaciones (para animar el cierre)
+    readonly List<Transform> _jointsDedos = new();
+    Transform _jointPulgar;
+    Transform _pivot;   // raíz de la mano (para ajustar rotationOffset en vivo)
+
+    // Input XR
+    readonly List<InputDevice> _devices = new();
+    float _curlDedos, _curlPulgar, _curlIndice;
+
     void Start()
     {
         RemovePlaceholders();
         BuildHand();
+        CacheDevices();
+    }
+
+    void Update()
+    {
+        // Aplicar rotationOffset en vivo → se puede ajustar la orientación de la mano en Play.
+        if (_pivot != null) _pivot.localRotation = Quaternion.Euler(rotationOffset);
+
+        if (!animarDedos) return;
+        if (_devices.Count == 0) CacheDevices();
+
+        float grip = ReadFeature(CommonUsages.grip);
+        float trig = ReadFeature(CommonUsages.trigger);
+
+        float dt = Time.deltaTime;
+        _curlDedos  = Mathf.Lerp(_curlDedos,  grip,                 velocidadCurl * dt);
+        _curlIndice = Mathf.Lerp(_curlIndice, Mathf.Max(grip, trig), velocidadCurl * dt);
+        _curlPulgar = Mathf.Lerp(_curlPulgar, Mathf.Max(grip, trig), velocidadCurl * dt);
+
+        // Dedos 0..3 (índice=1 usa su propio valor con el gatillo).
+        for (int i = 0; i < _jointsDedos.Count; i++)
+        {
+            float c = (i == 1 ? _curlIndice : _curlDedos) * curlMaximo;
+            _jointsDedos[i].localRotation = Quaternion.Euler(c, 0f, 0f);
+        }
+        if (_jointPulgar != null)
+            _jointPulgar.localRotation = Quaternion.Euler(0f, 0f, -_curlPulgar * curlMaximo * 0.6f);
+    }
+
+    // ─────────────────────────────────────────────
+    //  Input
+    // ─────────────────────────────────────────────
+    void CacheDevices()
+    {
+        var car = (hand == HandSide.Left ? InputDeviceCharacteristics.Left : InputDeviceCharacteristics.Right)
+                  | InputDeviceCharacteristics.Controller;
+        InputDevices.GetDevicesWithCharacteristics(car, _devices);
+    }
+
+    float ReadFeature(InputFeatureUsage<float> usage)
+    {
+        foreach (var d in _devices)
+            if (d.isValid && d.TryGetFeatureValue(usage, out float v))
+                return v;
+        return 0f;
+    }
+
+    // ─────────────────────────────────────────────
+    //  Construcción
+    // ─────────────────────────────────────────────
+    void RemovePlaceholders()
+    {
+        foreach (Transform child in transform)
+            if (child.name == "HandPlaceholder_Replace")
+                Destroy(child.gameObject);
     }
 
     [ContextMenu("Reconstruir Mano")]
     public void RebuildInEditor()
     {
         for (int i = transform.childCount - 1; i >= 0; i--)
-        {
-            var child = transform.GetChild(i);
-            if (child.name.StartsWith("Hand_"))
-                DestroyImmediate(child.gameObject);
-        }
+            if (transform.GetChild(i).name.StartsWith("Hand_"))
+                DestroyImmediate(transform.GetChild(i).gameObject);
+        _jointsDedos.Clear();
+        _jointPulgar = null;
         BuildHand();
-    }
-
-    void RemovePlaceholders()
-    {
-        foreach (Transform child in transform)
-        {
-            if (child.name == "HandPlaceholder_Replace")
-                Destroy(child.gameObject);
-        }
     }
 
     void BuildHand()
     {
         if (handMaterial == null) handMaterial = CreateSkinMaterial();
 
-        // Pivot con offset de rotacion
         var pivot = new GameObject("Hand_Pivot");
         pivot.transform.SetParent(transform, false);
         pivot.transform.localPosition = Vector3.zero;
         pivot.transform.localRotation = Quaternion.Euler(rotationOffset);
-
-        // CLAVE: escala -1 en X para la mano derecha → el pulgar queda en el lado correcto
-        // El material tiene Cull=Off para que las caras invertidas se rendericen bien
         if (hand == HandSide.Right)
             pivot.transform.localScale = new Vector3(-1f, 1f, 1f);
+        _pivot = pivot.transform;
 
-        // ── Palma (cuboide redondeado con esfera aplastada superpuesta) ──
-        AddPart(pivot, "Hand_Palm",
-            new Vector3(0f, 0f, 0.038f),
-            Quaternion.identity,
-            new Vector3(0.078f, 0.020f, 0.090f),
-            PrimitiveType.Cube);
+        // Palma
+        AddPart(pivot, "Hand_Palm", new Vector3(0f, 0f, 0.038f), Quaternion.identity,
+            new Vector3(0.078f, 0.020f, 0.090f), PrimitiveType.Cube);
+        AddPart(pivot, "Hand_PalmRound", new Vector3(0f, 0f, 0.038f), Quaternion.identity,
+            new Vector3(0.076f, 0.018f, 0.092f), PrimitiveType.Sphere);
 
-        // Arco metacarpal (esfera aplastada que redondea la palma)
-        AddPart(pivot, "Hand_PalmRound",
-            new Vector3(0f, 0f, 0.038f),
-            Quaternion.identity,
-            new Vector3(0.076f, 0.018f, 0.092f),
-            PrimitiveType.Sphere);
-
-        // ── 4 dedos con 2 falanges cada uno ──
+        // 4 dedos, cada uno colgando de una articulación en el nudillo.
+        float zBase = 0.083f;
         for (int i = 0; i < 4; i++)
         {
-            float x    = FingerX[i];
-            float r    = FingerRad[i];
-            float l0   = FingerLen0[i];
-            float l1   = FingerLen1[i];
+            float x = FingerX[i], r = FingerRad[i], l0 = FingerLen0[i], l1 = FingerLen1[i];
 
-            // Falange proximal (arranca en el borde de la palma)
-            float zBase = 0.083f;
-            AddPart(pivot, $"Hand_Finger{i}A",
-                new Vector3(x, 0f, zBase + l0 * 0.5f),
-                Quaternion.Euler(90f, 0f, 0f),
-                new Vector3(r * 2f, l0 * 0.5f, r * 2f),
-                PrimitiveType.Capsule);
+            var joint = new GameObject($"Hand_Finger{i}_Joint");
+            joint.transform.SetParent(pivot.transform, false);
+            joint.transform.localPosition = new Vector3(x, 0f, zBase);
+            _jointsDedos.Add(joint.transform);
 
-            // Falange media+distal (ligeramente más delgada)
-            float zMid = zBase + l0;
-            AddPart(pivot, $"Hand_Finger{i}B",
-                new Vector3(x, 0f, zMid + l1 * 0.5f),
-                Quaternion.Euler(90f, 0f, 0f),
-                new Vector3(r * 1.75f, l1 * 0.5f, r * 1.75f),
-                PrimitiveType.Capsule);
-
-            // Nudillo (pequeña esfera en la articulación)
-            AddPart(pivot, $"Hand_Knuckle{i}",
-                new Vector3(x, 0.004f, zBase),
-                Quaternion.identity,
-                new Vector3(r * 2.2f, r * 1.8f, r * 2.2f),
-                PrimitiveType.Sphere);
+            AddPart(joint, $"Hand_Finger{i}A", new Vector3(0f, 0f, l0 * 0.5f),
+                Quaternion.Euler(90f, 0f, 0f), new Vector3(r * 2f, l0 * 0.5f, r * 2f), PrimitiveType.Capsule);
+            AddPart(joint, $"Hand_Finger{i}B", new Vector3(0f, 0f, l0 + l1 * 0.5f),
+                Quaternion.Euler(90f, 0f, 0f), new Vector3(r * 1.75f, l1 * 0.5f, r * 1.75f), PrimitiveType.Capsule);
+            AddPart(joint, $"Hand_Knuckle{i}", new Vector3(0f, 0.004f, 0f),
+                Quaternion.identity, new Vector3(r * 2.2f, r * 1.8f, r * 2.2f), PrimitiveType.Sphere);
         }
 
-        // ── Pulgar (base = lado meñique → positivo X en coord. pivote izquierdo) ──
-        // Para la mano izquierda: thumb en x positivo (lado índice - meñique).
-        // La escala negativa del pivot derecho lo pone en el lado correcto automáticamente.
-        AddPart(pivot, "Hand_ThumbBase",
-            new Vector3(0.043f, 0.003f, 0.015f),
-            Quaternion.Euler(90f, 0f, -40f),
-            new Vector3(0.017f, 0.021f, 0.017f),
-            PrimitiveType.Capsule);
-
-        AddPart(pivot, "Hand_ThumbTip",
-            new Vector3(0.060f, 0.003f, 0.040f),
-            Quaternion.Euler(90f, 0f, -30f),
-            new Vector3(0.015f, 0.016f, 0.015f),
-            PrimitiveType.Capsule);
+        // Pulgar con su articulación.
+        var jp = new GameObject("Hand_Thumb_Joint");
+        jp.transform.SetParent(pivot.transform, false);
+        jp.transform.localPosition = new Vector3(0.043f, 0.003f, 0.015f);
+        _jointPulgar = jp.transform;
+        AddPart(jp, "Hand_ThumbBase", new Vector3(0f, 0f, 0f),
+            Quaternion.Euler(90f, 0f, -40f), new Vector3(0.017f, 0.021f, 0.017f), PrimitiveType.Capsule);
+        AddPart(jp, "Hand_ThumbTip", new Vector3(0.017f, 0f, 0.025f),
+            Quaternion.Euler(90f, 0f, -30f), new Vector3(0.015f, 0.016f, 0.015f), PrimitiveType.Capsule);
     }
 
     void AddPart(GameObject parent, string partName,
-                 Vector3 localPos, Quaternion localRot, Vector3 scale,
-                 PrimitiveType type)
+                 Vector3 localPos, Quaternion localRot, Vector3 scale, PrimitiveType type)
     {
         var go = GameObject.CreatePrimitive(type);
         go.name = partName;
@@ -158,46 +186,29 @@ public class HandModelController : MonoBehaviour
             mr.sharedMaterial = handMaterial;
             mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         }
-
         var col = go.GetComponent<Collider>();
         if (col != null) Destroy(col);
     }
 
-    // ─────────────────────────────────────────────
-    //  Material de piel URP — con Smoothness + Specular
-    // ─────────────────────────────────────────────
     Material CreateSkinMaterial()
     {
         Shader shader = Shader.Find("Universal Render Pipeline/Lit")
-                     ?? Shader.Find("URP/Lit")
-                     ?? Shader.Find("Lit")
-                     ?? Shader.Find("Standard");
-
+                     ?? Shader.Find("URP/Lit") ?? Shader.Find("Lit") ?? Shader.Find("Standard");
         if (shader == null)
         {
-            Debug.LogWarning("[HandModelController] Shader URP no encontrado. " +
-                             "Asigna un material manualmente en el Inspector.");
+            Debug.LogWarning("[HandModelController] Shader URP no encontrado. Asigna un material manual.");
             return new Material(Shader.Find("Hidden/InternalErrorShader"));
         }
-
         var mat = new Material(shader);
-
-        // Color base: piel cálida con ligero tono rosado
         var baseColor = new Color(0.88f, 0.68f, 0.52f);
         mat.SetColor("_BaseColor", baseColor);
         mat.SetColor("_Color",     baseColor);
-
-        // Suavidad y especular: aspecto de piel (no plástico brillante, no madera mate)
-        mat.SetFloat("_Smoothness",         0.35f);
-        mat.SetFloat("_Glossiness",         0.35f); // Standard shader
-        mat.SetFloat("_Metallic",           0.00f);
-        mat.SetFloat("_GlossyReflections",  1f);
-
-        // Backface culling desactivado: la mano derecha tiene scale.x=-1 → caras invertidas
-        // Sin esto, la mano derecha es invisible desde fuera
-        mat.SetFloat("_Cull",      0f);   // 0 = Off, 1 = Front, 2 = Back
-        mat.SetFloat("_CullMode",  0f);
-
+        mat.SetFloat("_Smoothness", 0.35f);
+        mat.SetFloat("_Glossiness", 0.35f);
+        mat.SetFloat("_Metallic",   0f);
+        mat.SetFloat("_GlossyReflections", 1f);
+        mat.SetFloat("_Cull",     0f);
+        mat.SetFloat("_CullMode", 0f);
         return mat;
     }
 }

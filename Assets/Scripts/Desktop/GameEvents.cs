@@ -1,5 +1,6 @@
 using System;
 
+
 /// <summary>
 /// Bus de eventos global desacoplado para la estacion de trabajo del Tecnico.
 /// Cualquier modulo (bandeja, manual, luces, diagnostico) se suscribe

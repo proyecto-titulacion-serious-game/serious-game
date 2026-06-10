@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Retos 1, 2 y 3 — Guía para Jugadores</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm; }
+  * { box-sizing: border-box; }
+  body{ font-family:"Segoe UI",Arial,sans-serif; color:#1a1a2e; line-height:1.45; font-size:11pt; margin:0; }
+  h1{ font-size:23pt; color:#0b3d91; margin:0 0 2px; }
+  h2{ font-size:15pt; color:#0b3d91; border-bottom:2px solid #0b3d91; padding-bottom:3px; margin:20px 0 8px; }
+  h3{ font-size:12.5pt; color:#13315c; margin:13px 0 4px; }
+  p{ margin:5px 0; } ul,ol{ margin:5px 0; padding-left:22px; } li{ margin:2px 0; }
+  code{ font-family:"Consolas","Courier New",monospace; background:#eef1f7; padding:1px 4px; border-radius:3px; font-size:10pt; }
+  table{ border-collapse:collapse; width:100%; margin:8px 0; font-size:10pt; }
+  th,td{ border:1px solid #c4ccda; padding:5px 8px; text-align:left; vertical-align:top; }
+  th{ background:#0b3d91; color:#fff; } tr:nth-child(even) td{ background:#f3f6fc; }
+  .sub{ color:#5b6577; font-size:10.5pt; margin-top:0; }
+  .lead{ background:#eef4ff; border-left:4px solid #0b3d91; padding:8px 12px; border-radius:0 6px 6px 0; margin:8px 0; }
+  .tecnico{ color:#0b6e4f; font-weight:bold; } .explorador{ color:#8a4b00; font-weight:bold; }
+  .ok{ color:#0a7d3c; font-weight:bold; } .err{ color:#c01818; font-weight:bold; } .warn{ color:#b06a00; font-weight:bold; }
+  .pill{ display:inline-block; padding:1px 8px; border-radius:10px; font-size:9pt; font-weight:bold; color:#fff; }
+  .pill.t{ background:#0b6e4f; } .pill.e{ background:#8a4b00; }
+  .pagebreak{ page-break-before:always; }
+  .small{ font-size:9.5pt; color:#5b6577; }
+  .diagram{ background:#0f1220; color:#7CFC9A; font-family:"Consolas",monospace; padding:12px; border-radius:6px; font-size:9.5pt; white-space:pre; }
+  .retobox{ border:2px solid #0b3d91; border-radius:8px; padding:2px 12px 10px; margin-top:6px; }
+  .bands{ font-family:"Consolas",monospace; }
+</style>
+</head>
+<body>
+
+<h1>Retos 1, 2 y 3 — Guía para Jugadores</h1>
+<p class="sub">Diagnóstico y reparación de circuitos eléctricos · Guía para principiantes.
+Lee primero la sección común (roles y herramientas) y luego el reto que vas a jugar.</p>
+
+<h2>Parte común · Cómo se juega</h2>
+<p>Es un juego <b>cooperativo asimétrico</b>: dos jugadores con vistas distintas que
+<b>solo ganan si se comunican por voz</b>. En los retos 1–3 hay un <b>circuito averiado</b> y
+el equipo debe <b>encontrar y reparar la falla</b>.</p>
+
+<table>
+<tr><th>Rol</th><th>Dónde</th><th>Herramientas</th><th>Qué hace</th></tr>
+<tr><td><span class="pill t">TÉCNICO</span></td><td>PC</td>
+    <td>Manual técnico + Bandeja de envío</td>
+    <td><b>Diagnostica</b>: lee el manual, calcula valores y <b>envía</b> el componente correcto al Explorador.</td></tr>
+<tr><td><span class="pill e">EXPLORADOR</span></td><td>Visor VR</td>
+    <td>Multímetro + sus manos</td>
+    <td><b>Mide y repara</b>: mide voltajes, recibe e <b>instala</b> componentes, gira piezas.</td></tr>
+</table>
+
+<h3>El multímetro (Explorador) — cómo medir</h3>
+<ol>
+  <li>Toma el <b>multímetro</b> de la mesa con el mando.</li>
+  <li>Apoya la <b>punta roja (+)</b> en un nodo y la <b>punta negra (−)</b> en otro.</li>
+  <li>La pantalla muestra el <b>voltaje (V)</b> entre esos dos puntos.</li>
+  <li>Dile el número al Técnico por voz.</li>
+</ol>
+<p class="small">Un <b>nodo</b> es un punto de conexión del circuito. La fuente del circuito da <b>9&nbsp;V</b>
+entre su terminal + y su terminal −.</p>
+
+<h3>La bandeja de envío (Técnico) — cómo enviar un componente</h3>
+<ol>
+  <li>Escribe el <b>valor</b> correcto en el campo (ej. la resistencia en ohmios).</li>
+  <li>Si la pieza tiene polaridad, ajusta el <b>toggle de polaridad</b>.</li>
+  <li>Pulsa <b>ENVIAR</b> → el componente aparece en la bandeja VR del Explorador.</li>
+</ol>
+
+<h3>Ley de Ohm (la base de todo)</h3>
+<div class="lead"><b>V = I × R</b> &nbsp;·&nbsp; <b>I = V / R</b> &nbsp;·&nbsp; <b>R = V / I</b><br>
+V = voltaje (voltios) · I = corriente (amperios) · R = resistencia (ohmios, Ω)</div>
+
+<div class="pagebreak"></div>
+<h2>RETO 1 · Circuito en Serie &amp; Ley de Ohm</h2>
+<div class="retobox">
+<p><b>Qué pasa:</b> el LED está en <span class="err">sobrecarga (rojo)</span> porque la
+resistencia montada tiene un valor <b>incorrecto (10&nbsp;Ω)</b>. Hay que calcular y enviar la correcta.</p>
+
+<h3>Concepto: circuito en serie</h3>
+<ul>
+  <li>Los componentes van <b>en cadena</b>, uno tras otro.</li>
+  <li>La <b>misma corriente I</b> pasa por todos.</li>
+  <li>El voltaje total se <b>reparte</b> en cada componente. &nbsp; <code>R_total = R1 + R2 + …</code></li>
+</ul>
+
+<h3>Pasos del reto</h3>
+<table>
+<tr><th><span class="tecnico">TÉCNICO</span></th><th><span class="explorador">EXPLORADOR</span></th></tr>
+<tr><td>
+  1. Pide medir el voltaje en los nodos de la fuente.<br>
+  2. Calcula: <code>R = (9V − V_LED) / I_objetivo</code><br>
+  &nbsp;&nbsp;&nbsp;(corriente segura del LED: 0.005–0.020&nbsp;A)<br>
+  3. Valor correcto: <b>850&nbsp;Ω</b>.<br>
+  4. Escribe <b>850</b> en la bandeja y pulsa <b>ENVIAR</b>.
+</td><td>
+  1. Mide con el multímetro entre el <b>+</b> y el <b>−</b> de la fuente → debe leer <b>9&nbsp;V</b>.<br>
+  2. Dile el valor al Técnico.<br>
+  3. Recibe la resistencia en la bandeja VR.<br>
+  4. <b>Instálala</b> en el hueco del circuito (reemplaza la de 10&nbsp;Ω).
+</td></tr>
+</table>
+
+<h3>Código de colores</h3>
+<p class="bands">
+  <b>CORRECTA — 850&nbsp;Ω 5%:</b> Gris(8) · Verde(5) · Marrón(×10) · Oro(±5%)<br>
+  <span class="err">INCORRECTA (montada) — 10&nbsp;Ω:</span> Marrón · Negro · Negro · Oro
+</p>
+
+<div class="lead"><b>Victoria:</b> con la resistencia correcta, el <b>LED se pone verde</b> y el voltaje
+medido es el esperado.</div>
+
+<h3>Checklist</h3>
+<p class="small"><b>Técnico:</b> ☐ pedí la medición ☐ calculé 850&nbsp;Ω ☐ envié el valor &nbsp;&nbsp;
+<b>Explorador:</b> ☐ medí 9&nbsp;V ☐ recibí la resistencia ☐ la instalé ☐ LED verde</p>
+</div>
+
+<div class="pagebreak"></div>
+<h2>RETO 2 · Circuito en Paralelo</h2>
+<div class="retobox">
+<p><b>Qué pasa:</b> uno de los <b>3 sensores (LEDs)</b> no enciende. Su rama está
+<span class="err">abierta (9999&nbsp;Ω)</span> → no le llega corriente. Hay que encontrar la rama rota y reconectarla.</p>
+
+<h3>Concepto: circuito en paralelo</h3>
+<ul>
+  <li>Cada rama recibe el <b>MISMO voltaje</b> que la fuente.</li>
+  <li>La corriente total se <b>divide</b> entre las ramas. &nbsp; <code>I_total = I1 + I2 + I3</code></li>
+  <li>Una rama <b>abierta</b> (∞&nbsp;Ω) no recibe corriente → su sensor queda apagado.</li>
+</ul>
+
+<h3>Pasos del reto</h3>
+<table>
+<tr><th><span class="tecnico">TÉCNICO</span></th><th><span class="explorador">EXPLORADOR</span></th></tr>
+<tr><td>
+  1. Pide medir el voltaje en cada uno de los 3 sensores.<br>
+  2. El sensor cuyo nodo <b>+</b> marca ≈ <b>0&nbsp;V</b> es la <b>rama rota</b>.<br>
+  3. Indícale al Explorador <b>qué cable reconectar</b>.<br>
+  4. Pulsa <b>REPARAR PARALELO</b> para autorizar.
+</td><td>
+  1. Mide el voltaje en los nodos de cada sensor.<br>
+  2. Los sensores buenos miden <b>9&nbsp;V</b> en su nodo +; el roto marca <b>≈0&nbsp;V</b>.<br>
+  3. <b>Reconecta el cable</b> de la rama indicada.<br>
+  4. Verifica que los 3 LEDs queden encendidos.
+</td></tr>
+</table>
+
+<h3>Valores esperados</h3>
+<table>
+<tr><th></th><th>Nodo +</th><th>Nodo −</th><th>Estado</th></tr>
+<tr><td>Sensor normal</td><td>9.0&nbsp;V</td><td>0.0&nbsp;V</td><td class="ok">LED verde encendido</td></tr>
+<tr><td>Sensor roto</td><td>≈ 0&nbsp;V</td><td>0&nbsp;V</td><td class="err">sin corriente → apagado</td></tr>
+</table>
+
+<div class="lead"><b>Victoria:</b> con la rama reconectada, los <b>3 LEDs encienden</b>.</div>
+
+<h3>Checklist</h3>
+<p class="small"><b>Técnico:</b> ☐ pedí medir los 3 ☐ identifiqué el de 0&nbsp;V ☐ pulsé REPARAR PARALELO &nbsp;&nbsp;
+<b>Explorador:</b> ☐ medí cada sensor ☐ reconecté el cable ☐ los 3 LEDs encendidos</p>
+</div>
+
+<div class="pagebreak"></div>
+<h2>RETO 3 · Circuito Mixto &amp; Polaridad</h2>
+<div class="retobox">
+<p><b>Qué pasa:</b> hay <b>3 fallas a la vez</b> en el módulo de control. Hay que corregirlas
+<b>en orden de prioridad</b> (lo más peligroso primero).</p>
+
+<h3>Concepto: polaridad</h3>
+<p>Algunos componentes tienen <b>+ y −</b> y solo funcionan en un sentido:</p>
+<ul>
+  <li><b>LED:</b> ánodo <b>(+)</b> al voltaje positivo · cátodo <b>(−)</b> a tierra
+      (la <b>banda plana</b> o la <b>pata corta</b> es el −).</li>
+  <li><b>Capacitor electrolítico:</b> <b>(+)</b> = banda blanca / pata larga ·
+      <b>(−)</b> = banda negra / pata corta. <span class="err">Al revés puede hacer cortocircuito (humo).</span></li>
+</ul>
+
+<h3>Las 3 fallas — corrige EN ESTE ORDEN</h3>
+<table>
+<tr><th>Prioridad</th><th>Falla</th><th>Cómo se arregla</th></tr>
+<tr><td class="err">1 (crítica)</td><td>Capacitor invertido (humo)</td>
+    <td><span class="explorador">Explorador</span> <b>gira el capacitor 180°</b>.</td></tr>
+<tr><td class="warn">2</td><td>LED invertido (no enciende)</td>
+    <td><span class="explorador">Explorador</span> <b>gira el LED</b> para invertir su polaridad.</td></tr>
+<tr><td>3</td><td>Resistencia incorrecta (470&nbsp;Ω)</td>
+    <td><span class="tecnico">Técnico</span> envía <b>220&nbsp;Ω</b> → Explorador la instala.</td></tr>
+</table>
+
+<h3>Pasos del reto</h3>
+<table>
+<tr><th><span class="tecnico">TÉCNICO</span></th><th><span class="explorador">EXPLORADOR</span></th></tr>
+<tr><td>
+  1. Avisa del <b>humo</b>: el capacitor es lo primero.<br>
+  2. Guía la corrección del <b>LED</b>.<br>
+  3. Escribe <b>220</b> en la bandeja y pulsa <b>ENVIAR</b>.
+</td><td>
+  1. <b>Gira el capacitor 180°</b> (quita el humo).<br>
+  2. <b>Gira el LED</b> hasta que encienda.<br>
+  3. Recibe e <b>instala la resistencia de 220&nbsp;Ω</b> (quita la de 470&nbsp;Ω).
+</td></tr>
+</table>
+
+<h3>Código de colores</h3>
+<p class="bands">
+  <b>CORRECTA — 220&nbsp;Ω:</b> Rojo · Rojo · Marrón · Oro<br>
+  <span class="err">INCORRECTA (montada) — 470&nbsp;Ω:</span> Amarillo · Violeta · Marrón · Oro
+</p>
+
+<div class="lead"><b>Victoria:</b> las <b>3 fallas resueltas</b> → el <b>LED se pone verde</b>.</div>
+
+<h3>Checklist</h3>
+<p class="small"><b>Técnico:</b> ☐ avisé del humo ☐ guié el LED ☐ envié 220&nbsp;Ω &nbsp;&nbsp;
+<b>Explorador:</b> ☐ giré el capacitor ☐ giré el LED ☐ instalé 220&nbsp;Ω ☐ LED verde</p>
+</div>
+
+<h2>Glosario</h2>
+<table>
+<tr><th>Término</th><th>Significado</th></tr>
+<tr><td>Nodo</td><td>Punto de conexión del circuito donde se mide el voltaje.</td></tr>
+<tr><td>Serie</td><td>Componentes en cadena; la misma corriente pasa por todos.</td></tr>
+<tr><td>Paralelo</td><td>Ramas que comparten el mismo voltaje; la corriente se divide.</td></tr>
+<tr><td>Polaridad</td><td>Que un componente tiene + y −, y solo funciona en un sentido.</td></tr>
+<tr><td>Ánodo / Cátodo</td><td>La pata + / la pata − de un LED.</td></tr>
+<tr><td>Circuito abierto</td><td>Camino cortado: no pasa corriente (0 A).</td></tr>
+<tr><td>Cortocircuito</td><td>Camino sin resistencia: corriente peligrosa (humo).</td></tr>
+<tr><td>Ω (ohmio)</td><td>Unidad de resistencia. V = voltio, A = amperio.</td></tr>
+<tr><td>Multímetro</td><td>Herramienta del Explorador para medir voltaje entre dos nodos.</td></tr>
+</table>
+
+<p class="small" style="margin-top:18px; border-top:1px solid #c4ccda; padding-top:6px;">
+Proyecto TITA · Serious Game de circuitos eléctricos · Guía de jugadores — Retos 1, 2 y 3.</p>
+
+</body>
+</html>

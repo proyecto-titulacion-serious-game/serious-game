@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>TITA — Guía Completa de los 4 Retos</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm; }
+  * { box-sizing: border-box; }
+  body{ font-family:"Segoe UI",Arial,sans-serif; color:#1a1a2e; line-height:1.45; font-size:11pt; margin:0; }
+  h1{ font-size:24pt; color:#0b3d91; margin:0 0 2px; }
+  h2{ font-size:15pt; color:#0b3d91; border-bottom:2px solid #0b3d91; padding-bottom:3px; margin:20px 0 8px; }
+  h3{ font-size:12.5pt; color:#13315c; margin:13px 0 4px; }
+  p{ margin:5px 0; } ul,ol{ margin:5px 0; padding-left:22px; } li{ margin:2px 0; }
+  code{ font-family:"Consolas","Courier New",monospace; background:#eef1f7; padding:1px 4px; border-radius:3px; font-size:10pt; }
+  pre{ font-family:"Consolas","Courier New",monospace; background:#0f1220; color:#d6e2ff; padding:10px 12px; border-radius:6px; font-size:9.5pt; line-height:1.35; white-space:pre-wrap; }
+  table{ border-collapse:collapse; width:100%; margin:8px 0; font-size:10pt; }
+  th,td{ border:1px solid #c4ccda; padding:5px 8px; text-align:left; vertical-align:top; }
+  th{ background:#0b3d91; color:#fff; } tr:nth-child(even) td{ background:#f3f6fc; }
+  .sub{ color:#5b6577; font-size:10.5pt; margin-top:0; }
+  .lead{ background:#eef4ff; border-left:4px solid #0b3d91; padding:8px 12px; border-radius:0 6px 6px 0; margin:8px 0; }
+  .tecnico{ color:#0b6e4f; font-weight:bold; } .explorador{ color:#8a4b00; font-weight:bold; }
+  .ok{ color:#0a7d3c; font-weight:bold; } .err{ color:#c01818; font-weight:bold; } .warn{ color:#b06a00; font-weight:bold; }
+  .pill{ display:inline-block; padding:1px 8px; border-radius:10px; font-size:9pt; font-weight:bold; color:#fff; }
+  .pill.t{ background:#0b6e4f; } .pill.e{ background:#8a4b00; }
+  .pagebreak{ page-break-before:always; }
+  .small{ font-size:9.5pt; color:#5b6577; }
+  .diagram{ background:#0f1220; color:#7CFC9A; font-family:"Consolas",monospace; padding:12px; border-radius:6px; font-size:9.5pt; white-space:pre; }
+  .retobox{ border:2px solid #0b3d91; border-radius:8px; padding:2px 12px 10px; margin-top:6px; }
+  .bands{ font-family:"Consolas",monospace; }
+  .toc li{ margin:3px 0; }
+</style>
+</head>
+<body>
+
+<h1>Proyecto TITA — Guía Completa</h1>
+<p class="sub">Los 4 retos de diagnóstico y reparación de circuitos · Guía para principiantes que nunca
+han jugado un cooperativo asimétrico ni programado un Arduino.</p>
+
+<h2>Índice</h2>
+<ul class="toc">
+  <li><b>Parte común</b> — cómo se juega, roles y herramientas</li>
+  <li><b>Reto 1</b> — Circuito en Serie &amp; Ley de Ohm</li>
+  <li><b>Reto 2</b> — Circuito en Paralelo</li>
+  <li><b>Reto 3</b> — Circuito Mixto &amp; Polaridad</li>
+  <li><b>Reto 4</b> — Arduino + Protoboard (programar)</li>
+  <li><b>Glosario</b></li>
+</ul>
+
+<h2>Parte común · Cómo se juega</h2>
+<p>Es un juego <b>cooperativo asimétrico</b>: dos jugadores con vistas distintas que
+<b>solo ganan si se comunican por voz</b>.</p>
+<table>
+<tr><th>Rol</th><th>Dónde</th><th>Herramientas</th><th>Qué hace</th></tr>
+<tr><td><span class="pill t">TÉCNICO</span></td><td>PC (monitor + teclado)</td>
+    <td>Manual técnico · Bandeja de envío · (Reto 4: IDE + HUD)</td>
+    <td><b>Diagnostica</b> y <b>envía/programa</b>.</td></tr>
+<tr><td><span class="pill e">EXPLORADOR</span></td><td>Visor VR (Quest 3)</td>
+    <td>Multímetro · sus manos · (Reto 4: protoboard)</td>
+    <td><b>Mide, instala y conecta</b> en el mundo 3D.</td></tr>
+</table>
+
+<h3>Multímetro (Explorador)</h3>
+<p>Toma el multímetro, apoya la <b>punta roja (+)</b> en un nodo y la <b>negra (−)</b> en otro;
+la pantalla muestra el <b>voltaje</b> entre esos puntos. La fuente da <b>9&nbsp;V</b> entre + y −.</p>
+<h3>Bandeja de envío (Técnico)</h3>
+<p>Escribe el <b>valor</b> del componente, ajusta la <b>polaridad</b> si aplica y pulsa <b>ENVIAR</b>;
+la pieza aparece en la bandeja VR del Explorador.</p>
+<div class="lead"><b>Ley de Ohm:</b> &nbsp; V = I × R &nbsp;·&nbsp; I = V / R &nbsp;·&nbsp; R = V / I</div>
+
+<div class="pagebreak"></div>
+<h2>RETO 1 · Circuito en Serie &amp; Ley de Ohm</h2>
+<div class="retobox">
+<p><b>Qué pasa:</b> el LED está en <span class="err">sobrecarga (rojo)</span> por una resistencia
+<b>incorrecta (10&nbsp;Ω)</b>. Calcular y enviar la correcta.</p>
+<p class="small"><b>Serie:</b> componentes en cadena, la misma corriente pasa por todos. <code>R_total = R1 + R2 + …</code></p>
+<table>
+<tr><th><span class="tecnico">TÉCNICO</span></th><th><span class="explorador">EXPLORADOR</span></th></tr>
+<tr><td>
+  1. Pide medir el voltaje de la fuente.<br>
+  2. Calcula <code>R = (9V − V_LED) / I</code> (I seguro 0.005–0.020&nbsp;A).<br>
+  3. Correcto: <b>850&nbsp;Ω</b>.<br>
+  4. Escribe <b>850</b> y pulsa <b>ENVIAR</b>.
+</td><td>
+  1. Mide entre + y − de la fuente → <b>9&nbsp;V</b>.<br>
+  2. Dile el valor al Técnico.<br>
+  3. Recibe la resistencia.<br>
+  4. <b>Instálala</b> (reemplaza la de 10&nbsp;Ω).
+</td></tr></table>
+<p class="bands"><b>850&nbsp;Ω:</b> Gris-Verde-Marrón-Oro &nbsp;|&nbsp; <span class="err">10&nbsp;Ω (mala):</span> Marrón-Negro-Negro-Oro</p>
+<div class="lead"><b>Victoria:</b> el <b>LED se pone verde</b> y el voltaje medido es el esperado.</div>
+</div>
+
+<div class="pagebreak"></div>
+<h2>RETO 2 · Circuito en Paralelo</h2>
+<div class="retobox">
+<p><b>Qué pasa:</b> 1 de <b>3 sensores</b> no enciende; su rama está <span class="err">abierta (9999&nbsp;Ω)</span>.
+Hallar la rama rota y reconectarla.</p>
+<p class="small"><b>Paralelo:</b> cada rama recibe el MISMO voltaje; la corriente se divide. Rama abierta → sensor apagado.</p>
+<table>
+<tr><th><span class="tecnico">TÉCNICO</span></th><th><span class="explorador">EXPLORADOR</span></th></tr>
+<tr><td>
+  1. Pide medir los 3 sensores.<br>
+  2. El que marca <b>≈0&nbsp;V</b> en su nodo + es la <b>rama rota</b>.<br>
+  3. Indica qué cable reconectar.<br>
+  4. Pulsa <b>REPARAR PARALELO</b>.
+</td><td>
+  1. Mide cada sensor.<br>
+  2. Buenos = <b>9&nbsp;V</b>; el roto ≈ <b>0&nbsp;V</b>.<br>
+  3. <b>Reconecta el cable</b> indicado.<br>
+  4. Comprueba los 3 LEDs encendidos.
+</td></tr></table>
+<table>
+<tr><th></th><th>Nodo +</th><th>Estado</th></tr>
+<tr><td>Sensor normal</td><td>9.0&nbsp;V</td><td class="ok">LED verde</td></tr>
+<tr><td>Sensor roto</td><td>≈ 0&nbsp;V</td><td class="err">apagado</td></tr>
+</table>
+<div class="lead"><b>Victoria:</b> los <b>3 LEDs encienden</b>.</div>
+</div>
+
+<div class="pagebreak"></div>
+<h2>RETO 3 · Circuito Mixto &amp; Polaridad</h2>
+<div class="retobox">
+<p><b>Qué pasa:</b> <b>3 fallas a la vez</b>. Corregir en <b>orden de prioridad</b> (lo peligroso primero).</p>
+<p class="small"><b>Polaridad:</b> el LED y el capacitor tienen + y −. LED: cátodo (−) = banda plana/pata corta.
+Capacitor: (−) = banda negra/pata corta; al revés → <span class="err">humo</span>.</p>
+<table>
+<tr><th>Prioridad</th><th>Falla</th><th>Solución</th></tr>
+<tr><td class="err">1 crítica</td><td>Capacitor invertido (humo)</td><td><span class="explorador">Explorador</span>: gira el capacitor <b>180°</b>.</td></tr>
+<tr><td class="warn">2</td><td>LED invertido</td><td><span class="explorador">Explorador</span>: gira el LED.</td></tr>
+<tr><td>3</td><td>Resistencia 470&nbsp;Ω</td><td><span class="tecnico">Técnico</span> envía <b>220&nbsp;Ω</b> → Explorador la instala.</td></tr>
+</table>
+<p class="bands"><b>220&nbsp;Ω:</b> Rojo-Rojo-Marrón-Oro &nbsp;|&nbsp; <span class="err">470&nbsp;Ω (mala):</span> Amarillo-Violeta-Marrón-Oro</p>
+<div class="lead"><b>Victoria:</b> 3 fallas resueltas → el <b>LED se pone verde</b>.</div>
+</div>
+
+<div class="pagebreak"></div>
+<h2>RETO 4 · Arduino + Protoboard</h2>
+<div class="retobox">
+<p><b>Qué pasa:</b> no hay falla; el equipo <b>diseña desde cero</b> para hacer <b>parpadear un LED de forma segura</b>.
+El <span class="tecnico">Técnico programa un pin</span> y el <span class="explorador">Explorador conecta el LED a ese pin</span>.</p>
+
+<h3>Recorrido del circuito</h3>
+<div class="diagram">[ Pin D? ] --> [ LED + ]  [ LED - ] --> [ Resistencia 330&#937; ] --> [ GND ]</div>
+
+<h3>Comandos de Arduino (Técnico)</h3>
+<table>
+<tr><th>Comando</th><th>Qué hace</th></tr>
+<tr><td><code>pinMode(pin, OUTPUT)</code></td><td>Pin como <b>salida</b> (va en <code>setup()</code>).</td></tr>
+<tr><td><code>digitalWrite(pin, HIGH)</code></td><td>5&nbsp;V → <b>enciende</b> el LED.</td></tr>
+<tr><td><code>digitalWrite(pin, LOW)</code></td><td>0&nbsp;V → <b>apaga</b> el LED.</td></tr>
+<tr><td><code>delay(ms)</code></td><td><b>Espera</b> (1000&nbsp;ms = 1&nbsp;s); hace visible el parpadeo.</td></tr>
+</table>
+<p class="small">El <b>número que escribes = el pin que se activa</b> (escribe 7 → se enciende D7). Usa D2–D13
+(evita D0/D1). <span class="err">Dile al Explorador qué pin elegiste.</span></p>
+<pre>void setup() { pinMode(7, OUTPUT); }
+void loop() {
+  digitalWrite(7, HIGH); delay(500);
+  digitalWrite(7, LOW);  delay(500);
+}</pre>
+
+<h3>HUD del Técnico — qué significa</h3>
+<table>
+<tr><th>Dato</th><th>Significado</th></tr>
+<tr><td><b>V / I / P</b></td><td>Voltaje (V) · Corriente (mA) · Potencia (W) del circuito.</td></tr>
+<tr><td><b>ADC A0</b></td><td>Sensor analógico, valor 0–1023 (0&nbsp;V→0, 5&nbsp;V→1023).</td></tr>
+<tr><td class="ok">OPERACIÓN SEGURA</td><td>Todo bien (objetivo).</td></tr>
+<tr><td class="err">CORTOCIRCUITO</td><td>Falta la resistencia o hay un corto.</td></tr>
+<tr><td class="warn">CIRCUITO ABIERTO (0&nbsp;mA)</td><td>Cable suelto o sin cerrar a GND.</td></tr>
+</table>
+
+<h3>Explorador</h3>
+<p>Toma el <b>LED</b> y la <b>resistencia 330&nbsp;Ω</b> de la bandeja VR. Conecta: <b>pin indicado → LED (pata
+larga al +) → resistencia → GND</b>. Pulsa el <b>botón físico de validación</b>.</p>
+<div class="lead"><b>Victoria:</b> sketch con <b>BLINK</b> + <b>LED + resistencia ≥100&nbsp;Ω</b> + cierre a <b>GND</b>
+→ botón verde + vibración.</div>
+</div>
+
+<div class="pagebreak"></div>
+<h2>Glosario</h2>
+<table>
+<tr><th>Término</th><th>Significado</th></tr>
+<tr><td>Nodo</td><td>Punto de conexión donde se mide el voltaje.</td></tr>
+<tr><td>Serie / Paralelo</td><td>En cadena (misma corriente) / ramas con el mismo voltaje.</td></tr>
+<tr><td>Polaridad · Ánodo/Cátodo</td><td>Componente con + y − · pata + / pata − del LED.</td></tr>
+<tr><td>Circuito abierto / Cortocircuito</td><td>Sin corriente (0&nbsp;A) / corriente peligrosa (humo).</td></tr>
+<tr><td>HIGH / LOW · OUTPUT / INPUT</td><td>5&nbsp;V/0&nbsp;V · salida/entrada (Arduino).</td></tr>
+<tr><td>Sketch · Compilar · Subir</td><td>Programa del Arduino · revisar errores · enviarlo a la placa.</td></tr>
+<tr><td>ADC</td><td>Convierte un voltaje (0–5&nbsp;V) en un número (0–1023).</td></tr>
+<tr><td>GND · Protoboard</td><td>Tierra (retorno) · tablero donde se clavan los componentes.</td></tr>
+<tr><td>V · A/mA · W · Ω</td><td>Voltio · amperio/miliamperio · vatio · ohmio.</td></tr>
+</table>
+
+<p class="small" style="margin-top:18px; border-top:1px solid #c4ccda; padding-top:6px;">
+Proyecto TITA · Serious Game de circuitos eléctricos · Guía completa de los 4 retos.</p>
+
+</body>
+</html>

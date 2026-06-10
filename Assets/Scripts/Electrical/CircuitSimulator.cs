@@ -88,6 +88,19 @@ public class ProtoboardSimulator : MonoBehaviour
     /// <summary>Solicita una nueva simulación en el próximo tick.</summary>
     public void MarkDirty() => _dirty = true;
 
+    /// <summary>
+    /// Ejecuta simulación + validación AHORA (síncrono), sin esperar al próximo tick del SimLoop.
+    /// Lo usa el botón "Comprobar circuito" del Reto 4 para que un solo toque refleje el estado
+    /// actual del circuito (dispara <see cref="OnSandboxValidated"/> al instante).
+    /// </summary>
+    public void ForzarValidacion()
+    {
+        _dirty = false;
+        RunSimulation();
+        OnCircuitChanged?.Invoke();
+        ValidateSandboxObjective();
+    }
+
     // ─────────────────────────────────────────────
     //  Bucle de simulación
     // ─────────────────────────────────────────────
@@ -226,8 +239,8 @@ public class ProtoboardSimulator : MonoBehaviour
             srcNodeA = _arduino.PinToNode(_arduino.activePinNumber);
             if (srcNodeA == null) { ClearTelemetry(openCircuit: true); return; }
 
-            // Usar 5 V cuando blink activo (simula HIGH para telemetría educativa estable)
-            srcV     = _arduino.blinkEnabled ? 5f : _arduino.OutputVoltage;
+          // FÍSICA REAL: El MNA debe recibir la onda cuadrada exacta (5V -> 0V) para que el LED 3D parpadee.
+            srcV     = _arduino.OutputVoltage;
             srcNodeB = _arduino.nodoGND;
             if (srcNodeB == null) { ClearTelemetry(openCircuit: true); return; }
         }
@@ -238,7 +251,8 @@ public class ProtoboardSimulator : MonoBehaviour
             return;
         }
 
-        _sourceVoltage = srcV;
+        // TELEMETRÍA: Mentimos a la interfaz del Técnico para que vea 5V fijos y no números saltando.
+        _sourceVoltage = _arduino.blinkEnabled ? 5f : srcV;
 
         // Componentes pasivos: todos excepto VoltageSource (que es condición de frontera)
         var passiveComps = allComps.Where(c => !(c is VoltageSource)).ToList();
@@ -278,8 +292,14 @@ public class ProtoboardSimulator : MonoBehaviour
         _totalCurrentmA   = totalI * 1000f;
         _totalPowerW      = srcV * totalI;
 
-        // Calculate() actualiza estado visual de cada componente (LED encendido/apagado, etc.)
-        foreach (var comp in passiveComps) comp.Calculate();
+        // Actualizar estado visual de cada componente. Los LED se pintan desde la corriente
+        // ya resuelta por el MNA (diodo-consciente, con Vf) en vez de recalcular con el modelo
+        // resistivo puro de Calculate() — que sobre los voltajes del MNA daría corriente inflada.
+        foreach (var comp in passiveComps)
+        {
+            if (comp is LED led) led.ApplyResolvedCurrent();
+            else                 comp.Calculate();
+        }
     }
 
     void ClearTelemetry(bool openCircuit)
@@ -419,9 +439,12 @@ public class ProtoboardSimulator : MonoBehaviour
         r.hasProtection = true;
 
         // ── Condición 6: corriente estimada en rango seguro ───────────────
-        float totalR = pathFound.Sum(c => c.GetResistance());
+        // I = (Vfuente − ΣVf_diodos) / Rtotal — consistente con el modelo de diodo
+        // del MNA (CircuitGraphAnalyzer): la caída directa del LED no impulsa corriente.
+        float totalR  = pathFound.Sum(c => c.GetResistance());
         if (totalR < 0.1f) totalR = 0.1f;
-        float currentA = arduino.outputVoltageTTL / totalR;
+        float vDiodes = pathFound.OfType<LED>().Sum(l => l.forwardVoltage);
+        float currentA = Mathf.Max(0f, arduino.outputVoltageTTL - vDiodes) / totalR;
         r.currentMa    = currentA * 1000f;
 
         if (r.currentMa > forwardLED.maxSafeCurrent * 1000f)
@@ -432,7 +455,7 @@ public class ProtoboardSimulator : MonoBehaviour
         // ── ¡Todo OK! ─────────────────────────────────────────────────────
         r.success = true;
         r.message = $"¡Circuito validado! Pin D{arduino.activePinNumber} · " +
-                    $"BLINK {arduino.blinkIntervalMs}ms · " +
+                    $"BLINK {arduino.blinkIntervalOnMs}ms · " +
                     $"I ≈ {r.currentMa:F1} mA · LED encendido de forma segura.";
         return r;
     }

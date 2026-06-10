@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>TITA — Guía del Explorador (VR)</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm; }
+  * { box-sizing: border-box; }
+  body{ font-family:"Segoe UI",Arial,sans-serif; color:#1a1a2e; line-height:1.45; font-size:11pt; margin:0; }
+  h1{ font-size:24pt; color:#8a4b00; margin:0 0 2px; }
+  h2{ font-size:15pt; color:#8a4b00; border-bottom:2px solid #8a4b00; padding-bottom:3px; margin:20px 0 8px; }
+  h3{ font-size:12.5pt; color:#5c3a00; margin:13px 0 4px; }
+  p{ margin:5px 0; } ul,ol{ margin:5px 0; padding-left:22px; } li{ margin:2px 0; }
+  code{ font-family:"Consolas","Courier New",monospace; background:#f3eee6; padding:1px 4px; border-radius:3px; font-size:10pt; }
+  table{ border-collapse:collapse; width:100%; margin:8px 0; font-size:10pt; }
+  th,td{ border:1px solid #d8cdbb; padding:5px 8px; text-align:left; vertical-align:top; }
+  th{ background:#8a4b00; color:#fff; } tr:nth-child(even) td{ background:#faf6f0; }
+  .sub{ color:#5b6577; font-size:10.5pt; margin-top:0; }
+  .lead{ background:#fff5e8; border-left:4px solid #8a4b00; padding:8px 12px; border-radius:0 6px 6px 0; margin:8px 0; }
+  .ok{ color:#0a7d3c; font-weight:bold; } .err{ color:#c01818; font-weight:bold; } .warn{ color:#b06a00; font-weight:bold; }
+  .pagebreak{ page-break-before:always; }
+  .small{ font-size:9.5pt; color:#5b6577; }
+  .diagram{ background:#0f1220; color:#FFCF8A; font-family:"Consolas",monospace; padding:12px; border-radius:6px; font-size:9.5pt; white-space:pre; }
+  .retobox{ border:2px solid #8a4b00; border-radius:8px; padding:2px 12px 10px; margin-top:6px; }
+  .step{ background:#fbf3e8; border-radius:6px; padding:6px 10px; margin:6px 0; }
+</style>
+</head>
+<body>
+
+<h1>Guía del EXPLORADOR (VR)</h1>
+<p class="sub">Tu rol en los 4 retos del Proyecto TITA · Para principiantes en realidad virtual.
+Tú estás en el visor (Meta Quest 3) y eres <b>las manos del equipo</b>: mides, instalas y conectas.
+El <b>Técnico</b> (en el PC) te guía por voz.</p>
+
+<h2>Controles VR básicos</h2>
+<table>
+<tr><th>Acción</th><th>Cómo</th></tr>
+<tr><td>Caminar</td><td>Caminadora KAT VR (caminas de verdad) o joystick izquierdo.</td></tr>
+<tr><td>Girar el cuerpo</td><td>Gira la cabeza/cuerpo: el avatar te sigue.</td></tr>
+<tr><td>Agarrar un objeto</td><td>Acerca la mano y aprieta el <b>grip</b> (gatillo lateral del mando).</td></tr>
+<tr><td>Soltar</td><td>Suelta el grip.</td></tr>
+<tr><td>Botón / validar</td><td>Toca el botón físico con la mano o el dedo (gatillo).</td></tr>
+</table>
+<div class="lead"><b>Lo más importante:</b> escucha al Técnico y dile lo que ves/mides. <b>Sin hablar no se gana.</b></div>
+
+<h2>Tus herramientas</h2>
+<h3>El multímetro — medir voltaje</h3>
+<ol>
+  <li>Agarra el multímetro de la mesa con el <b>grip</b>.</li>
+  <li>Apoya la <b>punta roja (+)</b> en un nodo y la <b>punta negra (−)</b> en otro.</li>
+  <li>Lee el <b>voltaje (V)</b> en la pantalla y díselo al Técnico.</li>
+</ol>
+<p class="small">Un <b>nodo</b> es un puntito de conexión del circuito. La fuente da <b>9&nbsp;V</b> entre + y −.</p>
+<h3>Instalar / girar componentes</h3>
+<p>Agarra la pieza de la <b>bandeja VR</b> (donde caen los componentes que envía el Técnico) y
+<b>encájala</b> en su hueco. Algunas piezas se <b>giran</b> (para corregir la polaridad).</p>
+
+<div class="pagebreak"></div>
+<h2>RETO 1 · Serie — Cambiar la resistencia</h2>
+<div class="retobox">
+<p>El LED está <span class="err">rojo (sobrecargado)</span> por una resistencia mala (10&nbsp;Ω).</p>
+<div class="step">1. <b>Mide</b> con el multímetro entre el <b>+</b> y el <b>−</b> de la fuente → debe dar <b>9&nbsp;V</b>. Díselo al Técnico.</div>
+<div class="step">2. El Técnico calcula y te <b>envía la resistencia correcta (850&nbsp;Ω)</b> a la bandeja.</div>
+<div class="step">3. Agárrala e <b>instálala</b> en el hueco (quita la de 10&nbsp;Ω).</div>
+<div class="lead"><b>Listo cuando:</b> el <b>LED se pone verde</b>. ✔</div>
+</div>
+
+<h2>RETO 2 · Paralelo — Reconectar la rama rota</h2>
+<div class="retobox">
+<p>Uno de los <b>3 LEDs</b> no enciende: su rama está cortada.</p>
+<div class="step">1. <b>Mide el voltaje</b> en los nodos de cada uno de los 3 sensores.</div>
+<div class="step">2. Los buenos marcan <b>9&nbsp;V</b>; el roto marca <b>≈0&nbsp;V</b>. Dile al Técnico cuál es.</div>
+<div class="step">3. <b>Reconecta el cable</b> de esa rama (el Técnico confirma con "REPARAR PARALELO").</div>
+<div class="lead"><b>Listo cuando:</b> los <b>3 LEDs encienden</b>. ✔</div>
+</div>
+
+<h2>RETO 3 · Mixto — Girar y reemplazar (3 fallas)</h2>
+<div class="retobox">
+<p>Hay 3 problemas. Arréglalos <b>en este orden</b> (lo peligroso primero):</p>
+<div class="step"><b class="err">1º Capacitor con humo:</b> está al revés → <b>gíralo 180°</b> hasta que deje de humear.</div>
+<div class="step"><b class="warn">2º LED apagado:</b> está invertido → <b>gíralo</b> hasta que encienda.</div>
+<div class="step"><b>3º Resistencia mala (470&nbsp;Ω):</b> el Técnico te envía <b>220&nbsp;Ω</b> → instálala.</div>
+<p class="small"><b>Polaridad:</b> la pata <b>corta</b> (o banda) es el <b>−</b>. Si está al revés, gira la pieza.</p>
+<div class="lead"><b>Listo cuando:</b> las 3 corregidas → el <b>LED se pone verde</b>. ✔</div>
+</div>
+
+<div class="pagebreak"></div>
+<h2>RETO 4 · Arduino — Armar el circuito del LED</h2>
+<div class="retobox">
+<p>Aquí <b>tú armas el circuito físico</b>. El Técnico programa un <b>pin</b> y te lo dice por voz (ej. "D7").</p>
+<div class="diagram">[ Pin que te diga (D2..D13) ] --> [ LED + ]  [ LED - ] --> [ Resistencia 330&#937; ] --> [ GND ]</div>
+<div class="step">1. <b>Escucha el pin</b> que programó el Técnico (ej. D7) y <b>búscalo</b> en la placa (están rotulados D2…D13).</div>
+<div class="step">2. <b>Toma el LED</b> de la bandeja y mete la <b>pata larga (+)</b> en ese pin.</div>
+<div class="step">3. <b>Conecta la resistencia 330&nbsp;Ω</b> en serie después del LED.</div>
+<div class="step">4. <b>Cierra el circuito a GND</b> (lleva el otro extremo a tierra).</div>
+<div class="step">5. Pulsa el <b>botón físico de validación</b>.</div>
+<p class="small">Si el Técnico ve <span class="err">CORTOCIRCUITO</span> → te falta la resistencia.
+Si ve <span class="warn">CIRCUITO ABIERTO (0&nbsp;mA)</span> → un cable está suelto o no cierra a GND.</p>
+<div class="lead"><b>Listo cuando:</b> el botón se pone <b>verde</b> y el mando <b>vibra</b>. ✔</div>
+</div>
+
+<h2>Resumen de tu trabajo</h2>
+<table>
+<tr><th>Reto</th><th>Lo que TÚ haces</th></tr>
+<tr><td>1 · Serie</td><td>Medir 9&nbsp;V · instalar la resistencia 850&nbsp;Ω.</td></tr>
+<tr><td>2 · Paralelo</td><td>Medir los 3 sensores · reconectar la rama de 0&nbsp;V.</td></tr>
+<tr><td>3 · Mixto</td><td>Girar capacitor 180° · girar LED · instalar 220&nbsp;Ω.</td></tr>
+<tr><td>4 · Arduino</td><td>Conectar LED al pin indicado + resistencia 330&nbsp;Ω + GND · validar.</td></tr>
+</table>
+<p class="small">Glosario rápido: <b>Nodo</b>=punto de medición · <b>Ánodo(+)/Cátodo(−)</b>=patas del LED ·
+<b>GND</b>=tierra · <b>Háptica</b>=vibración del mando · <b>Polaridad</b>=sentido +/− de una pieza.</p>
+
+<p class="small" style="margin-top:14px; border-top:1px solid #d8cdbb; padding-top:6px;">
+Proyecto TITA · Serious Game de circuitos eléctricos · Guía del Explorador (VR) — 4 retos.</p>
+
+</body>
+</html>

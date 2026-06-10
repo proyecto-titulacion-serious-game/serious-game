@@ -30,6 +30,30 @@ public class ProtoboardConnector : MonoBehaviour
     private ProtoboardSimulator _sim;
     private Vector3 _lastPos;
 
+    /// <summary>
+    /// Garantiza que un componente colocable tenga <see cref="ProtoboardConnector"/> para que
+    /// el simulador del Reto 4 lo detecte al colocarse (lo registra en <see cref="Active"/>).
+    /// Pensado para componentes spawneados en runtime (bandeja de entrega) cuyo prefab no trae
+    /// el conector. Equivalente runtime de la herramienta de editor "Añadir Conectores".
+    ///
+    /// Idempotente. Ignora objetos sin <see cref="ElectricalComponent"/> y la
+    /// <see cref="VoltageSource"/> (condición de frontera, no se engancha). Las patas leadA/leadB
+    /// se auto-generan del bounding box.
+    /// </summary>
+    public static ProtoboardConnector EnsureOn(GameObject go)
+    {
+        if (go == null) return null;
+
+        var comp = go.GetComponent<ElectricalComponent>()
+                ?? go.GetComponentInChildren<ElectricalComponent>(true);
+        if (comp == null) return null;          // no es un componente eléctrico
+        if (comp is VoltageSource) return null; // la fuente no se engancha
+
+        // El conector debe ir en el MISMO GO que el ElectricalComponent (RequireComponent).
+        var existing = comp.GetComponent<ProtoboardConnector>();
+        return existing != null ? existing : comp.gameObject.AddComponent<ProtoboardConnector>();
+    }
+
     void Awake()
     {
         _comp = GetComponent<ElectricalComponent>();

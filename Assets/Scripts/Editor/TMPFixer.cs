@@ -1,3 +1,4 @@
+#if UNITY_EDITOR // <--- ESTO ES VITAL PARA QUE NO EXPLOTE EN META QUEST
 using UnityEngine;
 using UnityEditor;
 using TMPro;
@@ -85,3 +86,4 @@ public static class TMPFixer
         AssetDatabase.SaveAssets();
     }
 }
+#endif // <--- CIERRE DEL ESCUDO

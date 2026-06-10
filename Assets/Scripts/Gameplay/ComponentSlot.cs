@@ -121,10 +121,13 @@ public class ComponentSlot : MonoBehaviour
         var gc = other.GetComponentInParent<GrabbableComponent>();
         if (gc == null) return;
 
-        // CASO 1: El jugador agarra y arranca un componente que ya estaba magnetizado
+        // CASO 1: El jugador agarra y arranca un componente que ya estaba magnetizado.
+        // Solo liberar si DE VERDAD lo está agarrando. Si la pieza "salió" del trigger sin estar
+        // agarrada (deriva por física / anchor fuera del collider), NO liberar → evita el bucle
+        // instalar→liberar→caer→reinstalar que disparaba "valor incorrecto" miles de veces.
         if (_hasComponent && _installed != null && gc.gameObject == _installed)
         {
-            LiberarSlotPorRetiro();
+            if (gc.IsGrabbed) LiberarSlotPorRetiro();
             return;
         }
 
@@ -172,7 +175,10 @@ public class ComponentSlot : MonoBehaviour
             rb.angularVelocity = Vector3.zero;
         }
 
-        if (damagedComponent != null)
+        // Ocultar la pieza dañada SOLO si no contiene un LED. En el Reto 1 el LED es una pieza
+        // fija del circuito; si quedó dentro del 'damagedComponent', desactivarlo lo hacía
+        // DESAPARECER (y al quedar inactivo el simulador no lo encontraba → nunca se ponía verde).
+        if (damagedComponent != null && damagedComponent.GetComponentInChildren<LED>(true) == null)
             damagedComponent.SetActive(false);
 
         // Avisar al simulador que hay una nueva pieza en el tablero

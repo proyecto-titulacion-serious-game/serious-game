@@ -90,8 +90,7 @@ public class InstructionSystem : MonoBehaviour
 
     private void OnCircuitChanged() => _needsValidation = true;
 
-    private void OnSketchDataReceived(int pin, PinMode mode, PinState state, bool blink, int blinkMs)
-        => _needsValidation = true;
+    private void OnSketchDataReceived(int pin, PinMode mode, PinState state, bool blink, int blinkOnMs, int blinkOffMs)        => _needsValidation = true;
 
     /// <summary>Valida el paso actual solo cuando el circuito cambia.</summary>
     private void Update()

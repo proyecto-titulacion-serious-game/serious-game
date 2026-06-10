@@ -4821,7 +4821,7 @@ namespace Fusion.Editor {
     internal static Vector2 GetInlineBoxSize(GUIContent content) {
 
       // const int InlineBoxExtraHeight = 4;
-      
+
       var outerStyle = FusionEditorSkin.InlineBoxFullWidthStyle;
       var innerStyle = FusionEditorSkin.RichLabelStyle;
       
@@ -11541,7 +11541,7 @@ namespace Fusion.Editor {
       if (FusionEditorGUI.IsHelpExpanded(this, property.GetHashCodeForPropertyPathWithoutArrayIndex()) && _helpContent != null) {
         height += FusionEditorGUI.GetInlineBoxSize(_helpContent).y;
       }
-      
+
       return height;
     }
 

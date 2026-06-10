@@ -60,26 +60,14 @@ public class ComponentDeliverySystem : MonoBehaviour
         if (puntoDeEntrega == null)
         {
             var tray = GameObject.Find("Bandeja_Recepcion");
-            if (tray != null)
-            {
-                puntoDeEntrega = tray.transform;
-            }
+            if (tray != null) puntoDeEntrega = tray.transform;
             else
             {
                 var toolbox = FindAnyObjectByType<ToolboxController>();
                 if (toolbox != null) puntoDeEntrega = toolbox.GetComponentSlot();
             }
-
-            if (puntoDeEntrega == null)
-            {
-                var fallback = new GameObject("PuntoDeEntrega_Fallback");
-                fallback.transform.SetParent(transform);
-                fallback.transform.localPosition = Vector3.up * 0.5f;
-                puntoDeEntrega = fallback.transform;
-                Debug.LogWarning("[Delivery] Bandeja_Recepcion no encontrada. " +
-                                 "Los componentes aparecerán junto al ComponentDeliverySystem. " +
-                                 "Crea un GameObject 'Bandeja_Recepcion' en la escena del Explorador.");
-            }
+            // Si sigue null, NO creamos un fallback ciego (que caía fuera del mapa):
+            // se resuelve a un punto seguro en el primer envío (ResolverPuntoEntregaSeguro).
         }
     }
 
@@ -149,12 +137,19 @@ public class ComponentDeliverySystem : MonoBehaviour
     {
         if (!_waitingForInstall)
         {
-            Debug.Log("[Delivery] No hay componente en tránsito para instalar.");
-            return;
+            // Sin entrega del Técnico (modo solo/offline): validar con el valor REAL del componente
+            // que el Explorador acaba de colocar. Permite completar el reto sin un segundo jugador.
+            if (!DeriveDeliveryFromInstalled(slot))
+            {
+                Debug.Log("[Delivery] No hay componente en tránsito para instalar.");
+                return;
+            }
         }
 
-        // Validación 1: ¿Slot correcto?
-        bool slotCorrect = slot.acceptedType == GetSlotTypeFor(_pendingType);
+        // Validación 1: ¿Slot correcto? Un slot 'Any' (sandbox) acepta cualquier tipo —igual que
+        // ComponentSlot.MatchesSlotType—; antes esto rechazaba "Resistor en Any" y bloqueaba la reparación.
+        bool slotCorrect = slot.acceptedType == ComponentSlotType.Any
+                        || slot.acceptedType == GetSlotTypeFor(_pendingType);
 
         if (!slotCorrect)
         {
@@ -229,6 +224,8 @@ public class ComponentDeliverySystem : MonoBehaviour
             return;
         }
         if (puntoDeEntrega == null)
+            puntoDeEntrega = ResolverPuntoEntregaSeguro(transform);
+        if (puntoDeEntrega == null)
         {
             Debug.LogError("[Delivery] PuntoDeEntrega no asignado.");
             return;
@@ -255,6 +252,10 @@ public class ComponentDeliverySystem : MonoBehaviour
     /// </summary>
     void ConfigureSpawnedComponent(GameObject comp, float value)
     {
+        // Reto 4: garantizar que el componente entregado tenga ProtoboardConnector,
+        // si no el simulador (CircuitSimulator) nunca lo detecta al colocarse.
+        ProtoboardConnector.EnsureOn(comp);
+
         if (comp.TryGetComponent<Resistor>(out var r))
         {
             r.resistance = value;
@@ -275,17 +276,81 @@ public class ComponentDeliverySystem : MonoBehaviour
     //  Validación del valor (post-instalación)
     // ─────────────────────────────────────────────
 
+    /// <summary>
+    /// Encuentra el resistor del reto a reparar. Prefiere el resistor FIJO de la escena con la
+    /// falla (hasFault → tiene el correctResistance del reto), luego el de la lista de slots.
+    /// Necesario porque el resistor del Reto 1 es una pieza fija NO instalada en un slot, así que
+    /// 'circuit.components' (basado en slots) está vacío y la reparación nunca lo alcanzaba.
+    /// </summary>
+   Resistor BuscarResistorDelReto()
+    {
+        // 1. Si el reto usa slots, el resistor con falla puede estar instalado allí.
+        //    (No abortamos si circuit es null: en Retos 1-3 el circuito lo maneja CircuitManager
+        //    y gameManager.circuit suele ser null, así que el resistor real está en la escena.)
+        if (gameManager != null && gameManager.circuit != null)
+        {
+            foreach (var comp in gameManager.circuit.components)
+                if (comp is Resistor rs && rs.hasFault)
+                    return rs;
+        }
+
+        // 2. Pieza FIJA de la escena (Reto 1): el resistor con falla NO está en ningún slot, así que
+        //    'circuit.components' (basado en slots) está vacío. Buscamos scene-wide el resistor
+        //    cableado (nodeA/nodeB) con la falla, ignorando el de la bandeja de entrega (sin nodos).
+        foreach (var r in FindObjectsByType<Resistor>(FindObjectsInactive.Exclude))
+            if (r != null && r.nodeA != null && r.nodeB != null && r.hasFault)
+                return r;
+
+        return null;
+    }
+
+    /// <summary>
+    /// LED del reto a reparar (pieza fija de la escena). Para polaridad (Reto 3) busca el invertido;
+    /// si no, busca la RAMA ROTA del paralelo (Reto 2): LED abierto o con resistencia anómala.
+    /// Ignora LEDs sin nodos (el de la bandeja, que no está cableado).
+    /// </summary>
+    LED BuscarLEDDelReto(bool paraPolaridad)
+    {
+        LED fallback = null;
+        foreach (var led in FindObjectsByType<LED>(FindObjectsInactive.Exclude))
+        {
+            if (led == null || led.nodeA == null || led.nodeB == null) continue;  // solo cableados
+            if (paraPolaridad) { if (led.polarityInverted) return led; }
+            else               { if (led.isOpenCircuit || led.resistance > 1000f) return led; }
+            if (fallback == null) fallback = led;
+        }
+        return fallback;
+    }
+
+    /// <summary>
+    /// Fuerza que AMBOS motores recalculen tras un cambio de componente: el CircuitSimulator
+    /// (Gameplay, vía GameManager) y el CircuitManager (Electrical, que es el que pinta el LED en
+    /// los Retos 1–3 con SimulateSeries/Parallel y dispara OnCircuitChanged).
+    /// </summary>
+    void ResimularCircuitos()
+    {
+        gameManager?.circuit?.MarkDirty();
+
+        foreach (var cm in FindObjectsByType<CircuitManager>(FindObjectsInactive.Exclude))
+        {
+            if (cm == null) continue;
+            cm.MarkDirty();
+            cm.ForceSimulate();   // recalcula ya y emite OnCircuitChanged (multímetro, LED, cables)
+        }
+    }
+
     bool ValidateValueForRepair()
     {
-        if (gameManager?.circuit == null) return false;
-
+        // NO bloquear con gameManager.circuit == null: en Retos 1-3 el circuito lo maneja
+        // CircuitManager (Electrical), no el CircuitSimulator de slots, así que 'circuit' es null
+        // y antes esto rechazaba SIEMPRE el 850 correcto. Resistor/LED/Cap se validan scene-wide.
         switch (_pendingType)
         {
             case ComponentType.Resistor:
-                foreach (var c in gameManager.circuit.components)
-                    if (c is Resistor r)
-                        return r.IsValueCorrect(_pendingValue);
-                return false;
+            {
+                var r = BuscarResistorDelReto();
+                return r != null && r.IsValueCorrect(_pendingValue);
+            }
 
             case ComponentType.LED:
                 return _pendingValue >= 0; // polaridad correcta
@@ -294,6 +359,7 @@ public class ComponentDeliverySystem : MonoBehaviour
                 return _pendingValue >= 0; // polaridad correcta
 
             case ComponentType.ArduinoPin:
+                if (gameManager?.circuit == null) return false; // este caso SÍ necesita la lista
                 foreach (var c in gameManager.circuit.components)
                     if (c is ArduinoPin pin)
                         return (int)_pendingValue == pin.correctPinNumber;
@@ -309,6 +375,44 @@ public class ComponentDeliverySystem : MonoBehaviour
 
     void ApplyRepairToCircuit()
     {
+        // El resistor del reto puede ser una pieza FIJA (no en slot) → buscarlo en la escena y
+        // aplicarle el valor correcto. (Antes solo se iteraba circuit.components, que está vacío
+        // para el Reto 1, así que el resistor real seguía en 10Ω.)
+        if (_pendingType == ComponentType.Resistor)
+        {
+            var r = BuscarResistorDelReto();
+            if (r != null)
+            {
+                r.resistance = _pendingValue;
+                r.hasFault   = false;
+                // Restaurar una potencia nominal SANA: la sobrecarga (isOverloaded = dissipatedPower
+                // > powerRatingWatts) se limpia. En estos circuitos de baja tensión la disipación es
+                // < 1 W, así que 1 W de margen elimina cualquier falla de "potencia insuficiente".
+                r.powerRatingWatts = Mathf.Max(r.powerRatingWatts, 1f);
+            }
+            ResimularCircuitos();
+            return;
+        }
+
+        // El LED del reto también puede ser pieza FIJA (no en slot). Reto 2: rama rota (LED abierto/
+        // resistencia anómala) → restaurar resistencia normal. Reto 3: LED invertido → corregir polaridad.
+        if (_pendingType == ComponentType.LED)
+        {
+            // Si una LED había explotado y salido volando, esta entrega la reemplaza:
+            // se devuelve a su sitio y vuelve a funcionar (polaridad correcta).
+            LEDBlowEffect.RestoreAllBlown(inverted: false);
+
+            bool esPolaridad = Mathf.Abs(_pendingValue) == 1f;
+            var led = BuscarLEDDelReto(esPolaridad);
+            if (led != null)
+            {
+                if (esPolaridad) led.polarityInverted = false;
+                else if (_pendingValue > 0f) { led.resistance = _pendingValue; led.isOpenCircuit = false; }
+            }
+            ResimularCircuitos();
+            return;
+        }
+
         if (gameManager?.circuit == null) return;
 
         foreach (var comp in gameManager.circuit.components)
@@ -355,6 +459,21 @@ public class ComponentDeliverySystem : MonoBehaviour
     /// </summary>
     void ApplyIncorrectValueToCircuit()
     {
+        // Una LED entregada reemplaza físicamente a la quemada aunque venga invertida:
+        // se restaura en su sitio, pero con la polaridad equivocada → seguirá sin prender.
+        if (_pendingType == ComponentType.LED)
+            LEDBlowEffect.RestoreAllBlown(inverted: _pendingValue < 0);
+
+        // Resistor fijo del reto: aplicar el valor erróneo (mantiene hasFault) para que el
+        // Explorador vea la consecuencia (LED sigue rojo / sobrecarga).
+        if (_pendingType == ComponentType.Resistor)
+        {
+            var r = BuscarResistorDelReto();
+            if (r != null) r.resistance = _pendingValue;   // hasFault permanece en true
+            ResimularCircuitos();
+            return;
+        }
+
         if (gameManager?.circuit == null) return;
 
         foreach (var comp in gameManager.circuit.components)
@@ -391,6 +510,43 @@ public class ComponentDeliverySystem : MonoBehaviour
     // ─────────────────────────────────────────────
     //  Helpers
     // ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Resuelve un punto de entrega "seguro" (dentro del mapa y alcanzable) cuando no hay
+    /// Bandeja_Recepcion ni toolbox asignados. Prioridad: Bandeja_Recepcion → protoboard
+    /// (zona de trabajo del Explorador) → frente a la cámara del jugador → encima del sistema.
+    /// Crea y devuelve un Transform-ancla en esa posición. Lo usan tanto este sistema como
+    /// <see cref="ExplorerComponentReceiver"/> para no spawnear nunca fuera del mapa.
+    /// </summary>
+    public static Transform ResolverPuntoEntregaSeguro(Transform self)
+    {
+        var tray = GameObject.Find("Bandeja_Recepcion");
+        if (tray != null) return tray.transform;
+
+        Vector3 pos;
+        var proto = FindAnyObjectByType<ProtoboardSimulator>();
+        if (proto != null)
+        {
+            // 20 cm sobre la protoboard: cae con gravedad y queda al alcance del Explorador.
+            pos = proto.transform.position + Vector3.up * 0.20f;
+        }
+        else if (Camera.main != null)
+        {
+            var cam = Camera.main.transform;
+            pos = cam.position + cam.forward * 0.5f - Vector3.up * 0.2f; // frente y un poco abajo
+        }
+        else
+        {
+            pos = (self != null ? self.position : Vector3.zero) + Vector3.up * 0.5f;
+        }
+
+        var go = new GameObject("PuntoDeEntrega_Auto");
+        go.transform.position = pos;
+        Debug.LogWarning("[Delivery] Sin Bandeja_Recepcion: punto de entrega resuelto automáticamente " +
+                         $"en {pos}. Para fijarlo, crea un GameObject 'Bandeja_Recepcion' donde quieras " +
+                         "que aparezcan los componentes.", go);
+        return go.transform;
+    }
 
     ComponentSlotType GetSlotTypeFor(ComponentType type) => type switch
     {
@@ -439,6 +595,78 @@ public class ComponentDeliverySystem : MonoBehaviour
         _pendingValue      = valor;
         _waitingForInstall = true;
         _spawnedComponent  = null;   // gestionado por el Receiver
+    }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    /// <summary>
+    /// PRUEBA SOLO (sin VR / sin Técnico). Ejecuta la ruta REAL de validación + reparación como si
+    /// el Técnico hubiera entregado <paramref name="valor"/> de tipo <paramref name="tipo"/> y el
+    /// Explorador lo hubiera colocado: corre <see cref="ValidateValueForRepair"/> →
+    /// <c>BuscarResistorDelReto/BuscarLEDDelReto</c> → <see cref="ApplyRepairToCircuit"/>. Es lo que
+    /// F8 (<see cref="SoloTechnicianDebug"/>) NO hace, porque F8 llama <c>Repair()</c> directo y se
+    /// salta esta validación. Devuelve true si el circuito quedó reparado. La invoca F9.
+    /// </summary>
+    public bool DebugSimularEntregaEInstalacion(ComponentType tipo, float valor)
+    {
+        _pendingType  = tipo;
+        _pendingValue = valor;
+
+        bool valido = ValidateValueForRepair();
+        if (valido)
+        {
+            ApplyRepairToCircuit();
+            gameManager?.RegisterRepairAction();
+            Debug.Log($"[Delivery][F9] Entrega simulada OK: {tipo}={valor} → circuito reparado por la ruta real.");
+        }
+        else
+        {
+            ApplyIncorrectValueToCircuit();
+            Debug.LogWarning($"[Delivery][F9] Entrega simulada RECHAZADA: {tipo}={valor} no validó " +
+                             "(BuscarResistorDelReto/ValidateValueForRepair devolvió false). Si esto " +
+                             "ocurre con el VALOR CORRECTO del reto, el fix está roto.");
+        }
+
+        ResetDeliveryState();
+        return valido;
+    }
+#endif
+
+    /// <summary>
+    /// Modo solo/offline: deriva tipo+valor del componente físico ya instalado en el slot, para
+    /// poder validar/reparar sin que el Técnico haya enviado nada por red. El token físico lo
+    /// gestiona el ComponentSlot (no se destruye aquí, por eso _spawnedComponent queda en null).
+    /// </summary>
+    bool DeriveDeliveryFromInstalled(ComponentSlot slot)
+    {
+        var obj = slot != null ? slot.InstalledObject : null;
+        if (obj == null) return false;
+
+        if (obj.TryGetComponent<Resistor>(out var r))
+        {
+            _pendingType  = ComponentType.Resistor;
+            _pendingValue = r.resistance;
+        }
+        else if (obj.TryGetComponent<LED>(out var led))
+        {
+            _pendingType  = ComponentType.LED;
+            _pendingValue = led.polarityInverted ? -1f : 1f;
+        }
+        else if (obj.TryGetComponent<Capacitor>(out var cap))
+        {
+            _pendingType  = ComponentType.Capacitor;
+            _pendingValue = cap.polarityInverted ? -1f : 1f;
+        }
+        else if (obj.TryGetComponent<ArduinoPin>(out var pin))
+        {
+            _pendingType  = ComponentType.ArduinoPin;
+            _pendingValue = pin.pinNumber;
+        }
+        else return false;
+
+        _waitingForInstall = true;
+        _spawnedComponent  = null;
+        Debug.Log($"[Delivery] (offline) Validando componente colocado: {_pendingType} = {_pendingValue}");
+        return true;
     }
 }
 

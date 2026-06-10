@@ -44,12 +44,17 @@ public class CircuitAudioManager : MonoBehaviour
     [Tooltip("Sonido de fallo al agotar el tiempo o completar con errores.")]
     public AudioClip sfxFailure;
 
-    [Tooltip("Fanfarria al completar todos los retos.")]
+    [Tooltip("Jingle de victoria al completar un reto importante.")]
     public AudioClip sfxVictory;
+
+    [Tooltip("FANFARRIA ESPECIAL al completar la MISIÓN (los 4 retos). Si queda vacío, usa sfxVictory.")]
+    public AudioClip sfxFanfarriaMision;
 
     [Header("Volúmenes")]
     [Range(0f, 1f)] public float volumeCircuit  = 0.7f;
     [Range(0f, 1f)] public float volumeProgress = 0.9f;
+    [Tooltip("Volumen de la fanfarria final (más alta para que destaque).")]
+    [Range(0f, 1f)] public float volumeFanfarria = 1f;
 
     private AudioSource  _src;
     private GameManager  _gm;
@@ -108,7 +113,12 @@ public class CircuitAudioManager : MonoBehaviour
     void OnLevelCompleted(LevelType _, bool success)
         => Play(success ? sfxSuccess : sfxFailure, volumeProgress);
 
-    void OnGameCompleted() => Play(sfxVictory, volumeProgress);
+    void OnGameCompleted()
+    {
+        // Fanfarria especial de fin de misión (los 4 retos). Respaldo a sfxVictory si no se asignó.
+        AudioClip fanfarria = sfxFanfarriaMision != null ? sfxFanfarriaMision : sfxVictory;
+        Play(fanfarria, volumeFanfarria);
+    }
 
     // ── Helpers ─────────────────────────────────────────────────────────
 

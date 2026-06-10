@@ -29,6 +29,20 @@ public class CableBoxSpawner : MonoBehaviour
     public float buttonAnimTime   = 0.10f;
     public float gateAnimTime     = 0.35f;
 
+    [Header("Dispensado")]
+    [Tooltip("Tiempo mínimo entre cables al rozar la caja (evita spawnear muchos de golpe).")]
+    public float spawnCooldown = 0.6f;
+    [Tooltip("Si está activo, también detecta manos/controladores XR aunque NO tengan el tag " +
+             "RightHand/LeftHand (por nombre del collider). Útil si las manos no están tagueadas.")]
+    public bool  detectarManosPorNombre = true;
+
+    [Header("Depuración")]
+    [Tooltip("Loguea en consola CADA collider que entra al trigger (nombre + tag). " +
+             "Actívalo si los cables no salen, para ver si la mano llega y con qué tag.")]
+    public bool  logTriggers = false;
+
+    float _lastSpawnTime = -10f;
+
     // ─────────────────────────────────────────
     //  Paleta de colores (cuerpo, puntaA, puntaB)
     // ─────────────────────────────────────────
@@ -89,14 +103,49 @@ public class CableBoxSpawner : MonoBehaviour
 
     void Start()
     {
+        if (cablePrefab == null)
+            Debug.LogWarning("[CableBoxSpawner] cablePrefab NO asignado en el Inspector — " +
+                             "al rozar la caja no saldrá ningún cable. Asigna el prefab del jumper.", this);
+
         UpdateState();
         StartCoroutine(PulseLED());
     }
 
     void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("RightHand") || other.CompareTag("LeftHand"))
-            SpawnCable();
+        if (logTriggers)
+            Debug.Log($"[CableBoxSpawner] Trigger: entró '{other.name}' (tag='{other.tag}') " +
+                      $"→ {(EsMano(other) ? "reconocido como MANO ✓" : "NO reconocido como mano ✗")}");
+
+        if (!EsMano(other)) return;
+
+        // Cooldown: rozar la caja con varios colliders (dedos) no debe escupir 10 cables.
+        if (Time.time - _lastSpawnTime < spawnCooldown) return;
+        _lastSpawnTime = Time.time;
+
+        SpawnCable();
+    }
+
+    /// <summary>
+    /// ¿El collider que entró es una mano del jugador? Primero por tag (RightHand/LeftHand);
+    /// si <see cref="detectarManosPorNombre"/> está activo, también por nombre del collider
+    /// o de algún padre (hand / controller / poke / direct / grab), para cubrir setups donde
+    /// las manos no quedaron tagueadas.
+    /// </summary>
+    bool EsMano(Collider other)
+    {
+        if (other.CompareTag("RightHand") || other.CompareTag("LeftHand")) return true;
+        if (!detectarManosPorNombre) return false;
+
+        // Buscar la palabra clave en el collider o subiendo por la jerarquía.
+        for (Transform t = other.transform; t != null; t = t.parent)
+        {
+            string n = t.name.ToLowerInvariant();
+            if (n.Contains("hand") || n.Contains("controller") ||
+                n.Contains("poke") || n.Contains("direct") || n.Contains("grab"))
+                return true;
+        }
+        return false;
     }
 
     void OnHoverEnter() => SetButtonEmission(LedGreen * 3.5f);
@@ -117,6 +166,7 @@ public class CableBoxSpawner : MonoBehaviour
         _paletteIdx = (_paletteIdx + 1) % Palettes.Length;
 
         MakeCableElectrical(go);
+        EnsureGrabbable(go);   // garantiza que el cable dispensado se pueda agarrar en VR
 
         go.transform.localScale = Vector3.zero;
         StartCoroutine(ScaleIn(go.transform, 0.12f));
@@ -271,6 +321,44 @@ public class CableBoxSpawner : MonoBehaviour
             if (b == null && t.name.Contains("Probe_B")) b = t;
         }
         connector.SetLeads(a, b);   // si null, EnsureLeads ya creó patas en los extremos
+    }
+
+    /// <summary>
+    /// Garantiza que el cable dispensado sea agarrable en VR. El CableBox solo lo hacía
+    /// eléctrico (Jumper + ProtoboardConnector) pero nunca le añadía el agarre, así que si
+    /// el prefab no traía XRGrabInteractable, el cable salía pero no se podía tomar.
+    ///
+    /// Añade las 3 piezas que XRI exige (XRGrabInteractable + Rigidbody + Collider) solo si
+    /// faltan. Se llama a escala completa del prefab (antes del scale-in), para que el
+    /// XRGrabInteractable recolecte bien los colliders hijos al registrarse.
+    /// </summary>
+    static void EnsureGrabbable(GameObject go)
+    {
+        // 1) Rigidbody — kinematic y sin gravedad: el cable queda flotando donde sale,
+        //    hasta que el jugador lo agarre. XRGrabInteractable gestiona el kinematic al tomarlo.
+        var rb = go.GetComponent<Rigidbody>();
+        if (rb == null) rb = go.AddComponent<Rigidbody>();
+        rb.useGravity  = false;
+        rb.isKinematic = true;
+
+        // 2) Collider — XRI necesita al menos uno para detectar el agarre. El prefab del cable
+        //    suele traer los de las puntas (Probe_A/Probe_B). Si no hay ninguno, ponemos uno básico.
+        if (go.GetComponentInChildren<Collider>(true) == null)
+        {
+            var box = go.AddComponent<BoxCollider>();
+            box.size      = new Vector3(0.03f, 0.03f, 0.10f);
+            box.isTrigger = false;
+        }
+
+        // 3) XRGrabInteractable — si el prefab ya lo trae, no lo duplicamos.
+        if (go.GetComponent<XRGrabInteractable>() == null)
+        {
+            var grab = go.AddComponent<XRGrabInteractable>();
+            grab.movementType = XRGrabInteractable.MovementType.Kinematic;
+            grab.trackPosition = true;
+            grab.trackRotation = true;
+            grab.throwOnDetach = false;
+        }
     }
 
     static void ApplyCableColors(GameObject go, int idx)

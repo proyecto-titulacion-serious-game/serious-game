@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic; // Necesario para usar List<>
+using UnityEngine.XR.Interaction.Toolkit.Interactables; // XRGrabInteractable (soltar de la bandeja)
 
 /// <summary>
 /// Vive en la escena Explorador.unity.
@@ -14,6 +15,12 @@ public class ExplorerComponentReceiver : MonoBehaviour
     
     [Tooltip("Margen de dispersión para que los componentes no se fusionen al aparecer.")]
     public float radioDispersion = 0.08f;
+
+    [Header("Bandeja híbrida")]
+    [Tooltip("Si está activo, los componentes se 'pegan' a la bandeja (puntoDeEntrega) y viajan con " +
+             "ella; al agarrarlos con la mano se sueltan para instalarlos. REQUIERE que puntoDeEntrega " +
+             "tenga escala UNIFORME (el root del ComponentReceiver, NO el Tray_Visual achatado).")]
+    public bool modoBandejaHibrida = true;
 
     [Header("Slots por tipo — arrastra los empties de la escena (opcional)")]
     [Tooltip("Si se asigna, el Resistor aparece aquí en lugar del puntoDeEntrega general.")]
@@ -49,6 +56,8 @@ public class ExplorerComponentReceiver : MonoBehaviour
 
     // LISTA para acumular componentes en lugar de una sola variable
     private List<GameObject> _componentesRecibidos = new List<GameObject>();
+    // Último componente recibido POR TIPO → para REEMPLAZAR en vez de apilar (Retos 1-3 = 1 pieza/tipo).
+    private readonly Dictionary<ComponentType, GameObject> _ultimoPorTipo = new Dictionary<ComponentType, GameObject>();
 
     // ─────────────────────────────────────────────
     //  Lifecycle
@@ -111,6 +120,17 @@ public class ExplorerComponentReceiver : MonoBehaviour
 
     void SpawnComponente(ComponentType tipo, float valor, GameObject prefabOverride)
     {
+        // Reto 4: el Arduino YA NO se entrega como componente físico. Es un objeto fijo en la
+        // escena y se programa por código (Técnico → ArduinoNetworkBridge → ArduinoCore), sus
+        // pines se conectan con cables (CableBox + ProtoboardConnector). Ignoramos cualquier
+        // ArduinoPin que llegue por el canal de entrega (legacy del paradigma lineal de retos 1-3).
+        if (tipo == ComponentType.ArduinoPin)
+        {
+            Debug.LogWarning("[Receiver] ArduinoPin ignorado: el Arduino no se entrega como " +
+                             "componente; se programa por el bridge y se conecta con cables.", this);
+            return;
+        }
+
         // ¡ELIMINADO EL DESTROY AQUÍ PARA PERMITIR ACUMULACIÓN!
 
         // If delivery already spawned a ghost (from the delivery path in ComponentSendingTray),
@@ -118,15 +138,8 @@ public class ExplorerComponentReceiver : MonoBehaviour
         if (delivery != null && delivery.HasPendingDelivery())
             delivery.CancelDelivery();
 
-        // Prioridad: prefab enviado desde el Técnico → prefab base asignado en Inspector
-        GameObject prefab = prefabOverride != null ? prefabOverride : tipo switch
-        {
-            ComponentType.Resistor   => resistorPrefab,
-            ComponentType.LED        => ledPrefab,
-            ComponentType.Capacitor  => capacitorPrefab,
-            ComponentType.ArduinoPin => arduinoPinPrefab,
-            _                        => null
-        };
+        // Prioridad: prefab enviado desde el Técnico → variante específica → prefab base.
+        GameObject prefab = prefabOverride != null ? prefabOverride : SeleccionarPrefab(tipo, valor);
 
         Transform slot = tipo switch
         {
@@ -137,10 +150,23 @@ public class ExplorerComponentReceiver : MonoBehaviour
             _                        => puntoDeEntrega
         };
 
+        // Si no hay slot ni puntoDeEntrega asignados, resolver uno seguro (protoboard/cámara)
+        // en vez de no spawnear o caer fuera del mapa.
+        if (slot == null)
+            slot = puntoDeEntrega = ComponentDeliverySystem.ResolverPuntoEntregaSeguro(transform);
+
         if (prefab == null || slot == null)
         {
             Debug.LogWarning($"[Receiver] Prefab o punto de entrega no asignado para {tipo}.");
             return;
+        }
+
+        // REEMPLAZAR el componente anterior del mismo tipo: en los Retos 1-3 solo hay 1 pieza por
+        // tipo, así que reenviar no debe apilar objetos en la mesa. (Tipos distintos coexisten.)
+        if (_ultimoPorTipo.TryGetValue(tipo, out var previo) && previo != null)
+        {
+            _componentesRecibidos.Remove(previo);
+            Destroy(previo);
         }
 
         // Crear un ligero desfase aleatorio para que no colisionen violentamente
@@ -152,19 +178,52 @@ public class ExplorerComponentReceiver : MonoBehaviour
 
         Vector3 posicionSpawn = slot.position + offsetAleatorio;
 
-        // Instanciar sin emparentar directamente al slot para evitar escalas raras con físicas
         GameObject nuevoComponente = Instantiate(prefab, posicionSpawn, slot.rotation);
-        
-        // Agregar a nuestra lista de control
+
+        // Agregar a nuestra lista de control + registrar como el actual de su tipo.
         _componentesRecibidos.Add(nuevoComponente);
+        _ultimoPorTipo[tipo] = nuevoComponente;
 
         ConfigurarComponente(nuevoComponente, tipo, valor);
 
-        // ¡FÍSICAS ACTIVADAS PARA QUE CAIGAN EN LA MESA!
-        if (nuevoComponente.TryGetComponent<Rigidbody>(out var rb))
+        bool tieneRb = nuevoComponente.TryGetComponent<Rigidbody>(out var rb);
+
+        if (modoBandejaHibrida)
         {
+            // ── BANDEJA HÍBRIDA ───────────────────────────────────────────────
+            // El componente se "sostiene" en la bandeja: se emparenta al punto de entrega y queda
+            // kinematic → VIAJA con la caja cuando el Explorador la mueve. Al agarrarlo con la mano
+            // (XRGrabInteractable) se suelta (un-parent) y pasa a física para poder instalarlo.
+            AdvertirSiEscalaNoUniforme(slot);
+            nuevoComponente.transform.SetParent(slot, worldPositionStays: true);
+            if (tieneRb) { rb.isKinematic = true; rb.useGravity = false; }
+
+            var grab = nuevoComponente.GetComponentInChildren<XRGrabInteractable>(true);
+            if (grab != null)
+            {
+                grab.retainTransformParent = false;   // que XRI no lo re-pegue a la bandeja al soltar
+                grab.selectEntered.AddListener(_ =>
+                {
+                    // Solo des-emparentar de la bandeja. NO tocar isKinematic/useGravity aquí:
+                    // el XRGrabInteractable es MovementType.Kinematic y gestiona el kinematic durante
+                    // el agarre. Forzar no-kinemático + gravedad hacía que la pieza CAYERA y temblara
+                    // ("epilepsia") al moverla. La gravedad post-soltar la pone GrabbableComponent.
+                    nuevoComponente.transform.SetParent(null, worldPositionStays: true);
+                });
+            }
+        }
+        else if (tieneRb)
+        {
+            // Modo clásico: cae por gravedad y descansa por física sobre la bandeja.
             rb.isKinematic = false;
             rb.useGravity  = true;
+        }
+
+        // Collision continua + interpolación: no atravesar la bandeja fina ni temblar.
+        if (tieneRb)
+        {
+            rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+            rb.interpolation          = RigidbodyInterpolation.Interpolate;
         }
 
         delivery?.PrepareForInstall(tipo, valor);
@@ -185,7 +244,42 @@ public class ExplorerComponentReceiver : MonoBehaviour
         
         // Vaciamos la lista para el nuevo reto
         _componentesRecibidos.Clear();
+        _ultimoPorTipo.Clear();
         Debug.Log("[Receiver] Mesa limpiada para el nuevo reto.");
+    }
+
+    /// <summary>
+    /// Elige el prefab a instanciar: usa la VARIANTE específica si está asignada, si no el base.
+    /// Nota: el evento de entrega (ComponentType, valor) no transporta color, así que se usa una
+    /// variante por defecto coherente (LED verde = pieza sana entregada; capacitor azul). Las demás
+    /// variantes (rojo/amarillo, negro/naranja, resistor vertical) quedan listas para cuando el
+    /// Técnico envíe el color en el RPC (ampliar GameSession.OnComponenteRecibido con un parámetro).
+    /// </summary>
+    GameObject SeleccionarPrefab(ComponentType tipo, float valor)
+    {
+        switch (tipo)
+        {
+            case ComponentType.Resistor:
+                return resistorPrefab;
+            case ComponentType.LED:
+                return ledGreenPrefab      != null ? ledGreenPrefab      : ledPrefab;
+            case ComponentType.Capacitor:
+                return capacitorBluePrefab != null ? capacitorBluePrefab : capacitorPrefab;
+            case ComponentType.ArduinoPin:
+                return arduinoPinPrefab;
+            default:
+                return null;
+        }
+    }
+
+    /// <summary>Avisa si el punto de entrega tiene escala no uniforme (deformaría a los hijos).</summary>
+    static void AdvertirSiEscalaNoUniforme(Transform t)
+    {
+        Vector3 s = t.lossyScale;
+        if (Mathf.Abs(s.x - s.y) > 0.01f || Mathf.Abs(s.x - s.z) > 0.01f)
+            Debug.LogWarning($"[Receiver] El punto de entrega '{t.name}' tiene escala NO uniforme {s} → " +
+                             "los componentes emparentados se deformarán. Usa el ROOT del ComponentReceiver " +
+                             "(escala 1,1,1), no el Tray_Visual achatado.", t);
     }
 
     // ─────────────────────────────────────────────
@@ -212,6 +306,10 @@ public class ExplorerComponentReceiver : MonoBehaviour
 
     void ConfigurarComponente(GameObject obj, ComponentType tipo, float valor)
     {
+        // Reto 4: garantizar ProtoboardConnector en el componente recibido por red,
+        // si no el CircuitSimulator nunca lo engancha a los nodos de la protoboard.
+        ProtoboardConnector.EnsureOn(obj);
+
         switch (tipo)
         {
             case ComponentType.Resistor:

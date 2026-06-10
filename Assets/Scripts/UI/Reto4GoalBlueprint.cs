@@ -44,6 +44,9 @@ public class Reto4GoalBlueprint : MonoBehaviour
     [Tooltip("Visible al iniciar.")]
     public bool visibleAlInicio = true;
 
+    [Tooltip("Solo mostrar durante el Reto 4 (Arduino). Se oculta automáticamente en los otros retos.")]
+    public bool soloEnReto4 = true;
+
     // ─────────────────────────────────────────────
     //  Estado
     // ─────────────────────────────────────────────
@@ -56,8 +59,24 @@ public class Reto4GoalBlueprint : MonoBehaviour
     void Awake()
     {
         if (autoBuild) BuildPanel();
-        SetVisible(visibleAlInicio);
+
+        // Visibilidad inicial: si está atado al Reto 4, mostrar solo si el reto actual ya es Arduino.
+        if (soloEnReto4)
+        {
+            var gm = FindAnyObjectByType<GameManager>();
+            SetVisible(gm != null && gm.currentLevel == LevelType.Arduino);
+        }
+        else
+        {
+            SetVisible(visibleAlInicio);
+        }
     }
+
+    void OnEnable()  { if (soloEnReto4) GameManager.OnLevelLoaded += OnLevelLoaded; }
+    void OnDisable() { GameManager.OnLevelLoaded -= OnLevelLoaded; }
+
+    // Mostrar el boceto solo cuando se entra al Reto 4 (Arduino); ocultarlo en los demás.
+    void OnLevelLoaded(LevelType level) => SetVisible(level == LevelType.Arduino);
 
     void Update()
     {

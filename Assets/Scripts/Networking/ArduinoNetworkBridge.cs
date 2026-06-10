@@ -19,8 +19,10 @@ public class ArduinoNetworkBridge : NetworkBehaviour
     public static event Action<ArduinoNetworkBridge> OnBridgeReady;
     /// <summary>Dispara en todos los clientes cuando el bridge se despawnea.</summary>
     public static event Action<ArduinoNetworkBridge> OnBridgeDestroyed;
+    
+    // CORRECCIÓN: Se actualizó el Action para aceptar delayOnMs y delayOffMs
     /// <summary>Dispara en todos los clientes cuando el Técnico sube un nuevo sketch.</summary>
-    public static event Action<int, PinMode, PinState, bool, int> OnSketchReceived;
+    public static event Action<int, PinMode, PinState, bool, int, int> OnSketchReceived;
 
     // ─── TELEMETRÍA CONTINUA (VR → PC) ──────────────────────────────────
     [Networked]
@@ -67,15 +69,16 @@ public class ArduinoNetworkBridge : NetworkBehaviour
     //  RPC: Técnico → todos los clientes
     // ─────────────────────────────────────────────
 
+    // CORRECCIÓN: RPC ahora soporta pulsos asimétricos (delayOnMs y delayOffMs separados)
     /// <summary>
     /// El parámetro <paramref name="pin"/> es el número de pin seleccionado por el Técnico
     /// en el ArduinoIDEUI. Se usa int en lugar de NetworkInt porque Fusion requiere tipos básicos.
     /// </summary>
     [Rpc(RpcSources.All, RpcTargets.All)]
-    public void RPC_SubirCodigoArduino(int pin, NetworkBool isOutput, NetworkBool isHigh,float delayMs, NetworkBool isBlink)
+    public void RPC_SubirCodigoArduino(int pin, NetworkBool isOutput, NetworkBool isHigh, int delayOnMs, int delayOffMs, NetworkBool isBlink)
     {
-        Debug.Log($"[NetworkBridge] Sketch recibido — pin D{pin}, output={isOutput}, blink={isBlink}.");
-        DeliverSketch(pin, isOutput, isHigh, delayMs, isBlink);
+        Debug.Log($"[NetworkBridge] Sketch recibido — pin D{pin}, output={isOutput}, blink={isBlink}, on={delayOnMs}ms, off={delayOffMs}ms.");
+        DeliverSketch(pin, isOutput, isHigh, delayOnMs, delayOffMs, isBlink);
     }
 
     /// <summary>
@@ -86,18 +89,19 @@ public class ArduinoNetworkBridge : NetworkBehaviour
     /// Host, así que en escenas separadas el código debe viajar por GameSession (spawneada por el
     /// Host y replicada a ambos).
     /// </summary>
-    public static void DeliverSketch(int pin, bool isOutput, bool isHigh, float delayMs, bool isBlink)
+    public static void DeliverSketch(int pin, bool isOutput, bool isHigh, int delayOnMs, int delayOffMs, bool isBlink)
     {
         // UnityEngine.Object completo: NetworkBehaviour tiene una propiedad de instancia
         // 'Object' (el NetworkObject de Fusion) que ocultaría a UnityEngine.Object aquí.
         var core = UnityEngine.Object.FindAnyObjectByType<ArduinoCore>();
         if (core != null)
-            core.RecibirCodigoDePC(pin, isOutput, isHigh, delayMs, isBlink);
+            core.RecibirCodigoDePC(pin, isOutput, isHigh, delayOnMs, delayOffMs, isBlink);
 
         PinMode  mode    = isOutput ? PinMode.OUTPUT : PinMode.INPUT;
         PinState state   = isHigh   ? PinState.HIGH  : PinState.LOW;
-        int      blinkMs = Mathf.RoundToInt(delayMs);
-        OnSketchReceived?.Invoke(pin, mode, state, isBlink, blinkMs);
+        
+        // Disparamos el evento con ambos tiempos para que las interfaces (IDE, Telemetría) sean precisas
+        OnSketchReceived?.Invoke(pin, mode, state, isBlink, delayOnMs, delayOffMs);
     }
 
     // ─────────────────────────────────────────────

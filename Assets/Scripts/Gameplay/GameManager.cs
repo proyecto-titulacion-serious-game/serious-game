@@ -51,6 +51,8 @@ public class GameManager : MonoBehaviour
     [SerializeField] private int       _currentIndex    = 0;
     [SerializeField] private bool      _levelCompleted  = false;
     [SerializeField] private bool      _repairPerformed = false;
+    private bool _vistoIncorrectoEnReto = false;   // el reto 1-3 estuvo incorrecto (para auto-completar al repararlo)
+    private bool? _lastCorrectoLogged    = null;    // diagnóstico: último valor de 'correcto' logueado (evita spam)
     [SerializeField] private int       _wrongAttempts   = 0;
     [SerializeField] private float     _remainingTime   = 0f;
     [SerializeField] private bool      _timerActive     = false;
@@ -101,6 +103,9 @@ public class GameManager : MonoBehaviour
 
         // Suscribir validador dinámico del Reto 4 sandbox
         ProtoboardSimulator.OnSandboxValidated += OnSandboxResult;
+
+        // Auto-evaluación de Retos 1-3: al cambiar el circuito, si ya está correcto, completa el reto.
+        CircuitManager.OnCircuitChanged += OnCircuitChangedAutoCheck;
 
         if (FindAnyObjectByType<ExplorerOnboarding>() != null)
             ExplorerOnboarding.OnOnboardingComplete += OnOnboardingDone;
@@ -165,6 +170,7 @@ public class GameManager : MonoBehaviour
         GameSession.OnCableFixed               -= OnNetworkCableFixed;
         GameSession.OnValidacionSolicitada     -= OnNetworkValidacionSolicitada;
         ProtoboardSimulator.OnSandboxValidated -= OnSandboxResult;
+        CircuitManager.OnCircuitChanged        -= OnCircuitChangedAutoCheck;
     }
 
     // ─────────────────────────────────────────────
@@ -216,55 +222,99 @@ public class GameManager : MonoBehaviour
     // ─────────────────────────────────────────────
     bool EvaluarCircuitSimulator()
     {
-        if (circuit == null) circuit = FindAnyObjectByType<CircuitSimulator>();
-        if (circuit == null) return false;
+        ForzarSimulacionRetos123();
 
-        circuit.ForceSimulate();
+        if (CumpleVictoriaRetos123()) { CompleteLevel(true); return true; }
+
+        RegisterWrongAttempt("Error de circuito: conexion invalida o valores fuera de rango.");
+        return false;
+    }
+
+    /// <summary>Fuerza el recálculo de ambos motores (Gameplay + Electrical) para evaluar con estados frescos.</summary>
+    void ForzarSimulacionRetos123()
+    {
+        if (circuit == null) circuit = FindAnyObjectByType<CircuitSimulator>();
+        circuit?.ForceSimulate();
+
+        // CircuitManager (Electrical) es quien pinta el LED en Retos 1-3.
+        foreach (var cm in FindObjectsByType<CircuitManager>(FindObjectsInactive.Exclude))
+            if (cm != null) cm.ForceSimulate();
+    }
+
+    /// <summary>
+    /// Comprueba SIN efectos secundarios si el circuito del reto actual (1-3) está correcto.
+    /// Lo usan la evaluación manual (botón) y la auto-evaluación al cambiar el circuito.
+    /// Mira las piezas FIJAS de la escena (no en slots).
+    /// </summary>
+    bool CumpleVictoriaRetos123()
+    {
+        if (circuit == null) circuit = FindAnyObjectByType<CircuitSimulator>();
 
         switch (_currentLevel)
         {
             case LevelType.OhmLaw:
             {
-                var slotR = circuit.todosLosSlots.Find(s => s.targetElectricalValue == 850f);
-                if (slotR != null && slotR.InstalledObject != null)
-                {
-                    if (slotR.InstalledObject.TryGetComponent<Resistor>(out var res) && !res.hasFault)
-                    {
-                        // Victoria: resistor correcto instalado Y al menos un LED encendido
-                        bool ledOn = false;
-                        foreach (var s in circuit.todosLosSlots)
-                        {
-                            if (s?.InstalledObject == null) continue;
-                            if (s.InstalledObject.TryGetComponent<LED>(out var l) && l.isOn)
-                            { ledOn = true; break; }
-                        }
-                        if (ledOn) { CompleteLevel(true); return true; }
-                    }
-                }
-                break;
+                bool resistorOk = false;
+                foreach (var r in FindObjectsByType<Resistor>(FindObjectsInactive.Exclude))
+                    if (r != null && r.nodeA != null && r.nodeB != null && !r.hasFault) { resistorOk = true; break; }
+
+                bool ledOn = false;
+                foreach (var l in FindObjectsByType<LED>(FindObjectsInactive.Exclude))
+                    if (l != null && l.nodeA != null && l.nodeB != null && l.isOn && l.state != LEDState.Overload)
+                    { ledOn = true; break; }
+
+                return resistorOk && ledOn;
             }
             case LevelType.Parallel:
-                if (circuit.AreAllLEDsOn()) { CompleteLevel(true); return true; }
-                break;
+                return circuit != null && circuit.AreAllLEDsOn();
 
             case LevelType.Mixed:
             {
-                bool ok  = true;
-                int  cnt = 0;
-                foreach (var slot in circuit.todosLosSlots)
-                {
-                    if (slot == null || slot.InstalledObject == null) continue;
-                    cnt++;
-                    if (slot.InstalledObject.TryGetComponent<Resistor>(out var r)   && r.hasFault)              ok = false;
-                    if (slot.InstalledObject.TryGetComponent<LED>(out var led)       && led.state == LEDState.Overload) ok = false;
-                }
-                if (ok && cnt >= 2) { CompleteLevel(true); return true; }
-                break;
+                bool ok = true; int cnt = 0;
+                foreach (var r in FindObjectsByType<Resistor>(FindObjectsInactive.Exclude))
+                {   if (r == null || r.nodeA == null || r.nodeB == null) continue;
+                    cnt++; if (r.hasFault) ok = false; }
+                foreach (var led in FindObjectsByType<LED>(FindObjectsInactive.Exclude))
+                {   if (led == null || led.nodeA == null || led.nodeB == null) continue;
+                    cnt++; if (led.polarityInverted || led.state == LEDState.Overload || !led.isOn) ok = false; }
+                foreach (var cap in FindObjectsByType<Capacitor>(FindObjectsInactive.Exclude))
+                {   if (cap == null || cap.nodeA == null || cap.nodeB == null) continue;
+                    cnt++; if (cap.polarityInverted) ok = false; }
+
+                return ok && cnt >= 2;
             }
         }
-
-        RegisterWrongAttempt("Error de circuito: conexion invalida o valores fuera de rango.");
         return false;
+    }
+
+    /// <summary>
+    /// Auto-evaluación de Retos 1-3 al cambiar el circuito: si ya quedó correcto, completa el reto
+    /// (sin penalizar). Así NO hace falta un botón para los retos de reparación — al arreglar el
+    /// circuito se completa solo. (Reto 4 usa su propio botón de validación.)
+    /// </summary>
+    void OnCircuitChangedAutoCheck()
+    {
+        if (_levelCompleted) return;
+        if (_currentLevel == LevelType.Arduino) return;
+
+        bool correcto = CumpleVictoriaRetos123();
+
+        // Diagnóstico: loguear SOLO cuando cambia (no spam a 20 Hz). Dice si el circuito llegó a
+        // "correcto" y el estado de los gates — para saber dónde se corta la victoria.
+        if (_lastCorrectoLogged != correcto)
+        {
+            _lastCorrectoLogged = correcto;
+            Debug.Log($"[GameManager] AutoCheck Reto {(int)_currentLevel + 1}: correcto={correcto} " +
+                      $"(vistoIncorrecto={_vistoIncorrectoEnReto}, repair={_repairPerformed}).");
+        }
+
+        if (!correcto) { _vistoIncorrectoEnReto = true; return; }   // recuerda que estuvo mal
+
+        // Completar si el reto ESTUVO incorrecto antes O si el jugador hizo una reparación
+        // (RegisterRepairAction → _repairPerformed). Ambos descartan el auto-completar en el
+        // instante de carga (ahí los dos son false). Más robusto que depender solo del primero.
+        if (_vistoIncorrectoEnReto || _repairPerformed)
+            CompleteLevel(true);
     }
 
     // ─────────────────────────────────────────────
@@ -272,24 +322,41 @@ public class GameManager : MonoBehaviour
     // ─────────────────────────────────────────────
     bool EvaluarReto4()
     {
-        // El validador dinámico (DFS) corre automáticamente en ProtoboardSimulator.
-        // _lastSandboxResult se actualiza via OnSandboxResult cada vez que el grafo cambia.
+        // Forzar validación síncrona AHORA para que un solo toque del botón refleje el circuito
+        // actual. ForzarValidacion() dispara OnSandboxValidated → OnSandboxResult actualiza
+        // _lastSandboxResult antes de que lo leamos aquí abajo.
+        if (protoSim == null) protoSim = FindProtoSim();
+        protoSim?.ForzarValidacion();
+
         if (_lastSandboxResult.success)
         {
+            PublicarDiagnosticoReto4(exito: true, nivel: 0, _lastSandboxResult);
             CompleteLevel(true);
             return true;
         }
-
-        // Forzar recálculo por si el jugador pulsó el botón antes del primer tick
-        if (protoSim == null) protoSim = FindProtoSim();
-        protoSim?.MarkDirty();
 
         string motivo = string.IsNullOrEmpty(_lastSandboxResult.message)
             ? "Circuito incompleto. Revisa que el LED, la resistencia y el pin esten conectados."
             : _lastSandboxResult.message;
 
         RegisterWrongAttempt("Reto 4 — " + motivo);
+
+        // Feedback graduado al Técnico (síntoma → pista → diagnóstico) según intentos fallidos.
+        int nivel = Reto4Feedback.NivelPorIntentos(_wrongAttempts);
+        PublicarDiagnosticoReto4(exito: false, nivel: nivel, _lastSandboxResult);
         return false;
+    }
+
+    /// <summary>
+    /// Envía el resultado de validar el circuito del Reto 4 al Técnico vía GameSession
+    /// (mismo canal que la telemetría). El Técnico lo muestra en la consola del IDE.
+    /// En modo offline sin red (GameSession null) no hace nada.
+    /// </summary>
+    void PublicarDiagnosticoReto4(bool exito, int nivel, SandboxValidationResult r)
+    {
+        if (GameSession.Instance == null) return;
+        var motivo = Reto4Feedback.Clasificar(r);
+        GameSession.Instance.RPC_PublicarDiagnostico(exito, nivel, r.activatedPin, (int)motivo);
     }
 
     // ─────────────────────────────────────────────
@@ -304,6 +371,8 @@ public class GameManager : MonoBehaviour
         _levelCompleted  = false;
         _repairPerformed = false;
         _wrongAttempts   = 0;
+        _vistoIncorrectoEnReto = false;
+        _lastCorrectoLogged    = null;
 
         float limit = (index < timeLimits.Length) ? timeLimits[index] : 0f;
         _remainingTime = limit;
@@ -317,10 +386,12 @@ public class GameManager : MonoBehaviour
         ActivateComponentsForLevel(_currentLevel);
         SetupLevel();
 
-        // Retos 1-3: forzar simulación inicial. Reto 4: marcar protoboard sucia.
+        // Retos 1-3: forzar simulación inicial en AMBOS motores. Esto hace que la auto-evaluación
+        // vea el circuito YA con la falla aplicada (CumpleVictoria=false → _vistoIncorrectoEnReto=true),
+        // garantizando que luego se complete al repararlo. Reto 4: marcar protoboard sucia.
         if (_currentLevel != LevelType.Arduino)
         {
-            circuit?.ForceSimulate();
+            ForzarSimulacionRetos123();
         }
         else
         {
@@ -424,6 +495,9 @@ public class GameManager : MonoBehaviour
     {
         if (_levelCompleted) return;
         _levelCompleted = true;
+
+        Debug.Log($"[GameManager] ✅ CompleteLevel(success={success}) — Reto {(int)_currentLevel + 1}. " +
+                  "Disparando OnLevelCompleted (PlayerFeedbackUI → ¡FELICIDADES!) y transición.");
 
         if (success)
         {

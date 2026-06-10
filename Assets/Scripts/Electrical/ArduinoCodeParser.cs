@@ -284,13 +284,13 @@ public static class ArduinoCodeParser
         // ── Paso 7: Construir mensaje de log para el IDE ──────────────────────
         if (result.blink)
         {
-            result.log = $"OK ✓  Pin D{chosenPin} · OUTPUT · BLINK " +
+            result.log = $"OK  Pin D{chosenPin} | OUTPUT | BLINK " +
                          $"ON={result.blinkMs}ms / OFF={result.blinkOffMs}ms. " +
                          "Compilado sin errores.";
         }
         else if (result.state == PinState.HIGH)
         {
-            result.log = $"OK ✓  Pin D{chosenPin} · OUTPUT · HIGH (LED fijo). " +
+            result.log = $"OK  Pin D{chosenPin} | OUTPUT | HIGH (LED fijo). " +
                          "Para BLINK agrega: digitalWrite + delay + digitalWrite + delay en loop().";
             result.warnings.Add("El objetivo del Reto 4 es hacer PARPADEAR el LED. Agrega el patrón BLINK.");
         }

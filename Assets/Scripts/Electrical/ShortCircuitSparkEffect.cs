@@ -30,8 +30,11 @@ public class ShortCircuitSparkEffect : MonoBehaviour
     // ─────────────────────────────────────────────
     //  Estado interno
     // ─────────────────────────────────────────────
-    private bool _wasShorted = false;
+    private bool  _wasShorted = false;
     private float _baseEmissionRate = 30f;
+    // Motor del Reto 4 (sandbox). Los retos 1-3 usan CircuitManager; el Reto 4 usa
+    // ProtoboardSimulator, que dispara su PROPIO OnCircuitChanged. Sin esto no había chispas en VR.
+    private ProtoboardSimulator _protoSim;
 
     // ─────────────────────────────────────────────
     //  Unity Lifecycle
@@ -40,6 +43,8 @@ public class ShortCircuitSparkEffect : MonoBehaviour
     {
         if (circuitManager == null)
             circuitManager = GetComponentInParent<CircuitManager>(true);
+        if (_protoSim == null)
+            _protoSim = GetComponentInParent<ProtoboardSimulator>(true) ?? FindAnyObjectByType<ProtoboardSimulator>();
 
         if (sparkEffect != null)
         {
@@ -51,12 +56,14 @@ public class ShortCircuitSparkEffect : MonoBehaviour
 
     void OnEnable()
     {
-        CircuitManager.OnCircuitChanged += OnCircuitChanged;
+        CircuitManager.OnCircuitChanged      += OnCircuitChanged;
+        ProtoboardSimulator.OnCircuitChanged += OnCircuitChanged;
     }
 
     void OnDisable()
     {
-        CircuitManager.OnCircuitChanged -= OnCircuitChanged;
+        CircuitManager.OnCircuitChanged      -= OnCircuitChanged;
+        ProtoboardSimulator.OnCircuitChanged -= OnCircuitChanged;
         StopSparks();
     }
 
@@ -65,9 +72,11 @@ public class ShortCircuitSparkEffect : MonoBehaviour
     // ─────────────────────────────────────────────
     void OnCircuitChanged()
     {
-        if (circuitManager == null || sparkEffect == null) return;
+        if (sparkEffect == null) return;
 
-        bool shortedNow = circuitManager.isShortCircuited;
+        // Cortocircuito según el motor presente: CircuitManager (retos 1-3) o ProtoboardSimulator (Reto 4).
+        bool shortedNow = (circuitManager != null && circuitManager.isShortCircuited)
+                       || (_protoSim      != null && _protoSim.isShortCircuited);
 
         if (shortedNow && !_wasShorted)
             PlaySparks();

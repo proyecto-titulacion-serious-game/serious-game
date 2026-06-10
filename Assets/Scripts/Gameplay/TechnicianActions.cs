@@ -157,13 +157,22 @@ public class TechnicianActions : MonoBehaviour
             return;
         }
 
-        foreach (var comp in circuit.components)
+        // Los LEDs del Reto 2 son piezas FIJAS (no están en slots), así que iterar circuit.components
+        // no encontraba la rama rota. Buscar en la ESCENA el LED de la rama abierta (resistencia
+        // anómala / abierto) y restaurarlo. Se mantiene el camino por slots por compatibilidad.
+        foreach (var l in FindObjectsByType<LED>(FindObjectsInactive.Exclude))
         {
+            if (l == null || l.nodeA == null || l.nodeB == null) continue;   // solo LEDs cableados
+            if (l.isOpenCircuit || l.resistance > 1000f)
+            { l.resistance = normalLedResistance; l.isOpenCircuit = false; }
+        }
+        foreach (var comp in circuit.components)
             if (comp is LED led && !led.isOn)
                 led.resistance = normalLedResistance;
-        }
 
         circuit?.MarkDirty();
+        foreach (var cm in FindObjectsByType<CircuitManager>(FindObjectsInactive.Exclude))
+        { cm.MarkDirty(); cm.ForceSimulate(); }   // CircuitManager es quien pinta el LED en Reto 2
         gameManager?.RegisterRepairAction();
 
         // Sincronizar con el Explorador: enviar el LED de reemplazo con normalLedResistance

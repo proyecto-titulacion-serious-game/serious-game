@@ -23,6 +23,7 @@ using UnityEngine;
 /// RUTAS:
 ///   GET  /            → Dashboard HTML
 ///   GET  /api/results → JSON con resultados de la última sesión
+///   GET  /api/sessions→ JSON con el HISTORIAL (lista) de todas las sesiones
 ///   GET  /api/status  → JSON con estado actual
 ///   POST /api/code    → Genera un código de acceso de 4 dígitos
 /// </summary>
@@ -114,6 +115,16 @@ public class DashboardServer : MonoBehaviour
                 var data = dataExporter?.GetSnapshot() ?? new SessionExportData();
                 Respond(ctx, 200, "application/json", JsonUtility.ToJson(data));
             }
+            else if (path == "/api/sessions")
+            {
+                var hist = dataExporter?.GetHistorySnapshot() ?? new SessionHistory();
+                Respond(ctx, 200, "application/json", JsonUtility.ToJson(hist));
+            }
+            else if (path == "/api/sessions.csv")
+            {
+                var hist = dataExporter?.GetHistorySnapshot() ?? new SessionHistory();
+                RespondCsv(ctx, BuildSessionsCsv(hist), "sesiones_tita.csv");
+            }
             else if (path == "/api/status")
             {
                 var data = dataExporter?.GetSnapshot() ?? new SessionExportData();
@@ -152,6 +163,55 @@ public class DashboardServer : MonoBehaviour
     static string Escape(string s) =>
         (s ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"")
                  .Replace("\n", "\\n").Replace("\r", "\\r").Replace("\t", "\\t");
+
+    // ── Exportación CSV del historial ───────────────────────────────────
+    static void RespondCsv(HttpListenerContext ctx, string body, string filename)
+    {
+        try
+        {
+            byte[] bytes = Encoding.UTF8.GetBytes(body);
+            ctx.Response.StatusCode      = 200;
+            ctx.Response.ContentType     = "text/csv; charset=utf-8";
+            ctx.Response.Headers.Add("Content-Disposition", $"attachment; filename=\"{filename}\"");
+            ctx.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+            ctx.Response.ContentLength64 = bytes.Length;
+            ctx.Response.OutputStream.Write(bytes, 0, bytes.Length);
+            ctx.Response.OutputStream.Close();
+        }
+        catch { }
+    }
+
+    static string BuildSessionsCsv(SessionHistory h)
+    {
+        var sb = new StringBuilder();
+        sb.Append("#,Fecha,Codigo,Score,ScoreMax,Porcentaje,Tiempo_s,Errores,Evaluacion\r\n");
+        if (h?.sessions != null)
+        {
+            for (int i = 0; i < h.sessions.Length; i++)
+            {
+                var s = h.sessions[i];
+                sb.Append(i + 1).Append(',')
+                  .Append(Csv(s.timestamp)).Append(',')
+                  .Append(Csv(s.accessCode)).Append(',')
+                  .Append(s.totalScore).Append(',')
+                  .Append(s.maxScore).Append(',')
+                  .Append(Mathf.RoundToInt(s.scorePercent * 100f)).Append(',')
+                  .Append(Mathf.RoundToInt(s.totalTimeSeconds)).Append(',')
+                  .Append(s.totalErrors).Append(',')
+                  .Append(Csv(s.evaluation)).Append("\r\n");
+            }
+        }
+        return sb.ToString();
+    }
+
+    // Escapa un campo CSV (comillas/comas/saltos de línea).
+    static string Csv(string s)
+    {
+        s ??= "";
+        if (s.IndexOf(',') >= 0 || s.IndexOf('"') >= 0 || s.IndexOf('\n') >= 0 || s.IndexOf('\r') >= 0)
+            return "\"" + s.Replace("\"", "\"\"") + "\"";
+        return s;
+    }
 
     static string GetLocalIP()
     {
@@ -227,8 +287,12 @@ public class DashboardServer : MonoBehaviour
         "  </div>" +
         "</div>" +
         "<div class='card'>" +
-        "  <h2>Resultados de Sesión</h2>" +
+        "  <h2>Resultados de Sesión (última)</h2>" +
         "  <div id='results'><p style='color:#8b949e;padding:12px 0'>Sin datos — la sesión aún no ha finalizado.</p></div>" +
+        "</div>" +
+        "<div class='card' style='margin-top:16px'>" +
+        "  <h2>Historial de Sesiones <a class='btn' href='/api/sessions.csv' download='sesiones_tita.csv' style='float:right;text-decoration:none;text-transform:none'>Exportar a CSV</a></h2>" +
+        "  <div id='sessions'><p style='color:#8b949e;padding:12px 0'>Sin sesiones registradas.</p></div>" +
         "</div>" +
         "<div id='toast'></div>" +
         "<script>" +
@@ -287,6 +351,22 @@ public class DashboardServer : MonoBehaviour
         "  navigator.clipboard.writeText(c).then(function(){toast('Código copiado');});" +
         "}" +
 
+        "async function fetchSessions(){" +
+        "  try{" +
+        "    var d=(await(await fetch('/api/sessions')).json());" +
+        "    var el=document.getElementById('sessions');" +
+        "    if(!d.sessions||!d.sessions.length){el.innerHTML='<p style=\\'color:#8b949e\\'>Sin sesiones registradas.</p>';return;}" +
+        "    var h='<table><thead><tr><th>#</th><th>Fecha</th><th>Codigo</th><th>Score</th><th>Tiempo</th><th>Errores</th><th>Evaluacion</th></tr></thead><tbody>';" +
+        "    for(var i=d.sessions.length-1;i>=0;i--){" +
+        "      var s=d.sessions[i];var pct=Math.round((s.scorePercent||0)*100);" +
+        "      h+='<tr><td>'+(i+1)+'</td><td>'+(s.timestamp||'-')+'</td><td>'+(s.accessCode||'----')+'</td><td>'+s.totalScore+'/'+s.maxScore+' ('+pct+'%)</td><td>'+fmt(s.totalTimeSeconds)+'</td><td class=\\'fail\\'>'+s.totalErrors+'</td><td>'+(s.evaluation||'-')+'</td></tr>';" +
+        "    }" +
+        "    h+='</tbody></table>';" +
+        "    h+='<p style=\\'font-size:.75em;color:#8b949e;margin-top:8px\\'>'+d.sessions.length+' sesiones registradas (mas recientes arriba).</p>';" +
+        "    el.innerHTML=h;" +
+        "  }catch(e){document.getElementById('sessions').textContent='Error al cargar sesiones.';}" +
+        "}" +
+
         "function fmt(s){if(!s)return'0:00';var m=Math.floor(s/60);return m+':'+String(Math.floor(s%60)).padStart(2,'0');}" +
 
         "function toast(msg){" +
@@ -295,7 +375,7 @@ public class DashboardServer : MonoBehaviour
         "  setTimeout(function(){el.style.display='none';},2500);" +
         "}" +
 
-        "setInterval(function(){fetchStatus();fetchResults();},10000);" +
-        "fetchStatus();fetchResults();" +
+        "setInterval(function(){fetchStatus();fetchResults();fetchSessions();},10000);" +
+        "fetchStatus();fetchResults();fetchSessions();" +
         "</script></body></html>";
 }

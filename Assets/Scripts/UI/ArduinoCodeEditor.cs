@@ -120,12 +120,12 @@ void loop() {
         string stateStr = data.blink    ? $"BLINK cada {data.blinkMs} ms"
                                         : (data.isHigh ? "HIGH (5V)" : "LOW (0V)");
 
-        Log($"<color=#00FF7F>✓ Compilación exitosa.\n\n" +
+        Log($"<color=#00FF7F>[OK] Compilación exitosa.\n\n" +
             $"  Pin activo : D{data.pin}\n" +
             $"  Modo       : {modeStr}\n" +
             $"  Estado     : {stateStr}</color>");
 
-        SetStatus($"OK — Pin D{data.pin}, {modeStr}, {stateStr}", Color.green);
+        SetStatus($"OK - Pin D{data.pin}, {modeStr}, {stateStr}", Color.green);
         UpdatePreview(data);
     }
 
@@ -149,11 +149,11 @@ void loop() {
                                         data.blink ? data.blinkMs : 0);
             if (ok)
             {
-                Log($"<color=#00FF7F>▶ Sketch subido al Arduino físico.\n" +
+                Log($"<color=#00FF7F>>Sketch subido al Arduino físico.\n" +
                     $"  Pin D{data.pin} | {(data.isOutput ? "OUTPUT" : "INPUT")} | " +
                     $"{(data.blink ? $"BLINK {data.blinkMs}ms" : (data.isHigh ? "HIGH" : "LOW"))}</color>\n" +
                     $"<color=#888>Esperando telemetría serial...</color>");
-                SetStatus($"Subido → Arduino físico. Pin D{data.pin}.", Color.green);
+                SetStatus($"Subido -> Arduino físico. Pin D{data.pin}.", Color.green);
                 ApplyToArduinoCore(data);
                 return;
             }
@@ -163,17 +163,16 @@ void loop() {
         var bridge = FindAnyObjectByType<ArduinoNetworkBridge>();
         if (bridge != null)
         {
-            bridge.RPC_SubirCodigoArduino(data.pin, data.isOutput, data.isHigh,
-                                          data.blink ? data.blinkMs : 0f, data.blink);
-            Log($"<color=#00FF7F>▶ Sketch subido por red (Fusion).\n  Pin D{data.pin}.</color>");
-            SetStatus($"Subido → Red. Pin D{data.pin}.", Color.green);
+            bridge.RPC_SubirCodigoArduino(data.pin, data.isOutput, data.isHigh, data.blinkMs, data.blinkMs, data.blink);
+            Log($"<color=#00FF7F>>Sketch subido por red (Fusion).\n  Pin D{data.pin}.</color>");
+            SetStatus($"Subido -> Red. Pin D{data.pin}.", Color.green);
             ApplyToArduinoCore(data);
             return;
         }
 
         // ── Ruta 3: modo offline/test — ArduinoCore local ────────────────
         ApplyToArduinoCore(data);
-        Log($"<color=#FFAA00>▶ Sketch subido en modo offline (simulación).\n" +
+        Log($"<color=#FFAA00>>Sketch subido en modo offline (simulación).\n" +
             $"  Pin D{data.pin} | {(data.isOutput ? "OUTPUT" : "INPUT")} | " +
             $"{(data.blink ? $"BLINK {data.blinkMs}ms" : (data.isHigh ? "HIGH" : "LOW"))}\n\n" +
             $"  Para conectar un Arduino físico:\n" +
@@ -259,11 +258,12 @@ void loop() {
             return;
         }
         core.RecibirCodigoDePC(
-            pin:      data.pin,
-            isOutput: data.isOutput,
-            isHigh:   data.isHigh,
-            delayMs:  data.blinkMs,
-            isBlink:  data.blink);
+            pin:         data.pin,
+            isOutput:    data.isOutput,
+            isHigh:      data.isHigh,
+            delayOnMs:   data.blinkMs,
+            delayOffMs:  data.blinkMs,
+            isBlink:     data.blink);
     }
 
     // ─────────────────────────────────────────────
@@ -272,7 +272,7 @@ void loop() {
 
     void OnTelemetry(float v, float mA, int adc, int pin)
     {
-        Log($"<color=#00BFFF>◉ Telemetría Arduino físico:\n" +
+        Log($"<color=#00BFFF>>Telemetría Arduino físico:\n" +
             $"  Voltaje  : {v:F2} V\n" +
             $"  Corriente: {mA:F1} mA\n" +
             $"  ADC A0   : {adc} ({adc / 1023f * 5f:F2}V)\n" +
@@ -284,13 +284,13 @@ void loop() {
         if (connected)
         {
             SetStatus("Arduino físico conectado.", Color.green);
-            Log("<color=#00FF7F>◉ Arduino físico detectado en puerto serial.\n" +
+            Log("<color=#00FF7F>>Arduino físico detectado en puerto serial.\n" +
                 "  Ahora puedes subir el sketch y recibir telemetría real.</color>");
         }
         else
         {
             SetStatus("Arduino físico desconectado.", Color.yellow);
-            Log("<color=#FFAA00>◉ Arduino físico desconectado. Modo simulación activo.</color>");
+            Log("<color=#FFAA00>>Arduino físico desconectado. Modo simulación activo.</color>");
         }
     }
 
