@@ -41,11 +41,25 @@ public class OfflineTestSpawner : MonoBehaviour
 
     void Start()
     {
+        // Herramienta SOLO para pruebas offline. En una partida en red (Técnico ↔ Explorador) el
+        // componente real lo entrega el Técnico por Fusion (GameSession + ComponentDeliverySystem);
+        // este spawner duplicaría o falsearía piezas, así que se autodesactiva cuando hay red.
+        if (!EsModoOffline())
+        {
+            Debug.Log("[OfflineTestSpawner] Modo online detectado → spawner de prueba desactivado.", this);
+            enabled = false;
+            return;
+        }
+
         if (!VerificarReceptor()) return;
 
         if (autoSpawnOnStart)
             Invoke(nameof(SpawnTestComponent), autoSpawnDelay);
     }
+
+    /// <summary>True si NO hay sesión de red (sin ConnectionManager, o con modoOffline = true).</summary>
+    static bool EsModoOffline()
+        => ConnectionManager.Instance == null || ConnectionManager.Instance.modoOffline;
 
     void Update()
     {

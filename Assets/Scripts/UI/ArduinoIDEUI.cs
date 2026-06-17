@@ -478,8 +478,21 @@ public class ArduinoIDEUI : MonoBehaviour
         var gm = FindAnyObjectByType<GameManager>();
         if (gm == null)
         {
+            // ONLINE (setup asimétrico de 2 escenas): el GameManager + ProtoboardSimulator viven en
+            // la escena del Explorador, NO en la del Técnico. Aquí no hay GameManager local, así que
+            // pedimos la validación POR RED. El Explorador la corre (GameManager.OnNetworkValidacion-
+            // Solicitada → EvaluacionManualBotonFisico → EvaluarReto4) y publica el resultado vía
+            // RPC_PublicarDiagnostico, que PollDiagnosticoReto4 muestra en esta misma consola.
+            if (GameSession.Instance != null)
+            {
+                LogLine("<color=#AAFFFF>> Solicitando validación al Explorador (red)...</color>");
+                SetStatus("Comprobando circuito en el Explorador...", CWarn);
+                GameSession.Instance.SolicitarValidacion();
+                return;
+            }
+
             SetStatus("No se encontró el GameManager.", CErr);
-            LogLine("<color=#FF4444>> ERROR: no se pudo comprobar (GameManager ausente).</color>");
+            LogLine("<color=#FF4444>> ERROR: no se pudo comprobar (sin GameManager ni red).</color>");
             return;
         }
 

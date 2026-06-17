@@ -40,6 +40,16 @@ public class ComponentSendingTray : MonoBehaviour
         if (btnEnviar != null)
             btnEnviar.onClick.AddListener(EnviarComponente);
 
+        // La etiqueta del toggle no se refrescaba al cambiarlo: se quedaba en "CORRECTA" aunque el
+        // Técnico mandara el LED invertido. La polaridad es condición de victoria del Reto 4, así que
+        // el Técnico debe VER lo que envía. (El valor ya se leía bien en EnviarComponente.)
+        if (togglePolaridad != null)
+            togglePolaridad.onValueChanged.AddListener(on =>
+            {
+                if (txtToggleLabel != null)
+                    txtToggleLabel.text = on ? "Polaridad: CORRECTA" : "Polaridad: INVERTIDA";
+            });
+
         if (inputValor == null)
             Debug.LogWarning("[Bandeja] 'inputValor' no asignado en Inspector — " +
                              "el campo de ohms no se ocultará para LEDs/Capacitores.", this);
