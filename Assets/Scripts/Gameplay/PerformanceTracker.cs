@@ -26,6 +26,12 @@ public class PerformanceTracker : MonoBehaviour
 
     private List<LevelRecord> _records = new List<LevelRecord>();
 
+    // Evita el registro DUPLICADO por reto: GameManager.OnLevelCompleted puede dispararse dos veces
+    // por la misma compleción (p.ej. con la escena NoonA cargada aditivamente en el Host, o un
+    // re-disparo del temporizador). Solo se permite UN registro por cada carga de nivel; un replay
+    // legítimo vuelve a habilitarlo desde HandleLevelLoaded (ResetTracker).
+    private bool _recordedThisLevel = false;
+
     // ─────────────────────────────────────────────
     //  Unity Lifecycle
     // ─────────────────────────────────────────────
@@ -48,8 +54,9 @@ public class PerformanceTracker : MonoBehaviour
 
     public void ResetTracker()
     {
-        _startTime     = Time.time;
-        _currentErrors = 0;
+        _startTime         = Time.time;
+        _currentErrors     = 0;
+        _recordedThisLevel = false;
     }
 
     public void AddError(string errorType = "general")
@@ -101,6 +108,9 @@ public class PerformanceTracker : MonoBehaviour
 
     void HandleLevelCompleted(LevelType level, bool success)
     {
+        if (_recordedThisLevel) return;   // ya registrado este nivel → ignorar disparos duplicados
+        _recordedThisLevel = true;
+
         _records.Add(new LevelRecord
         {
             level      = level,
