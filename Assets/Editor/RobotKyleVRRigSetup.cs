@@ -19,7 +19,7 @@ public static class RobotKyleVRRigSetup
     const string CAPA        = "LocalHidden";
 
     [MenuItem(MENU_ADD)]
-    static void ConnectVRRig()
+    internal static void ConnectVRRig()
     {
         var ea = Object.FindAnyObjectByType<ExplorerAvatar>(FindObjectsInactive.Include);
         if (ea == null)
@@ -105,7 +105,7 @@ public static class RobotKyleVRRigSetup
             $"\nSuelo (XR Origin): {(piso ? piso.name : "— → usa y=0")}" +
             $"\nCapa '{CAPA}': {(capa >= 0 ? "creada/ok (índice " + capa + ")" : "NO se pudo crear")}" +
             "\n\nVRRig desactivará ExplorerAvatar y RobotHandIK en Play (un solo controlador)." +
-            "\nMANOS: procedurales (van pegadas al mando + dedos). El cuerpo gira con la cámara." +
+            "\nMANOS: del propio RobotKyle (brazos por IK + dedos con grip/gatillo). El cuerpo gira con la cámara." +
             "\nAjusta headPositionOffset en el Inspector si la cabeza queda alta/baja. GUARDA (Ctrl+S).", "OK");
 
         Debug.Log($"[RobotKyleVRRigSetup] VRRig conectado. Avatar={avatarRoot.name}, Cam={(cam ? cam.name : "null")}, " +

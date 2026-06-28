@@ -25,6 +25,20 @@ public class HandModelController : MonoBehaviour
     [Tooltip("Material de la mano. Se crea automaticamente con shader URP si queda vacio.")]
     public Material handMaterial;
 
+    [Header("Modelo importado (opcional)")]
+    [Tooltip("Prefab/FBX de la mano. Si se asigna, se INSTANCIA en vez de construir la mano con primitivas. " +
+             "Déjalo vacío para la mano procedural de siempre.")]
+    public GameObject handPrefab;
+    [Tooltip("Posición local del modelo respecto al pivot del mando (m).")]
+    public Vector3 posicionPrefab = Vector3.zero;
+    [Tooltip("Rotación local del modelo (grados). Ajusta si la mano sale girada respecto al mando.")]
+    public Vector3 rotacionPrefab = Vector3.zero;
+    [Tooltip("Escala uniforme del modelo.")]
+    public float escalaPrefab = 1f;
+    [Tooltip("Si usas el MISMO modelo de mano izquierda para la derecha, lo espeja en X. " +
+             "Apágalo si tu prefab ya es específico de la mano derecha.")]
+    public bool espejarParaDerecha = true;
+
     [Header("Animación de dedos")]
     [Tooltip("Anima los dedos con el grip/gatillo del mando.")]
     public bool animarDedos = true;
@@ -130,9 +144,31 @@ public class HandModelController : MonoBehaviour
         pivot.transform.SetParent(transform, false);
         pivot.transform.localPosition = Vector3.zero;
         pivot.transform.localRotation = Quaternion.Euler(rotationOffset);
+        _pivot = pivot.transform;
+
+        // ── Modelo importado (opcional): instancia el prefab y NO construye primitivas ──
+        if (handPrefab != null)
+        {
+            var model = Instantiate(handPrefab, pivot.transform);
+            model.name = "Hand_Model";
+            model.transform.localPosition = posicionPrefab;
+            model.transform.localRotation = Quaternion.Euler(rotacionPrefab);
+            bool espejar = hand == HandSide.Right && espejarParaDerecha;
+            model.transform.localScale = (espejar ? new Vector3(-1f, 1f, 1f) : Vector3.one) * escalaPrefab;
+
+            // Quitar colliders del modelo para no interferir con el agarre del interactor.
+            foreach (var c in model.GetComponentsInChildren<Collider>(true)) Destroy(c);
+            // Sin sombras propias (consistente con la mano procedural).
+            foreach (var r in model.GetComponentsInChildren<Renderer>(true))
+                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+
+            // Modelo estático: sin joints → la animación de dedos queda inactiva (Update no hace nada).
+            return;
+        }
+
+        // Espejo para la mano derecha (solo manos procedurales).
         if (hand == HandSide.Right)
             pivot.transform.localScale = new Vector3(-1f, 1f, 1f);
-        _pivot = pivot.transform;
 
         // Palma
         AddPart(pivot, "Hand_Palm", new Vector3(0f, 0f, 0.038f), Quaternion.identity,

@@ -25,6 +25,11 @@ public class WorkstationSeat : MonoBehaviour
     [Header("Tecla para levantarse")]
     public KeyCode exitKey = KeyCode.E;
 
+    [Header("Reingreso a la silla")]
+    [Tooltip("Segundos que la silla queda NO interactiva tras levantarte (E). Durante este tiempo no " +
+             "puedes volver a sentarte; al terminar, vuelve a ser interactiva.")]
+    public float reentryCooldown = 10f;
+
     [Header("Cámara del puesto")]
     [Tooltip("Cámara que se activa al sentarse. Se auto-busca por nombre si queda vacío.")]
     public Camera seatCamera;
@@ -40,6 +45,7 @@ public class WorkstationSeat : MonoBehaviour
     private TechnicianMover   _mover;
     private ThirdPersonCamera _tpc;
     private bool              _seated;
+    private float             _cooldownUntil;   // Time.time hasta el cual la silla NO acepta sentarse
 
     void Start()
     {
@@ -77,6 +83,9 @@ public class WorkstationSeat : MonoBehaviour
     void OnTriggerEnter(Collider other)
     {
         if (_seated) return;
+
+        // Cooldown tras levantarte: la silla no es interactiva durante 'reentryCooldown' segundos.
+        if (Time.time < _cooldownUntil) return;
 
         _mover = other.GetComponent<TechnicianMover>() ?? other.GetComponentInParent<TechnicianMover>();
         if (_mover == null) return;
@@ -121,6 +130,7 @@ public class WorkstationSeat : MonoBehaviour
     void Update()
     {
         if (!_seated) return;
+        if (PauseMenu.IsPaused) return;
         if (IsAnyInputFieldFocused()) return;
 
         var kb = Keyboard.current;
@@ -167,6 +177,10 @@ public class WorkstationSeat : MonoBehaviour
 
         _seated = false;
         _mover  = null;
+
+        // Arrancar el cooldown: la silla queda NO interactiva por 'reentryCooldown' s.
+        _cooldownUntil = Time.time + reentryCooldown;
+        Debug.Log($"[WorkstationSeat] Te levantaste. Silla no interactiva por {reentryCooldown:0}s.");
     }
 
     System.Collections.IEnumerator ReapplyUISetup()
