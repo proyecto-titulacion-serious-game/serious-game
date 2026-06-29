@@ -120,6 +120,11 @@ public class ArduinoIDEUI : MonoBehaviour
         ArduinoNetworkBridge.OnBridgeReady     += OnBridgeConnected;
         ArduinoNetworkBridge.OnBridgeDestroyed += OnBridgeDisconnected;
 
+        // Consola del IDE: salida de Serial.print y errores de ejecución del programa libre.
+        // (Llegan cuando el ArduinoCore corre en la misma escena/offline; online es fase 2.)
+        ArduinoCore.OnProgramSerial += OnProgramSerial;
+        ArduinoCore.OnProgramError  += OnProgramError;
+
         if (bridge == null)
             bridge = FindAnyObjectByType<ArduinoNetworkBridge>();
     }
@@ -129,9 +134,15 @@ public class ArduinoIDEUI : MonoBehaviour
         ArduinoNetworkBridge.OnBridgeReady     -= OnBridgeConnected;
         ArduinoNetworkBridge.OnBridgeDestroyed -= OnBridgeDisconnected;
 
+        ArduinoCore.OnProgramSerial -= OnProgramSerial;
+        ArduinoCore.OnProgramError  -= OnProgramError;
+
         if (persistSketch && codeEditor != null)
             SaveSketch();
     }
+
+    void OnProgramSerial(string s) => LogLine($"<color=#CFE8FF>{s.TrimEnd('\n')}</color>");
+    void OnProgramError(string s)  => LogLine($"<color=#FF6666>> {s}</color>");
 
     void OnBridgeConnected(ArduinoNetworkBridge b)
     {
@@ -199,6 +210,18 @@ public class ArduinoIDEUI : MonoBehaviour
 
         var kb = Keyboard.current;
         if (kb == null) return;
+
+        // FIX: si el técnico teclea con el editor visible pero SIN foco (p.ej. tras enviar un
+        // componente, que roba la selección del EventSystem) y la tecla NO va a otro campo de texto,
+        // le devolvemos el foco al editor → la pulsación no se pierde y puede seguir editando.
+        if (kb.anyKey.wasPressedThisFrame && !_isCompiling && codeEditor != null &&
+            codeEditor.gameObject.activeInHierarchy && !codeEditor.isFocused)
+        {
+            var es  = UnityEngine.EventSystems.EventSystem.current;
+            var sel = es != null ? es.currentSelectedGameObject : null;
+            bool otroCampo = sel != null && sel.GetComponent<TMP_InputField>() != null;
+            if (!otroCampo) codeEditor.ActivateInputField();
+        }
 
         // F5 = comprobar el circuito (sin Ctrl).
         if (kb.f5Key.wasPressedThisFrame) { ComprobarCircuito(); return; }
@@ -396,29 +419,17 @@ public class ArduinoIDEUI : MonoBehaviour
 
         if (_freeTextMode)
         {
-            var data = ArduinoCodeParser.Parse(codeEditor.text);
-
-            bool isOk = data.log != null && data.log.StartsWith("OK");
-            LogLine(isOk ? $"<color=#00FF7F>> {data.log}</color>"
-                         : $"<color=#FFAA00>> {data.log}</color>");
-
-            // Mostrar TODAS las advertencias pedagógicas (antes se ignoraban).
-            if (data.warnings != null)
-                foreach (var w in data.warnings)
-                    LogLine($"<color=#FFD27F>   [!] {w}</color>");
-
-            if (!data.isValid)
+            // Programa libre: lo compila el INTÉRPRETE real (variables, for/while, analogWrite, …),
+            // no el lector regex. Así cualquier sketch válido de Arduino compila.
+            if (!ArduinoInterpreter.TryCompile(codeEditor.text, out string err))
             {
+                LogLine($"<color=#FF4444>> {err}</color>");
                 SetStatus("Error de compilación.", CErr);
                 FinishCompile();
                 yield break;
             }
-
-            pinNum   = data.pinNumber;
-            isOutput = data.mode  == PinMode.OUTPUT;
-            isHigh   = data.state == PinState.HIGH;
-            blink    = data.blink;
-            blinkMs  = data.blinkMs;
+            LogLine("<color=#00FF7F>> Compilado sin errores.</color>");
+            // El envío usa el TEXTO COMPLETO; pinNum/blink quedan como pista para telemetría.
         }
         else
         {
@@ -522,6 +533,12 @@ public class ArduinoIDEUI : MonoBehaviour
     /// </summary>
     string SendToBoard(int pin, bool isOutput, bool isHigh, bool blink, int blinkMs)
     {
+        // MODO TEXTO LIBRE: enviamos el SKETCH COMPLETO; el Explorador lo ejecuta con el INTÉRPRETE
+        // (variables, for/while, analogWrite, varios LEDs, efectos…). El texto viaja por TROZOS
+        // porque un programa real supera el límite de un RPC. En modo Bloques se usa el canal 1-pin.
+        bool useText = _freeTextMode && codeEditor != null && !string.IsNullOrWhiteSpace(codeEditor.text);
+        if (useText) return SendProgram(codeEditor.text);
+
         if (GameSession.Instance != null)
         {
             GameSession.Instance.RPC_SubirCodigoArduino(pin, isOutput, isHigh, blinkMs, blinkMs, blink);
@@ -541,6 +558,30 @@ public class ArduinoIDEUI : MonoBehaviour
             core.RecibirCodigoDePC(pin, isOutput, isHigh, blinkMs, blinkMs, blink);
             return "offline";
         }
+
+        return null;
+    }
+
+    /// <summary>Envía el sketch completo: por red en trozos (GameSession) o directo al intérprete local.</summary>
+    string SendProgram(string code)
+    {
+        if (GameSession.Instance != null)
+        {
+            const int CHUNK = 400;
+            int total = Mathf.Max(1, Mathf.CeilToInt(code.Length / (float)CHUNK));
+            for (int i = 0; i < total; i++)
+            {
+                int start = i * CHUNK;
+                GameSession.Instance.RPC_SubirSketchChunk(i, total, code.Substring(start, Mathf.Min(CHUNK, code.Length - start)));
+            }
+            return "red";
+        }
+
+        var nb = bridge != null ? bridge : FindAnyObjectByType<ArduinoNetworkBridge>();
+        if (nb != null) { ArduinoNetworkBridge.DeliverSketchProgram(code); return "bridge"; }
+
+        var core = FindAnyObjectByType<ArduinoCore>();
+        if (core != null) { ArduinoNetworkBridge.DeliverSketchProgram(code); return "offline"; }
 
         return null;
     }
