@@ -17,6 +17,12 @@ public class SessionDataExporter : MonoBehaviour
     private readonly object      _lock = new object();
     private SessionExportData    _data = new SessionExportData();
     private SessionHistory       _history = new SessionHistory();
+    private SessionLiveData      _live = new SessionLiveData();
+
+    // Refresco en vivo (hilo principal); el servidor HTTP solo lee el snapshot bajo lock.
+    private PerformanceTracker   _tracker;
+    private GameManager          _gm;
+    private float                _nextLiveRefresh;
 
     const string HISTORY_FILE = "sessions_history.json";
 
@@ -53,6 +59,56 @@ public class SessionDataExporter : MonoBehaviour
     public SessionHistory GetHistorySnapshot()
     {
         lock (_lock) { return _history; }
+    }
+
+    /// <summary>Estado EN VIVO de la sesión en curso — para el panel docente (ambos roles).</summary>
+    public SessionLiveData GetLiveSnapshot()
+    {
+        lock (_lock) { return _live; }
+    }
+
+    // ─────────────────────────────────────────────
+    //  Refresco en vivo (hilo principal de Unity)
+    // ─────────────────────────────────────────────
+    void Update()
+    {
+        if (Time.unscaledTime < _nextLiveRefresh) return;
+        _nextLiveRefresh = Time.unscaledTime + 0.5f;
+        RefreshLive();
+    }
+
+    void RefreshLive()
+    {
+        if (_tracker == null) _tracker = FindAnyObjectByType<PerformanceTracker>(FindObjectsInactive.Include);
+        if (_gm == null)      _gm      = FindAnyObjectByType<GameManager>(FindObjectsInactive.Include);
+
+        var live = new SessionLiveData { active = _gm != null };
+
+        if (_gm != null)
+            live.currentReto = LevelName(_gm.currentLevel);
+
+        if (_tracker != null)
+        {
+            live.currentTimeSeconds = _tracker.GetTime();
+            live.currentErrors      = _tracker.GetErrors();
+            live.currentErrorTypes  = _tracker.GetErrorBreakdown();
+
+            var recs = _tracker.GetAllRecords();
+            var dto  = new LevelRecordDto[recs.Count];
+            for (int i = 0; i < recs.Count; i++) dto[i] = new LevelRecordDto(recs[i]);
+            live.completedRecords = dto;
+            live.retosCompletados = recs.Count;
+        }
+
+        var gs = GameSession.Instance;
+        live.exploradorConectado = gs != null && gs.ExploradorListo;
+        live.tecnicoConectado    = gs != null;   // el Host instancia GameSession
+
+        lock (_lock)
+        {
+            live.state = _data.state;
+            _live = live;
+        }
     }
 
     public void SetAccessCode(string code)
@@ -92,10 +148,10 @@ public class SessionDataExporter : MonoBehaviour
             _data.records      = serialized;
             _data.timestamp    = stamp;
 
-            // Añadir esta sesión al HISTORIAL (lista de todas las sesiones).
+            // Añadir esta sesión al HISTORIAL (lista de todas las sesiones), con sus registros por reto.
             var lista = new List<SessionSummaryDto>(_history.sessions)
             {
-                new SessionSummaryDto(result, stamp, _data.accessCode)
+                new SessionSummaryDto(result, stamp, _data.accessCode, serialized)
             };
             _history.sessions = lista.ToArray();
         }
@@ -209,11 +265,12 @@ public class SessionResultDto
 [Serializable]
 public class LevelRecordDto
 {
-    public string levelName  = "";
-    public float  timeSeconds;
-    public int    errors;
-    public bool   success;
-    public string evaluation = "";
+    public string         levelName  = "";
+    public float          timeSeconds;
+    public int            errors;
+    public bool           success;
+    public string         evaluation = "";
+    public ErrorTagCount[] errorTypes = Array.Empty<ErrorTagCount>();
 
     public LevelRecordDto() { }
     public LevelRecordDto(LevelRecord r)
@@ -223,7 +280,27 @@ public class LevelRecordDto
         errors      = r.errors;
         success     = r.success;
         evaluation  = r.evaluation;
+        errorTypes  = r.errorTypes ?? Array.Empty<ErrorTagCount>();
     }
+}
+
+// ─────────────────────────────────────────────────────────
+//  Datos EN VIVO de la sesión en curso (para el panel docente)
+// ─────────────────────────────────────────────────────────
+
+[Serializable]
+public class SessionLiveData
+{
+    public bool             active;                 // hay una partida en escena
+    public string           state               = "En espera";
+    public string           currentReto         = "Sin iniciar";
+    public float            currentTimeSeconds;     // tiempo en el reto en curso
+    public int              currentErrors;          // errores en el reto en curso
+    public ErrorTagCount[]  currentErrorTypes   = Array.Empty<ErrorTagCount>();
+    public int              retosCompletados;
+    public LevelRecordDto[] completedRecords    = Array.Empty<LevelRecordDto>();
+    public bool             exploradorConectado;
+    public bool             tecnicoConectado;
 }
 
 // ─────────────────────────────────────────────────────────
@@ -247,9 +324,10 @@ public class SessionSummaryDto
     public float  scorePercent;
     public int    totalErrors;
     public float  totalTimeSeconds;
+    public LevelRecordDto[] records = Array.Empty<LevelRecordDto>();   // registros por reto de esta sesión
 
     public SessionSummaryDto() { }
-    public SessionSummaryDto(SessionResult r, string stamp, string code)
+    public SessionSummaryDto(SessionResult r, string stamp, string code, LevelRecordDto[] recs = null)
     {
         timestamp        = stamp;
         accessCode       = code;
@@ -259,5 +337,6 @@ public class SessionSummaryDto
         scorePercent     = r.scorePercent;
         totalErrors      = r.totalErrors;
         totalTimeSeconds = r.totalTimeSeconds;
+        records          = recs ?? Array.Empty<LevelRecordDto>();
     }
 }

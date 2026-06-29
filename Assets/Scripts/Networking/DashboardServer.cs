@@ -115,6 +115,11 @@ public class DashboardServer : MonoBehaviour
                 var data = dataExporter?.GetSnapshot() ?? new SessionExportData();
                 Respond(ctx, 200, "application/json", JsonUtility.ToJson(data));
             }
+            else if (path == "/api/live")
+            {
+                var live = dataExporter?.GetLiveSnapshot() ?? new SessionLiveData();
+                Respond(ctx, 200, "application/json", JsonUtility.ToJson(live));
+            }
             else if (path == "/api/sessions")
             {
                 var hist = dataExporter?.GetHistorySnapshot() ?? new SessionHistory();
@@ -124,6 +129,11 @@ public class DashboardServer : MonoBehaviour
             {
                 var hist = dataExporter?.GetHistorySnapshot() ?? new SessionHistory();
                 RespondCsv(ctx, BuildSessionsCsv(hist), "sesiones_tita.csv");
+            }
+            else if (path == "/api/records.csv")
+            {
+                var hist = dataExporter?.GetHistorySnapshot() ?? new SessionHistory();
+                RespondCsv(ctx, BuildRecordsCsv(hist), "retos_tita.csv");
             }
             else if (path == "/api/status")
             {
@@ -202,6 +212,43 @@ public class DashboardServer : MonoBehaviour
             }
         }
         return sb.ToString();
+    }
+
+    // CSV GRANULAR: una fila por (sesión, reto), con desglose de tipos de error. Para Looker/Sheets/Power BI.
+    static string BuildRecordsCsv(SessionHistory h)
+    {
+        var sb = new StringBuilder();
+        sb.Append("Sesion,Fecha,Codigo,Reto,Tiempo_s,Errores,Exito,Evaluacion,Tipos_error\r\n");
+        if (h?.sessions != null)
+        {
+            for (int i = 0; i < h.sessions.Length; i++)
+            {
+                var s = h.sessions[i];
+                if (s.records == null) continue;
+                foreach (var r in s.records)
+                {
+                    sb.Append(i + 1).Append(',')
+                      .Append(Csv(s.timestamp)).Append(',')
+                      .Append(Csv(s.accessCode)).Append(',')
+                      .Append(Csv(r.levelName)).Append(',')
+                      .Append(Mathf.RoundToInt(r.timeSeconds)).Append(',')
+                      .Append(r.errors).Append(',')
+                      .Append(r.success ? 1 : 0).Append(',')
+                      .Append(Csv(r.evaluation)).Append(',')
+                      .Append(Csv(TypesInline(r.errorTypes))).Append("\r\n");
+                }
+            }
+        }
+        return sb.ToString();
+    }
+
+    // "cortocircuito:2;led_quemado:1" — desglose de errores en una celda.
+    static string TypesInline(ErrorTagCount[] arr)
+    {
+        if (arr == null || arr.Length == 0) return "";
+        var parts = new string[arr.Length];
+        for (int i = 0; i < arr.Length; i++) parts[i] = arr[i].tipo + ":" + arr[i].count;
+        return string.Join(";", parts);
     }
 
     // Escapa un campo CSV (comillas/comas/saltos de línea).
@@ -287,11 +334,27 @@ public class DashboardServer : MonoBehaviour
         "  </div>" +
         "</div>" +
         "<div class='card'>" +
+        "  <h2>Sesión en Vivo — Ambos Roles</h2>" +
+        "  <div class='grid'>" +
+        "    <div class='stat'><span>Explorador (VR)</span><span id='l-expl'><span class='badge badge-wait'>—</span></span></div>" +
+        "    <div class='stat'><span>Técnico (PC)</span><span id='l-tec'><span class='badge badge-wait'>—</span></span></div>" +
+        "  </div>" +
+        "  <div class='stat'><span>Reto actual</span><span class='stat-val' id='l-reto'>—</span></div>" +
+        "  <div class='stat'><span>Tiempo en el reto</span><span class='stat-val' id='l-time'>0:00</span></div>" +
+        "  <div class='stat'><span>Errores en el reto</span><span class='stat-val' id='l-err'>0</span></div>" +
+        "  <div class='stat'><span>Retos completados</span><span class='stat-val' id='l-done'>0/4</span></div>" +
+        "  <div id='l-types' style='margin-top:12px'></div>" +
+        "  <div id='l-prog' style='margin-top:12px'></div>" +
+        "  <p class='note'>Actualización en vivo cada 2 s</p>" +
+        "</div>" +
+        "<div class='card' style='margin-top:16px'>" +
         "  <h2>Resultados de Sesión (última)</h2>" +
         "  <div id='results'><p style='color:#8b949e;padding:12px 0'>Sin datos — la sesión aún no ha finalizado.</p></div>" +
         "</div>" +
         "<div class='card' style='margin-top:16px'>" +
-        "  <h2>Historial de Sesiones <a class='btn' href='/api/sessions.csv' download='sesiones_tita.csv' style='float:right;text-decoration:none;text-transform:none'>Exportar a CSV</a></h2>" +
+        "  <h2>Historial de Sesiones " +
+        "<a class='btn' href='/api/records.csv' download='retos_tita.csv' style='float:right;text-decoration:none;text-transform:none'>CSV por reto</a>" +
+        "<a class='btn' href='/api/sessions.csv' download='sesiones_tita.csv' style='float:right;text-decoration:none;text-transform:none;margin-right:6px'>CSV por sesion</a></h2>" +
         "  <div id='sessions'><p style='color:#8b949e;padding:12px 0'>Sin sesiones registradas.</p></div>" +
         "</div>" +
         "<div id='toast'></div>" +
@@ -318,11 +381,11 @@ public class DashboardServer : MonoBehaviour
         "    var s=d.summary;" +
         "    var pct=Math.round((s.scorePercent||0)*100);" +
         "    var t=fmt(s.totalTimeSeconds);" +
-        "    var h='<table><thead><tr><th>Reto</th><th>Resultado</th><th>Tiempo</th><th>Errores</th><th>Evaluación</th></tr></thead><tbody>';" +
+        "    var h='<table><thead><tr><th>Reto</th><th>Resultado</th><th>Tiempo</th><th>Errores</th><th>Tipos de error</th><th>Evaluación</th></tr></thead><tbody>';" +
         "    if(d.records&&d.records.length){" +
         "      for(var i=0;i<d.records.length;i++){" +
         "        var r=d.records[i];var c=r.success?'ok':'fail';var ic=r.success?'OK':'X';" +
-        "        h+='<tr><td>'+r.levelName+'</td><td class=\\''+c+'\\'>'+ic+'</td><td>'+fmt(r.timeSeconds)+'</td><td>'+r.errors+'</td><td>'+r.evaluation+'</td></tr>';" +
+        "        h+='<tr><td>'+r.levelName+'</td><td class=\\''+c+'\\'>'+ic+'</td><td>'+fmt(r.timeSeconds)+'</td><td>'+r.errors+'</td><td>'+typesInline(r.errorTypes)+'</td><td>'+r.evaluation+'</td></tr>';" +
         "      }" +
         "    }" +
         "    h+='</tbody></table>';" +
@@ -369,6 +432,39 @@ public class DashboardServer : MonoBehaviour
 
         "function fmt(s){if(!s)return'0:00';var m=Math.floor(s/60);return m+':'+String(Math.floor(s%60)).padStart(2,'0');}" +
 
+        "function typesInline(arr){" +
+        "  if(!arr||!arr.length)return '—';" +
+        "  var s=[];for(var i=0;i<arr.length;i++){s.push(arr[i].tipo+' ('+arr[i].count+')');}return s.join(', ');" +
+        "}" +
+        "function chips(arr){" +
+        "  if(!arr||!arr.length)return '<span style=\\'color:#8b949e;font-size:.8em\\'>Sin errores en este reto.</span>';" +
+        "  var s='<b style=\\'color:#8b949e;font-size:.8em\\'>Errores por tipo: </b>';" +
+        "  for(var i=0;i<arr.length;i++){s+='<span class=\\'badge badge-fail\\' style=\\'margin:2px\\'>'+arr[i].tipo+': '+arr[i].count+'</span>';}" +
+        "  return s;" +
+        "}" +
+        "async function fetchLive(){" +
+        "  try{" +
+        "    var d=(await(await fetch('/api/live')).json());" +
+        "    document.getElementById('l-expl').innerHTML=d.exploradorConectado?'<span class=\\'badge badge-ok\\'>Conectado</span>':'<span class=\\'badge badge-wait\\'>Esperando</span>';" +
+        "    document.getElementById('l-tec').innerHTML=d.tecnicoConectado?'<span class=\\'badge badge-ok\\'>Activo</span>':'<span class=\\'badge badge-wait\\'>Esperando</span>';" +
+        "    document.getElementById('l-reto').textContent=d.currentReto||'—';" +
+        "    document.getElementById('l-time').textContent=fmt(d.currentTimeSeconds);" +
+        "    document.getElementById('l-err').textContent=d.currentErrors||0;" +
+        "    document.getElementById('l-done').textContent=(d.retosCompletados||0)+'/4';" +
+        "    document.getElementById('l-types').innerHTML=chips(d.currentErrorTypes);" +
+        "    var h='';" +
+        "    if(d.completedRecords&&d.completedRecords.length){" +
+        "      h='<table><thead><tr><th>Reto</th><th>Resultado</th><th>Tiempo</th><th>Errores</th><th>Tipos</th></tr></thead><tbody>';" +
+        "      for(var i=0;i<d.completedRecords.length;i++){" +
+        "        var r=d.completedRecords[i];var c=r.success?'ok':'fail';var ic=r.success?'OK':'X';" +
+        "        h+='<tr><td>'+r.levelName+'</td><td class=\\''+c+'\\'>'+ic+'</td><td>'+fmt(r.timeSeconds)+'</td><td>'+r.errors+'</td><td>'+typesInline(r.errorTypes)+'</td></tr>';" +
+        "      }" +
+        "      h+='</tbody></table>';" +
+        "    }" +
+        "    document.getElementById('l-prog').innerHTML=h;" +
+        "  }catch(e){}" +
+        "}" +
+
         "function toast(msg){" +
         "  var el=document.getElementById('toast');" +
         "  el.textContent=msg;el.style.display='block';" +
@@ -376,6 +472,7 @@ public class DashboardServer : MonoBehaviour
         "}" +
 
         "setInterval(function(){fetchStatus();fetchResults();fetchSessions();},10000);" +
-        "fetchStatus();fetchResults();fetchSessions();" +
+        "setInterval(fetchLive,2000);" +
+        "fetchStatus();fetchResults();fetchSessions();fetchLive();" +
         "</script></body></html>";
 }
