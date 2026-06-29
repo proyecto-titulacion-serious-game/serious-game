@@ -29,6 +29,8 @@ public class ThirdPersonCamera : MonoBehaviour
     public float maxPitch    =  80f;
 
     private float _pitch       = 0f;
+    private float _yaw         = 0f;    // yaw acumulado (gira el CUERPO); el mouse-look vive aquí
+    private bool  _yawInit     = false;
     private bool  _cursorFree  = false;
     private bool  _started     = false;
 
@@ -117,6 +119,9 @@ public class ThirdPersonCamera : MonoBehaviour
         if (cameraRoot == null && target != null) cameraRoot = FindChildByName(target, cameraRootName);
         if (headBone   == null && target != null) headBone   = FindChildByName(target, headBoneName);
 
+        // Inicializar el yaw con la orientación actual del cuerpo (1 vez, al aparecer el rig).
+        if (!_yawInit && target != null) { _yaw = target.eulerAngles.y; _yawInit = true; }
+
         // Mantener la CABEZA colapsada (1ª persona viendo el cuerpo), por si el Animator la restaura.
         if (headBone != null) headBone.localScale = Vector3.zero;
 
@@ -134,9 +139,13 @@ public class ThirdPersonCamera : MonoBehaviour
             var mouse = Mouse.current;
             if (mouse != null)
             {
-                // Solo PITCH aquí; el YAW del cuerpo lo maneja TechnicianMover (un único
-                // dueño del giro, evita que cámara y mover se peleen y se cancele el mouse).
                 Vector2 delta = mouse.delta.ReadValue();
+                // El mouse-look COMPLETO vive aquí (TechnicianMover es solo movimiento):
+                //   YAW  → gira el CUERPO (target); el modelo y esta cámara giran con él.
+                //   PITCH → gira solo la cámara.
+                _yaw += delta.x * sensitivity * GameSettings.MouseSensitivity * 0.1f;
+                if (target != null) target.rotation = Quaternion.Euler(0f, _yaw, 0f);
+
                 _pitch -= delta.y * sensitivity * GameSettings.MouseSensitivity * 0.1f;
                 _pitch = Mathf.Clamp(_pitch, minPitch, maxPitch);
             }
@@ -145,7 +154,7 @@ public class ThirdPersonCamera : MonoBehaviour
             if (Cursor.lockState != CursorLockMode.Locked) LockCursor(true);
         }
 
-        transform.rotation = Quaternion.Euler(_pitch, Yaw, 0f);
+        transform.rotation = Quaternion.Euler(_pitch, _yaw, 0f);
 
         if (cameraRoot != null)
         {
