@@ -384,7 +384,10 @@ public class ArduinoIDEUI : MonoBehaviour
             }
             else
             {
-                SetStatus("Esperando al Explorador (VR)...", Color.grey);
+                SetStatus("Subir bloqueado: falta el Arduino del Explorador.", Color.grey);
+                LogLine("<color=#FFAA00>> Para SUBIR el sketch necesitas el Arduino del Explorador. " +
+                        "Opciones: 1) conecta al Explorador (VR) y espera a que su placa quede lista, o " +
+                        "2) corre en modo offline (ConnectionManager.modoOffline) para una placa de prueba local.</color>");
             }
         }
     }
@@ -502,8 +505,10 @@ public class ArduinoIDEUI : MonoBehaviour
                 return;
             }
 
-            SetStatus("No se encontró el GameManager.", CErr);
-            LogLine("<color=#FF4444>> ERROR: no se pudo comprobar (sin GameManager ni red).</color>");
+            SetStatus("Verificar bloqueado: falta el Explorador.", CErr);
+            LogLine("<color=#FF4444>> No se puede VERIFICAR sin el Arduino del Explorador. " +
+                    "Conecta al Explorador (VR), o corre en modo offline (ConnectionManager.modoOffline) " +
+                    "para probar el Técnico solo.</color>");
             return;
         }
 
