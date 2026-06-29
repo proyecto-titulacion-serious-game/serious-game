@@ -1,7 +1,10 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.Networking;
 
 /// <summary>
 /// Recolecta los datos de la sesión de juego y los expone de forma
@@ -14,10 +17,30 @@ public class SessionDataExporter : MonoBehaviour
 {
     public static SessionDataExporter Instance { get; private set; }
 
+    [Header("Subida a Google Sheets (opcional, vía Apps Script)")]
+    [Tooltip("Si está activo, al terminar la sesión hace POST al webhook y agrega filas a la Sheet.")]
+    public bool   subirASheets = false;
+    [Tooltip("URL /exec del Web App de Apps Script.")]
+    public string webhookUrl   = "";
+    [Tooltip("Token compartido (debe coincidir con TOKEN en el Apps Script).")]
+    public string sheetsToken  = "TITA-2026-cambia-esto";
+    [Tooltip("Etiqueta del grupo/PC. Vacío = nombre del equipo (SystemInfo.deviceName).")]
+    public string grupo        = "";
+
+    /// <summary>True mientras hay una subida a Google Sheets en curso. Lo usa PauseMenu para esperar
+    /// a que termine antes de cerrar el juego al pulsar "Salir".</summary>
+    public bool SubidaEnCurso { get; private set; }
+
     private readonly object      _lock = new object();
     private SessionExportData    _data = new SessionExportData();
     private SessionHistory       _history = new SessionHistory();
     private SessionLiveData      _live = new SessionLiveData();
+
+    // Cache de JSON serializado en el HILO PRINCIPAL. JsonUtility NO se puede llamar desde el hilo
+    // HTTP (lanza excepción) → el servidor sirve estas cadenas ya hechas, no serializa en su hilo.
+    private string _liveJson     = "{}";
+    private string _resultsJson  = "{}";
+    private string _sessionsJson = "{\"sessions\":[]}";
 
     // Refresco en vivo (hilo principal); el servidor HTTP solo lee el snapshot bajo lock.
     private PerformanceTracker   _tracker;
@@ -55,6 +78,11 @@ public class SessionDataExporter : MonoBehaviour
         lock (_lock) { return _data; }
     }
 
+    // JSON ya serializado en el hilo principal (lo sirve el DashboardServer desde su hilo HTTP).
+    public string GetLiveJson()     { lock (_lock) { return _liveJson;     } }
+    public string GetResultsJson()  { lock (_lock) { return _resultsJson;  } }
+    public string GetSessionsJson() { lock (_lock) { return _sessionsJson; } }
+
     /// <summary>Historial (lista) de todas las sesiones finalizadas — para el dashboard.</summary>
     public SessionHistory GetHistorySnapshot()
     {
@@ -72,6 +100,11 @@ public class SessionDataExporter : MonoBehaviour
     // ─────────────────────────────────────────────
     void Update()
     {
+        // Tecla de PRUEBA: F8 sube una fila de test a Google Sheets (verificar la conexión sin jugar).
+        var kb = Keyboard.current;
+        if (kb != null && kb.f8Key.wasPressedThisFrame)
+            StartCoroutine(SubirPrueba());
+
         if (Time.unscaledTime < _nextLiveRefresh) return;
         _nextLiveRefresh = Time.unscaledTime + 0.5f;
         RefreshLive();
@@ -108,6 +141,10 @@ public class SessionDataExporter : MonoBehaviour
         {
             live.state = _data.state;
             _live = live;
+            // Serializar AQUÍ (hilo principal) y cachear para el servidor HTTP.
+            _liveJson     = JsonUtility.ToJson(_live);
+            _resultsJson  = JsonUtility.ToJson(_data);
+            _sessionsJson = JsonUtility.ToJson(_history);
         }
     }
 
@@ -158,6 +195,107 @@ public class SessionDataExporter : MonoBehaviour
 
         SaveToDisk();
         SaveHistory();
+
+        // Sink opcional a la nube: además del respaldo local, sube la sesión a Google Sheets.
+        if (subirASheets && !string.IsNullOrEmpty(webhookUrl))
+        {
+            SubidaEnCurso = true;
+            StartCoroutine(SubirASheets(result, serialized, stamp));
+        }
+    }
+
+    // ─────────────────────────────────────────────
+    //  Subida a Google Sheets (webhook de Apps Script)
+    // ─────────────────────────────────────────────
+    [Serializable] class SheetsSesion { public string fecha, grupo, codigo, evaluacion;
+                                        public int score, scoreMax, porcentaje, tiempo, errores; }
+    [Serializable] class SheetsReto   { public string reto, evaluacion, tipos;
+                                        public int tiempo, errores, exito; }
+    [Serializable] class SheetsPayload{ public string token; public SheetsSesion session; public SheetsReto[] records; }
+
+    IEnumerator SubirASheets(SessionResult r, LevelRecordDto[] recs, string stamp)
+    {
+        string codigo;
+        lock (_lock) { codigo = _data.accessCode; }
+        string grp = string.IsNullOrEmpty(grupo) ? SystemInfo.deviceName : grupo;
+
+        var payload = new SheetsPayload
+        {
+            token   = sheetsToken,
+            session = new SheetsSesion
+            {
+                fecha = stamp, grupo = grp, codigo = codigo, evaluacion = r.evaluation,
+                score = r.totalScore, scoreMax = r.maxScore,
+                porcentaje = Mathf.RoundToInt(r.scorePercent * 100f),
+                tiempo = Mathf.RoundToInt(r.totalTimeSeconds), errores = r.totalErrors
+            },
+            records = Array.ConvertAll(recs ?? Array.Empty<LevelRecordDto>(), x => new SheetsReto
+            {
+                reto = x.levelName, tiempo = Mathf.RoundToInt(x.timeSeconds),
+                errores = x.errors, exito = x.success ? 1 : 0, evaluacion = x.evaluation,
+                tipos = TiposInline(x.errorTypes)
+            })
+        };
+
+        yield return PostPayload(payload);
+    }
+
+    /// <summary>PRUEBA: sube una fila de test a la hoja al instante (tecla F8 en Play), para verificar
+    /// la conexión a Google Sheets SIN tener que completar una sesión real.</summary>
+    public IEnumerator SubirPrueba()
+    {
+        var payload = new SheetsPayload
+        {
+            token   = sheetsToken,
+            session = new SheetsSesion
+            {
+                fecha = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                grupo = string.IsNullOrEmpty(grupo) ? SystemInfo.deviceName : grupo,
+                codigo = "TEST", evaluacion = "[PRUEBA]",
+                score = 100, scoreMax = 100, porcentaje = 100, tiempo = 0, errores = 0
+            },
+            records = new[]
+            {
+                new SheetsReto { reto = "Reto 1 — PRUEBA", tiempo = 42, errores = 1, exito = 1,
+                                 evaluacion = "[PRUEBA]", tipos = "Cortocircuito:1" }
+            }
+        };
+        Debug.Log("[SessionDataExporter] F8: enviando fila de PRUEBA a Google Sheets...");
+        yield return PostPayload(payload);
+    }
+
+    IEnumerator PostPayload(SheetsPayload payload)
+    {
+        if (string.IsNullOrEmpty(webhookUrl))
+        {
+            Debug.LogWarning("[SessionDataExporter] webhookUrl vacío: configura SHEETS_URL en DashboardBootstrap.");
+            yield break;
+        }
+        byte[] body = System.Text.Encoding.UTF8.GetBytes(JsonUtility.ToJson(payload));
+        using (var req = new UnityWebRequest(webhookUrl, "POST"))
+        {
+            req.uploadHandler   = new UploadHandlerRaw(body);
+            req.downloadHandler = new DownloadHandlerBuffer();
+            req.SetRequestHeader("Content-Type", "application/json");
+            req.redirectLimit = 5;    // Apps Script responde con 302 → hay que seguir el redirect
+            req.timeout       = 15;
+            yield return req.SendWebRequest();
+
+            bool ok = req.result == UnityWebRequest.Result.Success;
+            if (ok) Debug.Log($"[SessionDataExporter] Subido a Google Sheets: {req.downloadHandler.text}");
+            else    Debug.LogWarning($"[SessionDataExporter] No se pudo subir a Sheets: {req.error}. " +
+                                     "El respaldo local (JSON/CSV) está intacto.");
+        }
+        SubidaEnCurso = false;
+    }
+
+    // "cortocircuito:2;polaridad:1" — desglose de errores en una celda.
+    static string TiposInline(ErrorTagCount[] arr)
+    {
+        if (arr == null || arr.Length == 0) return "";
+        var parts = new string[arr.Length];
+        for (int i = 0; i < arr.Length; i++) parts[i] = arr[i].tipo + ":" + arr[i].count;
+        return string.Join(";", parts);
     }
 
     // ─────────────────────────────────────────────

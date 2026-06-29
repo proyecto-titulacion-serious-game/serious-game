@@ -35,6 +35,7 @@ public class ObjectiveSystem : MonoBehaviour
     // ─────────────────────────────────────────────
     // Evitan que objetivos que requieren acción del jugador se completen solos
     private bool _multimeterUsed = false;
+    private bool _ended          = false;   // evita disparar OnSessionEnded dos veces
 
     // ─────────────────────────────────────────────
     //  Unity Lifecycle
@@ -253,25 +254,37 @@ public class ObjectiveSystem : MonoBehaviour
         CompleteObjective(index);
     }
 
+    /// <summary>Finaliza la sesión a demanda (ej. al pulsar "Salir del juego"): registra el resultado
+    /// PARCIAL con los retos completados hasta ahora. Cuenta como partida finalizada.</summary>
+    public void FinalizarSesion() => HandleGameCompleted();
+
     void HandleGameCompleted()
     {
+        if (_ended) return;     // no terminar la sesión dos veces (fin normal + salir manual)
+        _ended = true;
+
         // Agregar totales desde todos los registros de reto (no solo el último nivel activo)
-        int   totalErrors = 0;
-        float totalTime   = 0f;
+        int   retosCompletados = 0;
+        int   totalErrors      = 0;
+        float totalTime        = 0f;
 
         if (performance != null)
         {
-            foreach (var r in performance.GetAllRecords())
+            var records = performance.GetAllRecords();
+            retosCompletados = records.Count;
+            foreach (var r in records)
             {
                 totalErrors += r.errors;
                 totalTime   += r.timeSeconds;
             }
         }
 
+        // Sin retos completados (p. ej. salir al inicio o probar solo el Técnico) NO es "Excelente".
         string sessionEval =
-            totalErrors == 0 ? "[EXCELENTE] ¡Sin errores en toda la sesión!" :
-            totalErrors <= 3 ? $"[BUENO] {totalErrors} errores totales en la sesión" :
-                               $"[MEJORAR] {totalErrors} errores — repasar procedimientos";
+            retosCompletados == 0 ? "[ABANDONADA] Sin retos completados" :
+            totalErrors == 0      ? $"[EXCELENTE] {retosCompletados} reto(s) sin errores" :
+            totalErrors <= 3      ? $"[BUENO] {totalErrors} errores en {retosCompletados} reto(s)" :
+                                    $"[MEJORAR] {totalErrors} errores — repasar procedimientos";
 
         var result = new SessionResult
         {

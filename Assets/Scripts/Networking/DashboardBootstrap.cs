@@ -15,6 +15,14 @@ using UnityEngine.SceneManagement;
 /// </summary>
 public static class DashboardBootstrap
 {
+    // ── Subida a Google Sheets (opcional) ──────────────────────────────────────
+    // Pega aquí la URL /exec de tu Web App de Apps Script y pon ENABLE_SHEETS en true.
+    // El TOKEN debe coincidir con el del script de Apps Script. GRUPO vacío = nombre del PC.
+    const bool   ENABLE_SHEETS = true;
+    const string SHEETS_URL    = "https://script.google.com/macros/s/AKfycbz09uUB8JyrnBlQjF9AVglLiqfpHvzUSVMrmjtTonaK4eNhUt86uoQWmldeFHnX3jeoLg/exec";
+    const string SHEETS_TOKEN  = "TITA-2026-clave-secreta";   // ← pon ESTE MISMO valor en 'const TOKEN' del Apps Script
+    const string GRUPO         = "1";                      // número de grupo (cámbialo por sesión/equipo). Vacío = nombre del PC
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Bootstrap()
     {
@@ -34,6 +42,12 @@ public static class DashboardBootstrap
         Object.DontDestroyOnLoad(go);
 
         var exporter = go.AddComponent<SessionDataExporter>();
+        // Sink opcional a la nube (Google Sheets vía Apps Script).
+        exporter.subirASheets = ENABLE_SHEETS;
+        exporter.webhookUrl   = SHEETS_URL;
+        exporter.sheetsToken  = SHEETS_TOKEN;
+        exporter.grupo        = GRUPO;
+
         var server   = go.AddComponent<DashboardServer>();
         server.dataExporter  = exporter;
         server.localhostOnly = true;   // solo este PC (sin permisos extra). Cambiar a false para toda la LAN.

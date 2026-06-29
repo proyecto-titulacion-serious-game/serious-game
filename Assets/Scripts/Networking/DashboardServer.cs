@@ -112,18 +112,16 @@ public class DashboardServer : MonoBehaviour
             }
             else if (path == "/api/results")
             {
-                var data = dataExporter?.GetSnapshot() ?? new SessionExportData();
-                Respond(ctx, 200, "application/json", JsonUtility.ToJson(data));
+                // JSON ya serializado en el hilo principal (JsonUtility NO se puede llamar aquí).
+                Respond(ctx, 200, "application/json", dataExporter?.GetResultsJson() ?? "{}");
             }
             else if (path == "/api/live")
             {
-                var live = dataExporter?.GetLiveSnapshot() ?? new SessionLiveData();
-                Respond(ctx, 200, "application/json", JsonUtility.ToJson(live));
+                Respond(ctx, 200, "application/json", dataExporter?.GetLiveJson() ?? "{}");
             }
             else if (path == "/api/sessions")
             {
-                var hist = dataExporter?.GetHistorySnapshot() ?? new SessionHistory();
-                Respond(ctx, 200, "application/json", JsonUtility.ToJson(hist));
+                Respond(ctx, 200, "application/json", dataExporter?.GetSessionsJson() ?? "{\"sessions\":[]}");
             }
             else if (path == "/api/sessions.csv")
             {
@@ -317,21 +315,11 @@ public class DashboardServer : MonoBehaviour
         "</style></head><body>" +
         "<h1>TITA — Panel Docente</h1>" +
         "<p class='sub'>Serious Game — Circuitos Eléctricos VR &nbsp;|&nbsp; <span id='clock'></span></p>" +
-        "<div class='grid'>" +
-        "  <div class='card'>" +
-        "    <h2>Código de Acceso</h2>" +
-        "    <div class='code-display' id='code'>----</div>" +
-        "    <p class='code-hint'>Dictar este código a los estudiantes para unirse a la sala</p>" +
-        "    <button class='btn btn-gen' onclick='generateCode()'>Generar nuevo código</button>" +
-        "    <button class='btn' style='width:100%;margin-top:4px' onclick='copyCode()'>Copiar código</button>" +
-        "  </div>" +
-        "  <div class='card'>" +
-        "    <h2>Estado de Sesión</h2>" +
-        "    <div class='stat'><span>Reto activo</span><span class='stat-val' id='s-reto'>—</span></div>" +
-        "    <div class='stat'><span>Estado</span><span id='s-state'><span class='badge badge-wait'>En espera</span></span></div>" +
-        "    <div class='stat'><span>Código sala</span><span class='stat-val' id='s-code'>----</span></div>" +
-        "    <p class='note'>Actualización automática cada 10 s</p>" +
-        "  </div>" +
+        "<div class='card'>" +
+        "  <h2>Estado de Sesión</h2>" +
+        "  <div class='stat'><span>Reto activo</span><span class='stat-val' id='s-reto'>—</span></div>" +
+        "  <div class='stat'><span>Estado</span><span id='s-state'><span class='badge badge-wait'>En espera</span></span></div>" +
+        "  <p class='note'>Actualización automática cada 10 s</p>" +
         "</div>" +
         "<div class='card'>" +
         "  <h2>Sesión en Vivo — Ambos Roles</h2>" +
@@ -368,8 +356,6 @@ public class DashboardServer : MonoBehaviour
         "    document.getElementById('s-reto').textContent=d.currentReto||'—';" +
         "    var cls=d.state==='En progreso'?'badge-ok':d.state==='Sesion finalizada'?'badge-ok':'badge-wait';" +
         "    document.getElementById('s-state').innerHTML='<span class=\\'badge '+cls+'\\'>'+d.state+'</span>';" +
-        "    document.getElementById('s-code').textContent=d.accessCode||'----';" +
-        "    document.getElementById('code').textContent=d.accessCode||'----';" +
         "  }catch(e){}" +
         "}" +
 
@@ -399,19 +385,6 @@ public class DashboardServer : MonoBehaviour
         "    if(d.timestamp)h+='<p style=\\'font-size:.75em;color:#8b949e;margin-top:8px\\'>Guardado: '+d.timestamp+'</p>';" +
         "    el.innerHTML=h;" +
         "  }catch(e){document.getElementById('results').textContent='Error al cargar resultados.';}" +
-        "}" +
-
-        "async function generateCode(){" +
-        "  var d=(await(await fetch('/api/code',{method:'POST'})).json());" +
-        "  document.getElementById('code').textContent=d.code;" +
-        "  document.getElementById('s-code').textContent=d.code;" +
-        "  toast('Código generado: '+d.code);" +
-        "}" +
-
-        "function copyCode(){" +
-        "  var c=document.getElementById('code').textContent;" +
-        "  if(c==='----')return;" +
-        "  navigator.clipboard.writeText(c).then(function(){toast('Código copiado');});" +
         "}" +
 
         "async function fetchSessions(){" +
